@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/types/database'
 
 type MessageRow = Database['public']['Views']['vw_messages']['Row']
+type ConversationRow = Database['public']['Views']['vw_creator_conversations']['Row']
 
 export default function ChatConversationPage() {
   const params = useParams()
@@ -48,7 +49,8 @@ export default function ChatConversationPage() {
         .eq('conversation_id', id)
         .eq('profile_id', uid)
         .single()
-      if (!cancelled && conv?.peer_name) setPeerName(conv.peer_name as string)
+      const row = conv as Pick<ConversationRow, 'peer_name'> | null
+      if (!cancelled && row?.peer_name) setPeerName(row.peer_name)
       await fetchMessages()
       if (!uid) return
       await supabase
