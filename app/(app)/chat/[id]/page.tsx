@@ -7,6 +7,7 @@ import type { Database } from '@/lib/types/database'
 
 type MessageRow = Database['public']['Views']['vw_messages']['Row']
 type ConversationRow = Database['public']['Views']['vw_creator_conversations']['Row']
+type ConversationParticipantUpdate = Database['public']['Tables']['conversation_participants']['Update']
 
 export default function ChatConversationPage() {
   const params = useParams()
@@ -55,7 +56,7 @@ export default function ChatConversationPage() {
       if (!uid) return
       await supabase
         .from('conversation_participants')
-        .update({ last_read_at: new Date().toISOString() })
+        .update({ last_read_at: new Date().toISOString() } as ConversationParticipantUpdate)
         .eq('conversation_id', id)
         .eq('profile_id', uid)
       if (!cancelled) setLoading(false)
