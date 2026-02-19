@@ -103,7 +103,7 @@ export async function getCreatorInfo(
     if (!rpcError && rpcData != null) {
       const raw = Array.isArray(rpcData) ? rpcData[0] : rpcData
       if (raw && typeof raw === 'object') {
-        return normalizeCreatorData(raw)
+        return normalizeCreatorData(raw as Record<string, unknown>)
       }
     }
 

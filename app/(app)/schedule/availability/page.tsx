@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
@@ -135,7 +135,7 @@ function ExpandableSection({
   )
 }
 
-export default function ScheduleAvailabilityPage() {
+function ScheduleAvailabilityContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -349,5 +349,13 @@ export default function ScheduleAvailabilityPage() {
         </>
       )}
     </div>
+  )
+}
+
+export default function ScheduleAvailabilityPage() {
+  return (
+    <Suspense>
+      <ScheduleAvailabilityContent />
+    </Suspense>
   )
 }

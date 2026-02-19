@@ -55,7 +55,7 @@ export default function ContentEditPage() {
         setDescription((pack.description as string) ?? '')
         setCoverImageUrl((pack.cover_image_url as string) ?? null)
         const rawItems = (pack.items ?? pack.pack_items) as unknown[]
-        setItems(Array.isArray(rawItems) ? rawItems.map(normItem) : [])
+        setItems(Array.isArray(rawItems) ? rawItems.map((it) => normItem(it as Parameters<typeof normItem>[0])) : [])
       } catch {
         toast.error('Pacote não encontrado')
         router.push('/content')
