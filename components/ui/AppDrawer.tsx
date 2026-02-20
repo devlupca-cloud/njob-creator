@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { signOut } from '@/lib/supabase/auth'
+import { useState } from 'react'
+import { useAppStore, useIsGuest } from '@/lib/store/app-store'
+import GuestAuthModal from '@/components/ui/GuestAuthModal'
 
 export interface DrawerItem {
   label: string
@@ -77,10 +80,18 @@ interface AppDrawerProps {
 export default function AppDrawer({ open, onClose }: AppDrawerProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const isGuest = useIsGuest()
+  const setGuest = useAppStore((s) => s.setGuest)
+  const [guestModalOpen, setGuestModalOpen] = useState(false)
 
   const handleSignOut = async () => {
     onClose()
-    await signOut()
+    if (isGuest) {
+      document.cookie = 'njob-guest=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+      setGuest(false)
+    } else {
+      await signOut()
+    }
     router.push('/login')
   }
 
@@ -113,6 +124,26 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
         <nav className="flex-1 flex flex-col gap-0.5 px-3 overflow-y-auto">
           {drawerItems.map((item) => {
             const isActive = pathname === item.href
+
+            // Convidado: qualquer item abre modal de cadastro
+            if (isGuest) {
+              return (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => { onClose(); setGuestModalOpen(true) }}
+                  className={[
+                    'flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors min-h-[48px]',
+                    isActive ? 'bg-gradient-primary text-white' : 'hover:bg-surface-2',
+                  ].join(' ')}
+                  style={!isActive ? { color: 'var(--color-foreground)' } : undefined}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              )
+            }
+
             return (
               <Link
                 key={item.href}
@@ -142,6 +173,12 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
           </button>
         </div>
       </aside>
+
+      <GuestAuthModal
+        open={guestModalOpen}
+        onClose={() => setGuestModalOpen(false)}
+        message="Você precisa de uma conta para navegar pela plataforma."
+      />
     </>
   )
 }

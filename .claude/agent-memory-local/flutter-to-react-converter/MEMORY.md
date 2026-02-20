@@ -121,3 +121,24 @@ app/(app)/profile/edit/images/page.tsx        — fotos (Storage bucket images +
 - `SelectField.tsx` — label, options [{value, label}], error, placeholder
 - `PageHeader.tsx` — title, showBack, onBack, action
 - `Spinner.tsx`
+- `GuestAuthModal.tsx` — props: open, onClose, message?; limpa cookie njob-guest + store.setGuest(false) + router.push('/register')
+
+## Padrao de Modal com Animacao (sem biblioteca externa)
+```tsx
+// Keyframe via <style> tag inline no retorno do componente
+<style>{`
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.94) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+`}</style>
+// Aplicar no panel: animation: 'modalIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both'
+// backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' no overlay
+```
+
+## Cookie Deletion Pattern
+```ts
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`
+}
+```

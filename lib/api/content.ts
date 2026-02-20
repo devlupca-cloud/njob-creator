@@ -97,14 +97,16 @@ export async function updatePackWithItems(payload: Record<string, unknown>, toke
   return out
 }
 
+/** Soft-delete: marca o pacote como 'archived'. Compradores existentes mantêm acesso. */
 export async function deletePack(packId: string, token: string): Promise<void> {
   const res = await fetch(`${base()}/rest/v1/packs?id=eq.${encodeURIComponent(packId)}`, {
-    method: 'DELETE',
+    method: 'PATCH',
     headers: {
       apikey: anon(),
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ status: 'archived' }),
   })
   if (!res.ok) throw new Error(await res.text())
 }

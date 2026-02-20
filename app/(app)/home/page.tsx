@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import { createClient } from '@/lib/supabase/client'
-import { useCreator, useAppStore } from '@/lib/store/app-store'
+import { useCreator, useAppStore, useIsGuest } from '@/lib/store/app-store'
 import type { Database } from '@/lib/types/database'
+import { useGuestGuard } from '@/lib/hooks/useGuestGuard'
+import GuestAuthModal from '@/components/ui/GuestAuthModal'
 
 import ToggleOnline from '@/components/home/ToggleOnline'
 import CardEvento, { type TipoEvento } from '@/components/home/CardEvento'
@@ -113,8 +115,10 @@ function buildEventURL(event: VwCreatorEventRow, userId: string, fullName: strin
 export default function HomePage() {
   const supabase = createClient()
   const creator = useCreator()
+  const isGuest = useIsGuest()
   const setCreator = useAppStore((s) => s.setCreator)
   const router = useRouter()
+  const { requireAuth, showGuestModal, setShowGuestModal } = useGuestGuard()
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false)
@@ -205,6 +209,7 @@ export default function HomePage() {
   // ─── Handlers ──────────────────────────────────────────────────
 
   const handleOpenEvent = useCallback(async (event: VwCreatorEventRow) => {
+    if (!requireAuth()) return
     const { data: session } = await supabase.auth.getSession()
     const userId = session.session?.user.id
     if (!userId || !creator) return
@@ -235,6 +240,7 @@ export default function HomePage() {
 
   const handleOnlineChange = useCallback(
     async (isActive: boolean) => {
+      if (!requireAuth()) return
       if (!creator) return
       const { data: session } = await supabase.auth.getSession()
       const userId = session.session?.user.id
@@ -260,7 +266,7 @@ export default function HomePage() {
 
   const userName = creator?.profile?.full_name?.trim() || null
   const avatarUrl = creator?.profile?.avatar_url
-  const greeting = userName ? `Olá, ${userName}` : 'Olá'
+  const greeting = isGuest ? 'Olá, Visitante' : userName ? `Olá, ${userName}` : 'Olá'
 
   return (
     <>
@@ -510,7 +516,7 @@ export default function HomePage() {
 
           {/* Botão "Criar evento" — gradient igual ao Flutter */}
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => { if (!requireAuth()) return; setModalOpen(true) }}
             style={{
               width: '100%',
               height: 44,
@@ -592,6 +598,13 @@ export default function HomePage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onRefresh={handleRefreshAfterCreate}
+      />
+
+      {/* Modal de autenticação para convidados */}
+      <GuestAuthModal
+        open={showGuestModal}
+        onClose={() => setShowGuestModal(false)}
+        message="Você precisa de uma conta para realizar ações na plataforma."
       />
     </>
   )

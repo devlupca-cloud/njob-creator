@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { formatTimeLocal } from '@/lib/utils/datetime'
 
 export type TipoEvento = 'live' | 'call'
@@ -46,7 +46,17 @@ const VideoIcon = () => (
   </svg>
 )
 
+const LockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+)
+
 // ─── Helpers ──────────────────────────────────────────────────────
+
+/** Minutos de antecedência para liberar a entrada */
+const BUFFER_MINUTES = 15
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '--/--/----'
@@ -58,13 +68,47 @@ function formatDate(value: string | Date | null | undefined): string {
   return `${day}/${month}/${year}`
 }
 
+type EventStatus = 'upcoming' | 'available' | 'finished'
+
 /**
- * Retorna true se o horário do evento for <= agora
- * (o botão de ação deve aparecer apenas a partir do horário do evento)
+ * Retorna o status do evento baseado no horário atual:
+ * - upcoming: falta mais de BUFFER_MINUTES para o evento
+ * - available: dentro da janela (BUFFER_MINUTES antes até fim do evento)
+ * - finished: evento já terminou (start + duração)
  */
-function isTimeReached(time: string | Date): boolean {
+function getEventStatus(time: string | Date, durationStr: string): EventStatus {
   const eventTime = typeof time === 'string' ? new Date(time) : time
-  return new Date() >= eventTime
+  const now = new Date()
+
+  // Parse duração em minutos (ex: "60m", "30m")
+  const durationMin = parseInt(durationStr.replace(/\D/g, ''), 10) || 60
+  const eventEnd = new Date(eventTime.getTime() + durationMin * 60 * 1000)
+  const bufferStart = new Date(eventTime.getTime() - BUFFER_MINUTES * 60 * 1000)
+
+  if (now > eventEnd) return 'finished'
+  if (now >= bufferStart) return 'available'
+  return 'upcoming'
+}
+
+/**
+ * Calcula quanto tempo falta para o buffer iniciar.
+ * Retorna string formatada como "Xh Xmin" ou "Xmin"
+ */
+function getTimeUntilAvailable(time: string | Date): string {
+  const eventTime = typeof time === 'string' ? new Date(time) : time
+  const bufferStart = new Date(eventTime.getTime() - BUFFER_MINUTES * 60 * 1000)
+  const now = new Date()
+  const diffMs = bufferStart.getTime() - now.getTime()
+
+  if (diffMs <= 0) return ''
+
+  const totalMin = Math.ceil(diffMs / 60000)
+  const hours = Math.floor(totalMin / 60)
+  const mins = totalMin % 60
+
+  if (hours > 0 && mins > 0) return `${hours}h ${mins}min`
+  if (hours > 0) return `${hours}h`
+  return `${mins}min`
 }
 
 // ─── Cores da borda esquerda por tipo ────────────────────────────
@@ -79,8 +123,8 @@ const borderColors: Record<TipoEvento, string> = {
  * - Borda esquerda colorida: azul para live, amarelo para call
  * - Exibe data, hora, duração
  * - Contagem de participantes apenas para live
- * - Botão de ação aparece somente se hora >= agora
- * - Clicar no card inteiro também dispara onTapBTN (comportamento Flutter)
+ * - Botão de ação aparece somente 15min antes do horário agendado
+ * - Mostra countdown/status quando o evento ainda não está disponível
  */
 export default function CardEvento({
   typeEvento,
@@ -93,18 +137,34 @@ export default function CardEvento({
   eventId,
   date,
 }: CardEventoProps) {
-  const showButton = isTimeReached(time)
+  const [status, setStatus] = useState<EventStatus>(() => getEventStatus(time, duration))
+  const [countdown, setCountdown] = useState(() => getTimeUntilAvailable(time))
+
+  // Atualiza o status a cada 30 segundos
+  useEffect(() => {
+    const update = () => {
+      setStatus(getEventStatus(time, duration))
+      setCountdown(getTimeUntilAvailable(time))
+    }
+
+    const interval = setInterval(update, 30000)
+    return () => clearInterval(interval)
+  }, [time, duration])
+
   const borderColor = borderColors[typeEvento] ?? '#FFDF6E'
+  const isClickable = status === 'available' && !!onTapBTN
 
   return (
     <div
-      onClick={onTapBTN}
+      onClick={isClickable ? onTapBTN : undefined}
       style={{
-        cursor: onTapBTN ? 'pointer' : 'default',
+        cursor: isClickable ? 'pointer' : 'default',
         borderRadius: 4,
         boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
         background: 'var(--color-surface)',
         borderLeft: `4px solid ${borderColor}`,
+        opacity: status === 'finished' ? 0.5 : 1,
+        transition: 'opacity 200ms',
       }}
     >
       <div style={{ padding: '8px 12px' }}>
@@ -183,8 +243,8 @@ export default function CardEvento({
           </div>
         </div>
 
-        {/* Botão de ação — aparece apenas quando hora >= agora */}
-        {showButton && (
+        {/* Status do evento */}
+        {status === 'available' && (
           <div style={{ marginTop: 24, marginBottom: 10 }}>
             <button
               onClick={(e) => {
@@ -214,6 +274,46 @@ export default function CardEvento({
               <VideoIcon />
               {textBTN}
             </button>
+          </div>
+        )}
+
+        {status === 'upcoming' && (
+          <div
+            style={{
+              marginTop: 16,
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              borderRadius: 8,
+              background: 'var(--color-surface-2, rgba(255,255,255,0.05))',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <LockIcon />
+            <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>
+              Disponível em {countdown || 'breve'}
+            </span>
+          </div>
+        )}
+
+        {status === 'finished' && (
+          <div
+            style={{
+              marginTop: 16,
+              marginBottom: 6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              padding: '8px 16px',
+            }}
+          >
+            <span style={{ fontSize: 12, color: 'var(--color-muted)', fontStyle: 'italic' }}>
+              Evento encerrado
+            </span>
           </div>
         )}
       </div>

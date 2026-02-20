@@ -7,6 +7,28 @@ import { createPackWithItems, createStripePack, updatePackWithItems } from '@/li
 import { uploadPackCover, uploadPackItem } from '@/lib/storage/packs'
 import { toast } from 'sonner'
 
+// ─── Currency helpers ──────────────────────────────────────────────
+
+const MIN_PRICE = 10
+
+function formatCurrencyBRL(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return ''
+  const num = parseInt(digits, 10) / 100
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+  }).format(num)
+}
+
+function parseCurrencyBRL(raw: string): number {
+  const cleaned = raw.replace(/[^\d,]/g, '').replace(',', '.')
+  return parseFloat(cleaned) || 0
+}
+
+// ────────────────────────────────────────────────────────────────────
+
 type PackItem = { url: string; type: 'photo' | 'video' }
 
 export default function ContentCreatePage() {
@@ -14,6 +36,7 @@ export default function ContentCreatePage() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
+  const [priceError, setPriceError] = useState(false)
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(false)
   const [coverFile, setCoverFile] = useState<File | null>(null)
@@ -46,13 +69,14 @@ export default function ContentCreatePage() {
 
   const submit = async () => {
     const t = title.trim()
-    const p = parseFloat(price.replace(/\D/g, '').replace(',', '.') || '0') / 100
+    const p = parseCurrencyBRL(price)
     if (!t) {
       toast.error('Título é obrigatório')
       return
     }
-    if (p <= 0) {
-      toast.error('Preço inválido')
+    if (p < MIN_PRICE) {
+      setPriceError(true)
+      toast.error(`Preço mínimo é R$ ${MIN_PRICE},00`)
       return
     }
     const { data: session } = await supabase.auth.getSession()
@@ -99,7 +123,7 @@ export default function ContentCreatePage() {
         toast.info('Pacote criado. Sincronização com Stripe pode ser feita depois.')
       }
       toast.success('Pacote criado')
-      router.push(`/content/${packId}/edit`)
+      router.push('/content')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erro ao criar')
     } finally {
@@ -197,11 +221,18 @@ export default function ContentCreatePage() {
           Preço (R$)
           <input
             type="text"
+            inputMode="numeric"
             value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="0,00"
-            style={inputStyle}
+            onChange={(e) => { setPrice(formatCurrencyBRL(e.target.value)); setPriceError(false) }}
+            onBlur={() => { if (price && parseCurrencyBRL(price) < MIN_PRICE) setPriceError(true) }}
+            placeholder="R$ 0,00"
+            style={{ ...inputStyle, borderColor: priceError ? 'var(--color-error)' : undefined }}
           />
+          {priceError && (
+            <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+              Valor mínimo de R$ {MIN_PRICE},00
+            </span>
+          )}
         </label>
         <div style={{ display: 'flex', gap: 8 }}>
           <button

@@ -16,14 +16,14 @@ const DURACAO_MINUTOS: Record<DuracaoOption, number> = {
 // ─── Ícones ───────────────────────────────────────────────────────
 
 const CloseIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 )
 
 const CalendarIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
     <line x1="16" x2="16" y1="2" y2="6" />
     <line x1="8" x2="8" y1="2" y2="6" />
@@ -32,16 +32,21 @@ const CalendarIcon = () => (
 )
 
 const ClockIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
+  </svg>
+)
+
+const SpinnerIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M12 2a10 10 0 0 1 10 10" style={{ animation: 'novoEventoSpin 0.7s linear infinite' }} />
   </svg>
 )
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
 function parseCurrencyBRL(raw: string): number {
-  // Remove tudo que não é dígito ou vírgula/ponto
   const cleaned = raw.replace(/[^\d,]/g, '').replace(',', '.')
   return parseFloat(cleaned) || 0
 }
@@ -49,7 +54,6 @@ function parseCurrencyBRL(raw: string): number {
 const MIN_VALOR_REAIS = 10
 
 function formatCurrencyBRL(raw: string): string {
-  // Mantém apenas dígitos (valor em centavos)
   const digits = raw.replace(/\D/g, '')
   if (!digits) return ''
   const num = parseInt(digits, 10) / 100
@@ -60,7 +64,6 @@ function formatCurrencyBRL(raw: string): string {
   }).format(num)
 }
 
-/** Formata um número em reais para o placeholder/valor mínimo (R$ 10,00). */
 function formatMinCurrency(): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -69,7 +72,6 @@ function formatMinCurrency(): string {
   }).format(MIN_VALOR_REAIS)
 }
 
-// Mascara HH:MM
 function maskTime(raw: string): string {
   const digits = raw.replace(/\D/g, '').slice(0, 4)
   if (digits.length <= 2) return digits
@@ -77,13 +79,12 @@ function maskTime(raw: string): string {
 }
 
 function formatDateDisplay(d: Date | null): string {
-  if (!d) return 'xx/xx/xxxx'
+  if (!d) return 'Selecionar data'
   const day = String(d.getDate()).padStart(2, '0')
   const month = String(d.getMonth() + 1).padStart(2, '0')
   return `${day}/${month}/${d.getFullYear()}`
 }
 
-/** Hoje no fuso local (YYYY-MM-DD). Evita que "hoje" no Brasil seja bloqueado por min quando já é dia seguinte em UTC. */
 function getTodayLocalYYYYMMDD(): string {
   const d = new Date()
   const y = d.getFullYear()
@@ -92,29 +93,52 @@ function getTodayLocalYYYYMMDD(): string {
   return `${y}-${m}-${day}`
 }
 
-// ─── Estilos compartilhados ───────────────────────────────────────
+// ─── Keyframes ────────────────────────────────────────────────────
 
-const inputStyle: React.CSSProperties = {
+const modalKeyframes = `
+@keyframes novoEventoOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes novoEventoModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes novoEventoSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes novoEventoShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+`
+
+// ─── Estilos ──────────────────────────────────────────────────────
+
+const inputBase: React.CSSProperties = {
   width: '100%',
   background: 'var(--color-surface-2)',
   border: '1px solid var(--color-border)',
-  borderRadius: 6,
-  padding: '10px 12px',
+  borderRadius: 10,
+  padding: '11px 14px',
   color: 'var(--color-foreground)',
   fontSize: 14,
   outline: 'none',
-}
-
-const inputErrorStyle: React.CSSProperties = {
-  ...inputStyle,
-  borderColor: 'var(--color-error)',
+  transition: 'border-color 150ms, box-shadow 150ms',
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: 14,
-  fontWeight: 700,
+  fontSize: 13,
+  fontWeight: 600,
   color: 'var(--color-foreground)',
-  marginBottom: 4,
+  marginBottom: 6,
   display: 'block',
 }
 
@@ -124,45 +148,26 @@ interface NovoEventoModalProps {
   isOpen: boolean
   onClose: () => void
   onRefresh: () => void
-  /** Initial date for the event (e.g. selected date on Agenda). */
   initialDate?: Date | null
 }
 
-/**
- * NovoEventoModal
- * Replica do NovoEventoWidget Flutter (bottom sheet → modal no web).
- *
- * Campos:
- *  - Título (obrigatório)
- *  - Duração (select: '1 hora' | '30 minutos', obrigatório)
- *  - Valor do ingresso (BRL, mínimo R$10,00, obrigatório)
- *  - Dia do Evento (date picker, obrigatório)
- *  - Horário do evento (HH:MM, obrigatório)
- *
- * Submit: Edge Function create-stripe-live-ticket (igual ao Flutter).
- * Body: title, description, scheduled_start_time, ticket_price, estimated_duration_minutes.
- */
 export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDate = null }: NovoEventoModalProps) {
   const supabase = createClient()
 
-  // Form state
   const [titulo, setTitulo] = useState('')
   const [duracao, setDuracao] = useState<DuracaoOption>('1 hora')
   const [valorRaw, setValorRaw] = useState('')
   const [dataSelecionada, setDataSelecionada] = useState<Date | null>(initialDate ?? null)
   const [horario, setHorario] = useState('')
 
-  // Erros
   const [erroTitulo, setErroTitulo] = useState(false)
   const [erroDuracao, setErroDuracao] = useState(false)
   const [erroValor, setErroValor] = useState(false)
   const [erroData, setErroData] = useState(false)
   const [erroHorario, setErroHorario] = useState(false)
+  const [shakeFields, setShakeFields] = useState(false)
 
-  // Loading
   const [loading, setLoading] = useState(false)
-
-  // Input oculto para date picker nativo
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   // Fecha com Escape
@@ -175,9 +180,15 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
     return () => window.removeEventListener('keydown', handler)
   }, [isOpen, onClose])
 
-  // Sync initialDate when modal opens
+  // Ao abrir: sync data e preencher horário com a hora atual
   useEffect(() => {
-    if (isOpen && initialDate) setDataSelecionada(initialDate)
+    if (isOpen) {
+      if (initialDate) setDataSelecionada(initialDate)
+      const now = new Date()
+      const hh = String(now.getHours()).padStart(2, '0')
+      const mm = String(now.getMinutes()).padStart(2, '0')
+      setHorario(`${hh}:${mm}`)
+    }
   }, [isOpen, initialDate])
 
   // Reset ao fechar
@@ -193,6 +204,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
       setErroValor(false)
       setErroData(false)
       setErroHorario(false)
+      setShakeFields(false)
       setLoading(false)
     }
   }, [isOpen])
@@ -208,8 +220,8 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
 
   const handleValorBlur = () => {
     const num = parseCurrencyBRL(valorRaw)
-    if (num > 0 && num < MIN_VALOR_REAIS) {
-      setValorRaw(formatMinCurrency())
+    if (valorRaw && num < MIN_VALOR_REAIS) {
+      setErroValor(true)
     }
   }
 
@@ -219,9 +231,8 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
   }
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value // YYYY-MM-DD
+    const val = e.target.value
     if (val) {
-      // Cria a data no timezone local, sem deslocamento UTC
       const [year, month, day] = val.split('-').map(Number)
       setDataSelecionada(new Date(year, month - 1, day))
       setErroData(false)
@@ -231,6 +242,21 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
   const openDatePicker = () => {
     dateInputRef.current?.showPicker?.()
     dateInputRef.current?.click()
+  }
+
+  const getInputStyle = (hasError: boolean): React.CSSProperties => ({
+    ...inputBase,
+    borderColor: hasError ? 'var(--color-error)' : 'var(--color-border)',
+  })
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+    e.currentTarget.style.borderColor = 'var(--color-primary)'
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(174, 50, 195, 0.15)'
+  }
+
+  const handleBlurStyle = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>, hasError: boolean) => {
+    e.currentTarget.style.borderColor = hasError ? 'var(--color-error)' : 'var(--color-border)'
+    e.currentTarget.style.boxShadow = 'none'
   }
 
   // ─── Submit ─────────────────────────────────────────────────────
@@ -249,18 +275,17 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
     const horarioValido = /^\d{2}:\d{2}$/.test(horario)
     if (!horarioValido) { setErroHorario(true); hasError = true }
 
-    if (hasError) return
+    if (hasError) {
+      setShakeFields(true)
+      setTimeout(() => setShakeFields(false), 350)
+      return
+    }
 
-    // Monta ISO da data+hora
-    const [hh, mm] = horario.split(':').map(Number)
-    const dataEvento = new Date(
-      dataSelecionada!.getFullYear(),
-      dataSelecionada!.getMonth(),
-      dataSelecionada!.getDate(),
-      hh,
-      mm,
-      0,
-    )
+    // Monta timestamp com data + horário exatos da modal (sem conversão UTC)
+    const year = dataSelecionada!.getFullYear()
+    const month = String(dataSelecionada!.getMonth() + 1).padStart(2, '0')
+    const day = String(dataSelecionada!.getDate()).padStart(2, '0')
+    const scheduledStartTime = `${year}-${month}-${day}T${horario}:00`
 
     setLoading(true)
 
@@ -272,7 +297,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
         body: {
           title: titulo.trim(),
           description: duracao,
-          scheduled_start_time: dataEvento.toISOString(),
+          scheduled_start_time: scheduledStartTime,
           ticket_price: valorNum,
           estimated_duration_minutes: DURACAO_MINUTOS[duracao],
         },
@@ -301,239 +326,317 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
 
   // ─── Render ─────────────────────────────────────────────────────
 
+  const shakeStyle = shakeFields ? { animation: 'novoEventoShake 300ms ease' } : {}
+
   return (
     <>
-      {/* Overlay */}
+      <style>{modalKeyframes}</style>
+
       <div
+        role="dialog"
+        aria-modal="true"
         onClick={onClose}
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.6)',
-          zIndex: 50,
-        }}
-      />
-
-      {/* Modal — alinhado ao fundo, igual ao bottom sheet Flutter */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="novo-evento-titulo"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 51,
-          background: 'var(--color-surface)',
-          borderRadius: '4px 4px 0 0',
-          padding: '0 16px 28px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          // Centraliza em telas largas
-          maxWidth: 600,
-          margin: '0 auto',
+          zIndex: 9999,
+          background: 'rgba(0,0,0,0.65)',
+          backdropFilter: 'blur(3px)',
+          WebkitBackdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          animation: 'novoEventoOverlayIn 180ms ease forwards',
         }}
       >
-        {/* Barra de fechar */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 4 }}>
-          <button
-            onClick={onClose}
-            aria-label="Fechar"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-foreground)', padding: 4 }}
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        {/* Título */}
-        <h2
-          id="novo-evento-titulo"
+        <div
+          onClick={(e) => e.stopPropagation()}
+          aria-labelledby="novo-evento-titulo"
           style={{
-            textAlign: 'center',
-            fontSize: 20,
-            fontWeight: 600,
-            color: 'var(--color-foreground)',
-            margin: 0,
-            marginBottom: 28,
+            background: 'var(--color-surface)',
+            borderRadius: 20,
+            maxHeight: '85vh',
+            overflowY: 'auto',
+            width: '100%',
+            maxWidth: 460,
+            animation: 'novoEventoModalIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
           }}
         >
-          Novo evento
-        </h2>
-
-        {/* Campos do formulário */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-          {/* Título do evento */}
-          <div>
-            <label htmlFor="novo-evento-titulo-input" style={labelStyle}>
-              Título
-            </label>
-            <input
-              id="novo-evento-titulo-input"
-              type="text"
-              placeholder="Escreva um título para o seu evento"
-              value={titulo}
-              onChange={(e) => { setTitulo(e.target.value); setErroTitulo(false) }}
-              style={erroTitulo ? inputErrorStyle : inputStyle}
-            />
-            {erroTitulo && (
-              <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                Campo obrigatório*
-              </span>
-            )}
-          </div>
-
-          {/* Duração */}
-          <div>
-            <label htmlFor="novo-evento-duracao" style={labelStyle}>
-              Informe o tempo de duração do evento
-            </label>
-            <select
-              id="novo-evento-duracao"
-              value={duracao}
-              onChange={(e) => { setDuracao(e.target.value as DuracaoOption); setErroDuracao(false) }}
+          {/* Header com gradiente sutil */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(174, 50, 195, 0.1) 0%, rgba(101, 22, 147, 0.06) 100%)',
+              borderRadius: '20px 20px 0 0',
+              padding: '20px 24px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ width: 32 }} />
+            <h2
+              id="novo-evento-titulo"
               style={{
-                ...(erroDuracao ? inputErrorStyle : inputStyle),
-                cursor: 'pointer',
+                textAlign: 'center',
+                fontSize: 18,
+                fontWeight: 600,
+                color: 'var(--color-foreground)',
+                margin: 0,
               }}
             >
-              {DURACAO_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-            {erroDuracao && (
-              <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                Campo obrigatório*
-              </span>
-            )}
+              Novo evento
+            </h2>
+            <button
+              onClick={onClose}
+              aria-label="Fechar"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--color-muted)',
+                padding: 6,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 150ms, background 150ms',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-foreground)'
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-muted)'
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+              }}
+            >
+              <CloseIcon />
+            </button>
           </div>
 
-          {/* Valor do ingresso */}
-          <div>
-            <label htmlFor="novo-evento-valor" style={labelStyle}>
-              Valor do ingresso
-            </label>
-            <input
-              id="novo-evento-valor"
-              type="text"
-              inputMode="numeric"
-              placeholder={formatMinCurrency()}
-              value={valorRaw}
-              onChange={handleValorChange}
-              onBlur={handleValorBlur}
-              style={erroValor ? inputErrorStyle : inputStyle}
-            />
-            {erroValor && (
-              <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                Valor mínimo de {formatMinCurrency()}*
-              </span>
-            )}
-          </div>
+          {/* Campos do formulário */}
+          <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-          {/* Dia do Evento + Horário — layout em linha. Data/hora no fuso local do usuário; envio em UTC. */}
-          <div style={{ display: 'flex', gap: 16 }}>
-
-            {/* Dia do Evento */}
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Dia do Evento</label>
-
-              {/* Input nativo invisível — acionado pelo clique no botão visível */}
+            {/* Título do evento */}
+            <div style={shakeStyle}>
+              <label htmlFor="novo-evento-titulo-input" style={labelStyle}>
+                Título
+              </label>
               <input
-                ref={dateInputRef}
-                type="date"
-                min={getTodayLocalYYYYMMDD()}
-                onChange={handleDateChange}
-                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
-                aria-hidden="true"
-                tabIndex={-1}
+                id="novo-evento-titulo-input"
+                type="text"
+                placeholder="Escreva um título para o seu evento"
+                value={titulo}
+                onChange={(e) => { setTitulo(e.target.value); setErroTitulo(false) }}
+                onFocus={handleFocus}
+                onBlur={(e) => handleBlurStyle(e, erroTitulo)}
+                style={getInputStyle(erroTitulo)}
               />
-
-              <button
-                type="button"
-                onClick={openDatePicker}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  width: '100%',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0,
-                  color: erroData ? 'var(--color-error)' : 'var(--color-foreground)',
-                }}
-                aria-label="Selecionar data"
-              >
-                <CalendarIcon />
-                <span style={{ fontSize: 14 }}>{formatDateDisplay(dataSelecionada)}</span>
-              </button>
-
-              {erroData && (
+              {erroTitulo && (
                 <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
                   Campo obrigatório*
                 </span>
               )}
             </div>
 
-            {/* Horário — sempre no fuso local do navegador; ao salvar convertemos para UTC (toISOString). */}
-            <div style={{ flex: 1 }}>
-              <label htmlFor="novo-evento-horario" style={labelStyle}>
-                Horário do evento
+            {/* Duração */}
+            <div style={shakeStyle}>
+              <label htmlFor="novo-evento-duracao" style={labelStyle}>
+                Duração
               </label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ClockIcon />
-                <input
-                  id="novo-evento-horario"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="00:00"
-                  value={horario}
-                  onChange={handleHorarioChange}
-                  maxLength={5}
-                  style={{
-                    ...(erroHorario ? inputErrorStyle : inputStyle),
-                    flex: 1,
-                  }}
-                />
-              </div>
-              {erroHorario && (
+              <select
+                id="novo-evento-duracao"
+                value={duracao}
+                onChange={(e) => { setDuracao(e.target.value as DuracaoOption); setErroDuracao(false) }}
+                onFocus={handleFocus as unknown as React.FocusEventHandler<HTMLSelectElement>}
+                onBlur={(e) => handleBlurStyle(e, erroDuracao)}
+                style={{
+                  ...getInputStyle(erroDuracao),
+                  cursor: 'pointer',
+                  appearance: 'none',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9a9a' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 14px center',
+                  paddingRight: 36,
+                }}
+              >
+                {DURACAO_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              {erroDuracao && (
                 <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                  Horário inválido (HH:MM)*
+                  Campo obrigatório*
                 </span>
               )}
             </div>
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6, marginBottom: 0 }}>
-            Data e horário no seu fuso local. Qualquer pessoa vê convertido para o fuso dela.
-          </p>
-        </div>
 
-        {/* Botão Confirmar */}
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{
-            width: '100%',
-            height: 48,
-            borderRadius: 8,
-            background: loading ? 'var(--color-primary-dark)' : 'var(--color-primary)',
-            color: '#ffffff',
-            border: 'none',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: 16,
-            fontWeight: 600,
-            marginTop: 28,
-            opacity: loading ? 0.7 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            transition: 'opacity 150ms',
-          }}
-        >
-          {loading ? 'Criando...' : 'Confirmar'}
-        </button>
+            {/* Valor do ingresso */}
+            <div style={shakeStyle}>
+              <label htmlFor="novo-evento-valor" style={labelStyle}>
+                Valor do ingresso
+              </label>
+              <input
+                id="novo-evento-valor"
+                type="text"
+                inputMode="numeric"
+                placeholder={formatMinCurrency()}
+                value={valorRaw}
+                onChange={handleValorChange}
+                onBlur={(e) => { handleValorBlur(); handleBlurStyle(e, erroValor) }}
+                onFocus={handleFocus}
+                style={getInputStyle(erroValor)}
+              />
+              {erroValor && (
+                <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                  Valor mínimo de {formatMinCurrency()}*
+                </span>
+              )}
+            </div>
+
+            {/* Dia do Evento + Horário */}
+            <div style={{ display: 'flex', gap: 12, ...shakeStyle }}>
+
+              {/* Dia do Evento */}
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Data</label>
+
+                {/* Input nativo oculto */}
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  min={getTodayLocalYYYYMMDD()}
+                  onChange={handleDateChange}
+                  style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                />
+
+                <button
+                  type="button"
+                  onClick={openDatePicker}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    width: '100%',
+                    background: 'var(--color-surface-2)',
+                    border: `1px solid ${erroData ? 'var(--color-error)' : 'var(--color-border)'}`,
+                    borderRadius: 10,
+                    padding: '11px 14px',
+                    cursor: 'pointer',
+                    color: dataSelecionada ? 'var(--color-foreground)' : 'var(--color-muted)',
+                    fontSize: 14,
+                    transition: 'border-color 150ms, box-shadow 150ms',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!erroData) {
+                      e.currentTarget.style.borderColor = 'var(--color-primary)'
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(174, 50, 195, 0.15)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = erroData ? 'var(--color-error)' : 'var(--color-border)'
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                  aria-label="Selecionar data"
+                >
+                  <span style={{ color: 'var(--color-muted)', display: 'flex', flexShrink: 0 }}>
+                    <CalendarIcon />
+                  </span>
+                  <span>{formatDateDisplay(dataSelecionada)}</span>
+                </button>
+
+                {erroData && (
+                  <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                    Campo obrigatório*
+                  </span>
+                )}
+              </div>
+
+              {/* Horário */}
+              <div style={{ flex: 1 }}>
+                <label htmlFor="novo-evento-horario" style={labelStyle}>
+                  Horário
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      left: 14,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--color-muted)',
+                      display: 'flex',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <ClockIcon />
+                  </span>
+                  <input
+                    id="novo-evento-horario"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="00:00"
+                    value={horario}
+                    onChange={handleHorarioChange}
+                    onFocus={handleFocus}
+                    onBlur={(e) => handleBlurStyle(e, erroHorario)}
+                    maxLength={5}
+                    style={{
+                      ...getInputStyle(erroHorario),
+                      paddingLeft: 40,
+                    }}
+                  />
+                </div>
+                {erroHorario && (
+                  <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                    Horário inválido (HH:MM)*
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: 0 }}>
+              Data e horário no seu fuso local.
+            </p>
+
+            {/* Separador */}
+            <div style={{ height: 1, background: 'var(--color-border)', margin: '4px 0' }} />
+
+            {/* Botão Confirmar */}
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              style={{
+                width: '100%',
+                height: 48,
+                borderRadius: 12,
+                background: loading
+                  ? 'var(--color-primary-dark)'
+                  : 'linear-gradient(135deg, #AE32C3, #651693)',
+                color: '#ffffff',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: 15,
+                fontWeight: 600,
+                opacity: loading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                transition: 'opacity 150ms, transform 100ms',
+              }}
+              onMouseDown={(e) => { if (!loading) e.currentTarget.style.transform = 'scale(0.98)' }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+            >
+              {loading && <SpinnerIcon />}
+              {loading ? 'Criando...' : 'Confirmar'}
+            </button>
+          </div>
+        </div>
       </div>
     </>
   )

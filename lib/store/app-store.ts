@@ -13,11 +13,15 @@ interface AppState {
   // Login form state (persisted for "remember me")
   login: LoginData
 
+  // Guest mode — user browsing without an account
+  isGuest: boolean
+
   // Actions
   setCreator: (data: CreatorData) => void
   clearCreator: () => void
   setLogin: (data: Partial<LoginData>) => void
   clearLogin: () => void
+  setGuest: (value: boolean) => void
 }
 
 const defaultLogin: LoginData = {
@@ -31,6 +35,7 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       creator: null,
       login: defaultLogin,
+      isGuest: false,
 
       setCreator: (data) => set({ creator: data }),
       clearCreator: () => set({ creator: null }),
@@ -38,6 +43,7 @@ export const useAppStore = create<AppState>()(
       setLogin: (data) =>
         set((state) => ({ login: { ...state.login, ...data } })),
       clearLogin: () => set({ login: defaultLogin }),
+      setGuest: (value) => set({ isGuest: value }),
     }),
     {
       name: 'njob-app-state',
@@ -54,3 +60,4 @@ export const useAppStore = create<AppState>()(
 
 export const useCreator = () => useAppStore((s) => s.creator)
 export const useLogin = () => useAppStore((s) => s.login)
+export const useIsGuest = () => useAppStore((s) => s.isGuest)

@@ -13,6 +13,10 @@ import { checkCreatorPayoutStatus, getCreatorInfo } from '@/lib/supabase/creator
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore, useLogin } from '@/lib/store/app-store'
 
+function setGuestCookie() {
+  document.cookie = 'njob-guest=true; path=/; max-age=86400'
+}
+
 const UserIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
     fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -35,6 +39,10 @@ export default function LoginPage() {
   const [passwordError, setPasswordError] = useState('')
 
   const runAuthGate = async () => {
+    // Limpa estado de convidado caso existisse
+    document.cookie = 'njob-guest=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+    useAppStore.getState().setGuest(false)
+
     const supabase = createClient()
     await checkCreatorPayoutStatus(supabase, {
       isCreatorAndCompleted: async () => {
@@ -95,23 +103,10 @@ export default function LoginPage() {
     })
   }
 
-  const handleGuestLogin = async () => {
-    const guestEmail = process.env.NEXT_PUBLIC_GUEST_EMAIL ?? ''
-    const guestPassword = process.env.NEXT_PUBLIC_GUEST_PASSWORD ?? ''
-
-    if (!guestEmail || !guestPassword) {
-      toast.error('Credenciais de convidado não configuradas.')
-      return
-    }
-
-    setLoading(true)
-    await signIn(guestEmail, guestPassword, {
-      onSuccess: runAuthGate,
-      onError: (msg) => {
-        toast.error(msg)
-        setLoading(false)
-      },
-    })
+  const handleGuestLogin = () => {
+    setGuestCookie()
+    useAppStore.getState().setGuest(true)
+    router.push('/home')
   }
 
   return (

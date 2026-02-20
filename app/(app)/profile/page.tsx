@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCreator } from '@/lib/store/app-store'
@@ -42,6 +43,13 @@ const LogOutIcon = () => (
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     <polyline points="16 17 21 12 16 7" />
     <line x1="21" y1="12" x2="9" y2="12" />
+  </svg>
+)
+
+const DollarIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23" />
+    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
   </svg>
 )
 
@@ -94,6 +102,55 @@ function Divider() {
 export default function ProfilePage() {
   const router = useRouter()
   const creator = useCreator()
+  const [loadingFinanceiro, setLoadingFinanceiro] = useState(false)
+
+  const handleFinanceiro = async () => {
+    setLoadingFinanceiro(true)
+    try {
+      const supabaseClient = createClient()
+      const { data: session } = await supabaseClient.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) {
+        toast.error('Sessão expirada. Faça login novamente.')
+        return
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+
+      // Tenta link de atualização (conta Stripe já completou onboarding)
+      const res = await fetch(`${baseUrl}/functions/v1/creator-payout-update-link`, {
+        method: 'POST',
+        headers,
+      })
+
+      let data = await res.json()
+
+      // Se a conta ainda não completou o onboarding, faz fallback para o link de onboarding
+      if (!res.ok && data?.error?.includes?.('account_onboarding')) {
+        const onboardingRes = await fetch(`${baseUrl}/functions/v1/create-stripe-connected-account`, {
+          method: 'POST',
+          headers,
+        })
+        if (!onboardingRes.ok) throw new Error('Erro ao gerar link de onboarding')
+        data = await onboardingRes.json()
+        toast.info('Você precisa completar o cadastro no Stripe primeiro.')
+      } else if (!res.ok) {
+        throw new Error(data?.error || 'Erro ao gerar link')
+      }
+
+      const url = data?.url ?? data?.onboarding_url
+      if (url && typeof url === 'string') {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      } else {
+        toast.error('Não foi possível abrir o painel financeiro.')
+      }
+    } catch {
+      toast.error('Erro ao acessar o financeiro. Tente novamente.')
+    } finally {
+      setLoadingFinanceiro(false)
+    }
+  }
 
   const handleInativarConta = () => {
     toast.error('Esta funcionalidade ainda não está disponível.')
@@ -165,6 +222,12 @@ export default function ProfilePage() {
           icon={<UserIcon />}
           label="Informações pessoais"
           href="/profile/info"
+        />
+        <Divider />
+        <MenuItem
+          icon={<DollarIcon />}
+          label={loadingFinanceiro ? 'Abrindo painel...' : 'Financeiro'}
+          onClick={handleFinanceiro}
         />
         <Divider />
         <MenuItem

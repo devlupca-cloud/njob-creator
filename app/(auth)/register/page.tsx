@@ -17,6 +17,41 @@ import { checkCreatorPayoutStatus, getCreatorInfo } from '@/lib/supabase/creator
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
 
+// ─── Currency helpers ────────────────────────────────────────────
+
+function formatCurrency(value: string): string {
+  const num = value.replace(/\D/g, '')
+  if (!num) return ''
+  const parsed = parseInt(num, 10) / 100
+  return parsed.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function parseCurrency(value: string): number {
+  const cleaned = value.replace(/\./g, '').replace(',', '.')
+  return parseFloat(cleaned) || 0
+}
+
+// ─── Phone mask ──────────────────────────────────────────────────
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length === 0) return ''
+  if (digits.length <= 2) return `(${digits}`
+  if (digits.length <= 3) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7, 11)}`
+}
+
+// ─── CPF mask ────────────────────────────────────────────────────
+
+function formatCPF(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11)
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`
+}
+
 // ─── Constants ──────────────────────────────────────────────────
 
 const TOTAL_STEPS = 5
@@ -168,6 +203,11 @@ export default function RegisterPage() {
   ]
   const bannerImgRef = useRef<HTMLInputElement>(null)
 
+  // File state — armazena os arquivos selecionados para que sobrevivam à troca de step
+  const [profileFile, setProfileFile] = useState<File | null>(null)
+  const [additionalFiles, setAdditionalFiles] = useState<(File | null)[]>([null, null, null])
+  const [bannerFile, setBannerFile] = useState<File | null>(null)
+
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
   const [additionalPreviews, setAdditionalPreviews] = useState<(string | null)[]>([null, null, null])
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
@@ -194,19 +234,21 @@ export default function RegisterPage() {
   const handleProfileImg = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setProfileFile(file)
     setProfilePreview(URL.createObjectURL(file))
   }
 
   const handleAdditionalImg = (index: number, e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const url = URL.createObjectURL(file)
-    setAdditionalPreviews((prev) => prev.map((p, i) => (i === index ? url : p)))
+    setAdditionalFiles((prev) => prev.map((f, i) => (i === index ? file : f)))
+    setAdditionalPreviews((prev) => prev.map((p, i) => (i === index ? URL.createObjectURL(file) : p)))
   }
 
   const handleBannerImg = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setBannerFile(file)
     setBannerPreview(URL.createObjectURL(file))
   }
 
@@ -227,8 +269,17 @@ export default function RegisterPage() {
       else if (formData.senha.length < 6) newErrors.senha = 'Mínimo de 6 caracteres'
     }
 
+    if (step === 2) {
+      if (formData.fazVideochamada) {
+        const v30 = parseCurrency(formData.valor30min)
+        const v1h = parseCurrency(formData.valor1hora)
+        if (v30 < 10) newErrors.valor30min = 'Valor mínimo é R$ 10,00'
+        if (v1h < 10) newErrors.valor1hora = 'Valor mínimo é R$ 10,00'
+      }
+    }
+
     if (step === 3) {
-      if (!profileImgRef.current?.files?.[0]) {
+      if (!profileFile) {
         toast.error('Foto de perfil obrigatória')
         return false
       }
@@ -242,42 +293,145 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (!validateStep()) return
+
+    // No step 0, verifica se o email já existe antes de avançar
+    if (step === 0) {
+      setLoading(true)
+      try {
+        const supabase = createClient()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase.rpc as any)('check_email_exists', {
+          email_input: formData.email.toLowerCase(),
+        })
+
+        if (error) {
+          console.error('Erro ao verificar email:', error)
+          // Se a função RPC não existir, avança sem verificar
+        } else if (data === true) {
+          setErrors((prev) => ({ ...prev, email: 'Este e-mail já está cadastrado' }))
+          toast.error('Este e-mail já está cadastrado. Tente fazer login.')
+          setLoading(false)
+          return
+        }
+      } catch {
+        // Se falhar, avança sem verificar
+      }
+      setLoading(false)
+    }
+
     setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1))
   }
 
   const prevStep = () => setStep((s) => Math.max(s - 1, 0))
 
-  // ─── Image upload ──────────────────────────────────────────────
+  // ─── Mapear gênero do form para o enum do banco ─────────────────
 
-  const uploadImages = async () => {
-    const supabase = createClient()
+  const mapGenderToEnum = (genero: string): 'Homem' | 'Mulher' | 'Não binário' | null => {
+    if (genero === 'Masculino') return 'Homem'
+    if (genero === 'Feminino') return 'Mulher'
+    if (genero) return 'Não binário'
+    return null
+  }
+
+  const calcAge = (dataNascimento: string): number => {
+    if (!dataNascimento) return 0
+    const birth = new Date(dataNascimento)
+    const today = new Date()
+    let age = today.getFullYear() - birth.getFullYear()
+    const m = today.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+    return age
+  }
+
+  // ─── Criar perfil e dados no banco após signUp ─────────────────
+
+  const createProfileData = async (supabase: ReturnType<typeof createClient>, userId: string) => {
+    // 1) Inserir na tabela profiles
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id: userId,
+      full_name: formData.nome,
+      username: formData.nome,
+      role: 'creator' as const,
+      is_active: true,
+      date_birth: formData.dataNascimento || null,
+      whatsapp: formData.whatsapp || null,
+    })
+
+    if (profileError) {
+      console.error('Erro ao criar perfil:', profileError)
+      throw new Error('Erro ao criar perfil: ' + profileError.message)
+    }
+
+    // 2) Inserir na tabela creator_description (dados do step 1)
+    if (formData.euSou || formData.cidade) {
+      const { error: descError } = await supabase.from('creator_description').insert({
+        profile_id: userId,
+        cidade: formData.cidade,
+        eu_sou: formData.euSou || '',
+        por: formData.por || '',
+        me_considero: formData.meConsidero || '',
+        adoro: formData.adoro || '',
+        pessoas_que: formData.pessoasQue || '',
+        idade: calcAge(formData.dataNascimento),
+        date_birth: formData.dataNascimento || null,
+        gender: mapGenderToEnum(formData.genero),
+      })
+
+      if (descError) {
+        console.error('Erro ao criar descrição:', descError)
+      }
+    }
+  }
+
+  // ─── Upload de imagens e salvar referências ─────────────────────
+
+  const uploadImagesAndSave = async (supabase: ReturnType<typeof createClient>, userId: string) => {
     const ts = Date.now()
     const bucket = 'images'
     const prefix = 'profiles'
 
-    const profileFile = profileImgRef.current?.files?.[0]
+    // Foto de perfil (lê do estado, não da ref)
     if (profileFile) {
-      await supabase.storage
-        .from(bucket)
-        .upload(`${prefix}/${ts}-profile-${profileFile.name}`, profileFile, { upsert: true })
-    }
-
-    for (let i = 0; i < additionalImgRefs.length; i++) {
-      const file = additionalImgRefs[i].current?.files?.[0]
-      if (file) {
-        await supabase.storage
-          .from(bucket)
-          .upload(`${prefix}/${ts}-additional-${i}-${file.name}`, file, { upsert: true })
+      const path = `${prefix}/${userId}/${ts}-profile-${profileFile.name}`
+      const { error } = await supabase.storage.from(bucket).upload(path, profileFile, { upsert: true })
+      if (!error) {
+        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path)
+        // Salvar como avatar no perfil
+        await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', userId)
+        // Salvar na tabela profile_images
+        await supabase.from('profile_images').insert({
+          profile_id: userId,
+          image_url: urlData.publicUrl,
+          highlight_image_url: true,
+          index: 0,
+        })
       }
     }
 
-    const bannerFile = bannerImgRef.current?.files?.[0]
+    // Fotos adicionais (lê do estado, não das refs)
+    for (let i = 0; i < additionalFiles.length; i++) {
+      const file = additionalFiles[i]
+      if (file) {
+        const path = `${prefix}/${userId}/${ts}-additional-${i}-${file.name}`
+        const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true })
+        if (!error) {
+          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path)
+          await supabase.from('profile_images').insert({
+            profile_id: userId,
+            image_url: urlData.publicUrl,
+            highlight_image_url: false,
+            index: i + 1,
+          })
+        }
+      }
+    }
+
+    // Banner (lê do estado, não da ref)
     if (bannerFile) {
-      await supabase.storage
-        .from(bucket)
-        .upload(`${prefix}/${ts}-banner-${bannerFile.name}`, bannerFile, { upsert: true })
+      const path = `${prefix}/${userId}/${ts}-banner-${bannerFile.name}`
+      await supabase.storage.from(bucket).upload(path, bannerFile, { upsert: true })
     }
   }
 
@@ -289,36 +443,58 @@ export default function RegisterPage() {
 
     setLoading(true)
 
-    await uploadImages()
-
     await signUp(formData.email, formData.senha, formData.nome, {
       onSuccess: async () => {
-        const supabase = createClient()
-        await checkCreatorPayoutStatus(supabase, {
-          isCreatorAndCompleted: async () => {
-            const info = await getCreatorInfo(supabase)
-            if (info) setCreator(info)
-            router.push('/home')
-          },
-          isCreatorAndPending: (url) => {
-            router.push(`/stripe-setup?url=${encodeURIComponent(url)}`)
-          },
-          isNotCreator: () => {
-            toast.error('Você não tem acesso a esta plataforma.')
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+
+          if (!user) {
+            toast.error('Erro ao obter usuário após cadastro.')
             setLoading(false)
-          },
-          onError: (msg) => {
-            toast.error(msg)
-            setLoading(false)
-          },
-        })
+            return
+          }
+
+          // Criar perfil e descrição no banco
+          await createProfileData(supabase, user.id)
+
+          // Upload de imagens e salvar referências
+          await uploadImagesAndSave(supabase, user.id)
+
+          // Verificar status de creator/payout
+          await checkCreatorPayoutStatus(supabase, {
+            isCreatorAndCompleted: async () => {
+              const info = await getCreatorInfo(supabase)
+              if (info) setCreator(info)
+              router.push('/home')
+            },
+            isCreatorAndPending: (url) => {
+              router.push(`/stripe-setup?url=${encodeURIComponent(url)}`)
+            },
+            isNotCreator: () => {
+              toast.error('Você não tem acesso a esta plataforma.')
+              setLoading(false)
+            },
+            onError: (msg) => {
+              toast.error(msg)
+              setLoading(false)
+            },
+          })
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Erro ao finalizar cadastro'
+          toast.error(msg)
+          setLoading(false)
+        }
       },
       onEmailAlreadyInUse: () => {
         toast.error('E-mail já cadastrado.')
+        setStep(0)
+        setErrors((prev) => ({ ...prev, email: 'Este e-mail já está cadastrado' }))
         setLoading(false)
       },
       onWeakPassword: () => {
         toast.error('Senha muito fraca.')
+        setStep(0)
         setLoading(false)
       },
       onError: (msg) => {
@@ -337,7 +513,7 @@ export default function RegisterPage() {
       case 1:
         return <Step1 formData={formData} update={update} onSkip={() => setStep(2)} />
       case 2:
-        return <Step2 formData={formData} update={update} />
+        return <Step2 formData={formData} update={update} errors={errors} />
       case 3:
         return (
           <Step3
@@ -393,14 +569,14 @@ export default function RegisterPage() {
         <StepProgress currentStep={step} totalSteps={TOTAL_STEPS} />
       </div>
 
-      <form onSubmit={step === TOTAL_STEPS - 1 ? handleSubmit : (e) => { e.preventDefault(); nextStep() }}>
+      <form onSubmit={step === TOTAL_STEPS - 1 ? handleSubmit : async (e) => { e.preventDefault(); await nextStep() }}>
         <div className="flex flex-col gap-4">
           {renderStep()}
         </div>
 
         <div className="flex flex-col gap-3 mt-6">
           {step < TOTAL_STEPS - 1 ? (
-            <Button type="submit" variant="primary" size="lg" fullWidth>
+            <Button type="submit" variant="primary" size="lg" fullWidth loading={step === 0 && loading}>
               Próxima etapa
             </Button>
           ) : (
@@ -617,10 +793,11 @@ function Step1({
 // ─── Step 2 — Interações ──────────────────────────────────────
 
 function Step2({
-  formData, update,
+  formData, update, errors,
 }: {
   formData: FormData
   update: (field: keyof FormData, value: string | boolean) => void
+  errors: Partial<Record<keyof FormData, string>>
 }) {
   return (
     <>
@@ -644,21 +821,25 @@ function Step2({
         <>
           <Input
             label="Valor por 30 minutos (R$)"
-            type="number"
-            placeholder="Mínimo R$ 10,00"
-            value={formData.valor30min}
-            onChange={(e) => update('valor30min', e.target.value)}
-            min="10"
-            step="0.01"
+            inputMode="numeric"
+            placeholder="R$ 0,00"
+            value={formData.valor30min ? `R$ ${formData.valor30min}` : ''}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/^R\$\s?/, '')
+              update('valor30min', formatCurrency(raw))
+            }}
+            error={errors.valor30min}
           />
           <Input
             label="Valor por 1 hora (R$)"
-            type="number"
-            placeholder="Mínimo R$ 10,00"
-            value={formData.valor1hora}
-            onChange={(e) => update('valor1hora', e.target.value)}
-            min="10"
-            step="0.01"
+            inputMode="numeric"
+            placeholder="R$ 0,00"
+            value={formData.valor1hora ? `R$ ${formData.valor1hora}` : ''}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/^R\$\s?/, '')
+              update('valor1hora', formatCurrency(raw))
+            }}
+            error={errors.valor1hora}
           />
         </>
       )}
@@ -672,10 +853,11 @@ function Step2({
       {formData.fazEncontro && (
         <Input
           label="WhatsApp"
-          placeholder="+55 (11) 9 9999-9999"
+          placeholder="(11) 9 9999-9999"
           value={formData.whatsapp}
-          onChange={(e) => update('whatsapp', e.target.value)}
-          type="tel"
+          onChange={(e) => update('whatsapp', formatPhone(e.target.value))}
+          inputMode="numeric"
+          maxLength={16}
         />
       )}
     </>
@@ -875,14 +1057,24 @@ function Step4({
         label="Tipo de documento"
         options={DOCUMENT_TYPE_OPTIONS}
         value={formData.documentoTipo}
-        onChange={(e) => update('documentoTipo', e.target.value)}
+        onChange={(e) => {
+          update('documentoTipo', e.target.value)
+          update('documentoNumero', '')
+        }}
         required
       />
       <Input
         label={formData.documentoTipo}
         placeholder={placeholder}
         value={formData.documentoNumero}
-        onChange={(e) => update('documentoNumero', e.target.value)}
+        onChange={(e) => {
+          const val = formData.documentoTipo === 'CPF'
+            ? formatCPF(e.target.value)
+            : e.target.value
+          update('documentoNumero', val)
+        }}
+        inputMode={formData.documentoTipo === 'CPF' ? 'numeric' : undefined}
+        maxLength={formData.documentoTipo === 'CPF' ? 14 : undefined}
         error={errors.documentoNumero}
         required
       />

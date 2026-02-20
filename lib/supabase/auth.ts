@@ -87,12 +87,10 @@ export async function signUp(
 
   const msg = error.message.toLowerCase()
 
-  if (msg.includes('already registered') || msg.includes('already in use')) {
+  if (msg.includes('already registered') || msg.includes('already in use') || msg.includes('user_already_exists')) {
     callbacks.onEmailAlreadyInUse?.()
-    callbacks.onError?.(error.message)
   } else if (msg.includes('weak password') || msg.includes('password')) {
     callbacks.onWeakPassword?.()
-    callbacks.onError?.(error.message)
   } else {
     callbacks.onError?.(error.message)
   }

@@ -42,6 +42,17 @@ function ToggleOption({ title, value, onChange }: ToggleOptionProps) {
   )
 }
 
+// ─── Phone mask ──────────────────────────────────────────────────────────────
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length === 0) return ''
+  if (digits.length <= 2) return `(${digits}`
+  if (digits.length <= 3) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3)}`
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 3)} ${digits.slice(3, 7)}-${digits.slice(7, 11)}`
+}
+
 // ─── Currency input ───────────────────────────────────────────────────────────
 
 function formatCurrency(value: string): string {
@@ -108,9 +119,10 @@ export default function AlterarInteracoesPage() {
   const [valor30min, setValor30min] = useState('')
   const [valor1hora, setValor1hora] = useState('')
   const [fazEncontro, setFazEncontro] = useState(false)
-  const [whatsapp, setWhatsapp] = useState(creator?.profile.whatsapp ?? '')
+  const [whatsapp, setWhatsapp] = useState(formatPhone(creator?.profile.whatsapp ?? ''))
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [errors, setErrors] = useState<{ valor30min?: string; valor1hora?: string }>({})
 
   useEffect(() => {
     async function loadSettings() {
@@ -156,6 +168,18 @@ export default function AlterarInteracoesPage() {
 
   const handleConfirm = async () => {
     if (!creator) return
+
+    if (fazVideochamada) {
+      const v30 = parseCurrency(valor30min)
+      const v1h = parseCurrency(valor1hora)
+      const newErrors: { valor30min?: string; valor1hora?: string } = {}
+      if (v30 < 10) newErrors.valor30min = 'Valor mínimo é R$ 10,00'
+      if (v1h < 10) newErrors.valor1hora = 'Valor mínimo é R$ 10,00'
+      setErrors(newErrors)
+      if (Object.keys(newErrors).length > 0) return
+    } else {
+      setErrors({})
+    }
 
     setLoading(true)
     try {
@@ -246,11 +270,13 @@ export default function AlterarInteracoesPage() {
                   label="Valor por 30 minutos de videochamada"
                   value={valor30min}
                   onChange={setValor30min}
+                  error={errors.valor30min}
                 />
                 <CurrencyInput
                   label="Valor por hora de videochamada"
                   value={valor1hora}
                   onChange={setValor1hora}
+                  error={errors.valor1hora}
                 />
               </>
             )}
@@ -267,9 +293,10 @@ export default function AlterarInteracoesPage() {
             <Input
               label="WhatsApp"
               value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="+55 (11) 9 0000-0000"
-              type="tel"
+              onChange={(e) => setWhatsapp(formatPhone(e.target.value))}
+              placeholder="(11) 9 9999-9999"
+              inputMode="numeric"
+              maxLength={16}
             />
           </SectionCard>
 

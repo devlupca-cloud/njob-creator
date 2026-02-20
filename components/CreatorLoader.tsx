@@ -7,14 +7,15 @@ import { useAppStore } from '@/lib/store/app-store'
 
 /**
  * Carrega os dados do creator na store quando há sessão e creator ainda não foi carregado.
- * Assim a Home (e outras telas) exibem nome e avatar corretamente mesmo após refresh.
+ * Pula carregamento para convidados (sem sessão Supabase).
  */
 export default function CreatorLoader() {
   const creator = useAppStore((s) => s.creator)
+  const isGuest = useAppStore((s) => s.isGuest)
   const setCreator = useAppStore((s) => s.setCreator)
 
   useEffect(() => {
-    if (creator != null) return
+    if (creator != null || isGuest) return
 
     const load = async () => {
       const supabase = createClient()
@@ -26,7 +27,7 @@ export default function CreatorLoader() {
     }
 
     load()
-  }, [creator, setCreator])
+  }, [creator, isGuest, setCreator])
 
   return null
 }

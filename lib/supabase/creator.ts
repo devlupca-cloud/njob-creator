@@ -46,15 +46,15 @@ export async function checkCreatorPayoutStatus(
     }
 
     // Check payout status in creator_payout_info
-    const { data: payoutRaw, error: payoutError } = await supabase
+    const { data: payoutRaw } = await supabase
       .from('creator_payout_info')
       .select('status')
       .eq('creator_id', user.id)
-      .single()
+      .maybeSingle()
 
     const payoutInfo = payoutRaw as { status: string } | null
 
-    if (payoutError || !payoutInfo) {
+    if (!payoutInfo) {
       // No payout info found — need to create Stripe account
       const result = await createStripeAccount(supabase)
       if ('url' in result) {

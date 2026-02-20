@@ -1,14 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '@/lib/supabase/auth'
 import { useRouter } from 'next/navigation'
+import { useAppStore, useIsGuest } from '@/lib/store/app-store'
+import ComingSoonModal from '@/components/ui/ComingSoonModal'
+import GuestAuthModal from '@/components/ui/GuestAuthModal'
 
 interface NavItem {
   label: string
   href: string
   icon: React.ReactNode
+  comingSoon?: boolean
 }
 
 const ContentIcon = () => (
@@ -66,7 +71,7 @@ const SignOutIcon = () => (
 const navItems: NavItem[] = [
   { label: 'Home', href: '/home', icon: <HomeIcon /> },
   { label: 'Conteúdo', href: '/content', icon: <ContentIcon /> },
-  { label: 'Chat', href: '/chat', icon: <ChatIcon /> },
+  { label: 'Chat', href: '/chat', icon: <ChatIcon />, comingSoon: true },
   { label: 'Agenda', href: '/schedule', icon: <ScheduleIcon /> },
   { label: 'Cupons', href: '/subscriptions', icon: <CouponsIcon /> },
   { label: 'Perfil', href: '/profile', icon: <ProfileIcon /> },
@@ -75,10 +80,25 @@ const navItems: NavItem[] = [
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const isGuest = useIsGuest()
+  const setGuest = useAppStore((s) => s.setGuest)
+  const [comingSoonOpen, setComingSoonOpen] = useState(false)
+  const [comingSoonFeature, setComingSoonFeature] = useState('')
+  const [guestModalOpen, setGuestModalOpen] = useState(false)
 
   const handleSignOut = async () => {
-    await signOut()
+    if (isGuest) {
+      document.cookie = 'njob-guest=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+      setGuest(false)
+    } else {
+      await signOut()
+    }
     router.push('/login')
+  }
+
+  const handleComingSoon = (label: string) => {
+    setComingSoonFeature(label)
+    setComingSoonOpen(true)
   }
 
   return (
@@ -98,6 +118,43 @@ export default function Sidebar() {
       <nav className="flex-1 flex flex-col gap-1 px-3">
         {navItems.map((item) => {
           const isActive = pathname === item.href
+
+          // Convidado: qualquer item abre modal de cadastro
+          if (isGuest) {
+            return (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => setGuestModalOpen(true)}
+                className={[
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-gradient-primary text-white'
+                    : 'hover:bg-surface-2',
+                ].join(' ')}
+                style={!isActive ? { color: 'var(--color-muted)' } : undefined}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            )
+          }
+
+          if (item.comingSoon) {
+            return (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => handleComingSoon(item.label)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-surface-2"
+                style={{ color: 'var(--color-muted)' }}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            )
+          }
+
           return (
             <Link
               key={item.href}
@@ -118,6 +175,18 @@ export default function Sidebar() {
           )
         })}
       </nav>
+
+      <ComingSoonModal
+        open={comingSoonOpen}
+        onClose={() => setComingSoonOpen(false)}
+        feature={comingSoonFeature}
+      />
+
+      <GuestAuthModal
+        open={guestModalOpen}
+        onClose={() => setGuestModalOpen(false)}
+        message="Você precisa de uma conta para navegar pela plataforma."
+      />
 
       {/* Sign out */}
       <div className="px-3 mt-4">

@@ -50,12 +50,18 @@ export async function updateSession(request: NextRequest) {
     pathname === '/notifications' ||
     pathname === '/stripe-setup'
 
-  // Redirect unauthenticated users away from protected routes
-  if (!user && isAppRoute) {
+  // Allow guest access to app routes (read-only browsing)
+  const isGuest = request.cookies.get('njob-guest')?.value === 'true'
+
+  // Redirect unauthenticated non-guest users away from protected routes
+  if (!user && !isGuest && isAppRoute) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
     return NextResponse.redirect(redirectUrl)
   }
+
+  // If guest navigates to auth routes, let them through (they may want to register)
+  // But clear guest cookie if they successfully log in (handled client-side)
 
   // Redirect authenticated users away from auth routes
   if (user && isAuthRoute) {
@@ -67,7 +73,7 @@ export async function updateSession(request: NextRequest) {
   // Redirect root to /home or /login
   if (pathname === '/') {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = user ? '/home' : '/login'
+    redirectUrl.pathname = (user || isGuest) ? '/home' : '/login'
     return NextResponse.redirect(redirectUrl)
   }
 

@@ -1,12 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useIsGuest } from '@/lib/store/app-store'
+import ComingSoonModal from '@/components/ui/ComingSoonModal'
+import GuestAuthModal from '@/components/ui/GuestAuthModal'
 
 interface NavItem {
   label: string
   href: string
   icon: React.ReactNode
+  comingSoon?: boolean
 }
 
 const HomeIcon = () => (
@@ -49,42 +54,103 @@ const ProfileIcon = () => (
 const mobileNav: NavItem[] = [
   { label: 'Home', href: '/home', icon: <HomeIcon /> },
   { label: 'Conteúdo', href: '/content', icon: <ContentIcon /> },
-  { label: 'Chat', href: '/chat', icon: <ChatIcon /> },
+  { label: 'Chat', href: '/chat', icon: <ChatIcon />, comingSoon: true },
   { label: 'Agenda', href: '/schedule', icon: <ScheduleIcon /> },
   { label: 'Perfil', href: '/profile', icon: <ProfileIcon /> },
 ]
 
 export default function Navbar() {
   const pathname = usePathname()
+  const isGuest = useIsGuest()
+  const [comingSoonOpen, setComingSoonOpen] = useState(false)
+  const [comingSoonFeature, setComingSoonFeature] = useState('')
+  const [guestModalOpen, setGuestModalOpen] = useState(false)
+
+  const handleComingSoon = (label: string) => {
+    setComingSoonFeature(label)
+    setComingSoonOpen(true)
+  }
 
   return (
-    <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around h-16 px-2"
-      style={{
-        background: 'var(--color-surface)',
-        borderTop: '1px solid var(--color-border)',
-      }}
-    >
-      {mobileNav.map((item) => {
-        const isActive = pathname === item.href
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
-            style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-muted)' }}
-          >
-            {item.icon}
-            <span className="text-xs font-medium">{item.label}</span>
-            {isActive && (
-              <div
-                className="absolute bottom-0 h-0.5 w-8 rounded-full"
-                style={{ background: 'var(--color-primary)' }}
-              />
-            )}
-          </Link>
-        )
-      })}
-    </nav>
+    <>
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around h-16 px-2"
+        style={{
+          background: 'var(--color-surface)',
+          borderTop: '1px solid var(--color-border)',
+        }}
+      >
+        {mobileNav.map((item) => {
+          const isActive = pathname === item.href
+
+          // Convidado: qualquer item abre modal de cadastro
+          if (isGuest) {
+            return (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => setGuestModalOpen(true)}
+                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
+                style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-muted)' }}
+              >
+                {item.icon}
+                <span className="text-xs font-medium">{item.label}</span>
+                {isActive && (
+                  <div
+                    className="absolute bottom-0 h-0.5 w-8 rounded-full"
+                    style={{ background: 'var(--color-primary)' }}
+                  />
+                )}
+              </button>
+            )
+          }
+
+          if (item.comingSoon) {
+            return (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => handleComingSoon(item.label)}
+                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
+                style={{ color: 'var(--color-muted)' }}
+              >
+                {item.icon}
+                <span className="text-xs font-medium">{item.label}</span>
+              </button>
+            )
+          }
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
+              style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-muted)' }}
+            >
+              {item.icon}
+              <span className="text-xs font-medium">{item.label}</span>
+              {isActive && (
+                <div
+                  className="absolute bottom-0 h-0.5 w-8 rounded-full"
+                  style={{ background: 'var(--color-primary)' }}
+                />
+              )}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <ComingSoonModal
+        open={comingSoonOpen}
+        onClose={() => setComingSoonOpen(false)}
+        feature={comingSoonFeature}
+      />
+
+      <GuestAuthModal
+        open={guestModalOpen}
+        onClose={() => setGuestModalOpen(false)}
+        message="Você precisa de uma conta para navegar pela plataforma."
+      />
+    </>
   )
 }
