@@ -48,15 +48,15 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
       if (cancelled) return
 
       // Import dinâmico para evitar SSR
-      const { generateToken, ZegoUIKitPrebuilt } = await import('@/lib/zegocloud')
+      const { generateKitToken, ZegoUIKitPrebuilt } = await import('@/lib/zegocloud')
 
       const userName = creator!.profile.full_name || 'Host'
-      console.log('[LIVE] Generating token for room:', id, 'user:', userId)
-      const token = await generateToken(id, userId, userName)
-      console.log('[LIVE] Token received, length:', token.length)
+      console.log('[LIVE] Generating kit token for room:', id, 'user:', userId)
+      const kitToken = generateKitToken(id, userId, userName)
+      console.log('[LIVE] Kit token generated, length:', kitToken.length)
 
       console.log('[LIVE] Creating ZegoUIKitPrebuilt instance...')
-      const zp = ZegoUIKitPrebuilt.create(token)
+      const zp = ZegoUIKitPrebuilt.create(kitToken)
       zegoRef.current = zp
       console.log('[LIVE] Instance created, joining room...')
 

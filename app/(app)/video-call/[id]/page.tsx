@@ -68,12 +68,12 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
       if (cancelled) return
 
       // Import dinâmico para evitar SSR
-      const { generateToken, ZegoUIKitPrebuilt } = await import('@/lib/zegocloud')
+      const { generateKitToken, ZegoUIKitPrebuilt } = await import('@/lib/zegocloud')
 
       const userName = creator!.profile.full_name || 'Creator'
-      const token = await generateToken(id, userId, userName)
+      const kitToken = generateKitToken(id, userId, userName)
 
-      const zp = ZegoUIKitPrebuilt.create(token)
+      const zp = ZegoUIKitPrebuilt.create(kitToken)
       zegoRef.current = zp
 
       zp.joinRoom({
