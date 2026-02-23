@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 /**
- * Generates a ZegoCloud Token04 using HMAC-SHA256 (server-side only).
+ * Generates a ZegoCloud Token04 using AES-CBC encryption (server-side only).
  */
 async function generateToken04(
   appId: number,
@@ -16,45 +16,56 @@ async function generateToken04(
 ): Promise<string> {
   const createTime = Math.floor(Date.now() / 1000)
   const expireTime = createTime + effectiveTimeInSeconds
+  const nonce = crypto.getRandomValues(new Uint32Array(1))[0]
+
   const payloadObject = {
     app_id: appId,
     user_id: userId,
-    nonce: crypto.getRandomValues(new Uint32Array(1))[0],
+    nonce,
     create_time: createTime,
     expire_time: expireTime,
   }
-
   const payload = JSON.stringify(payloadObject)
 
+  // Random 16-byte IV for AES-CBC
+  const iv = crypto.getRandomValues(new Uint8Array(16))
+
+  // Import serverSecret as AES-CBC key (32 chars = AES-256)
+  const keyData = new TextEncoder().encode(serverSecret)
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(serverSecret),
-    { name: 'HMAC', hash: 'SHA-256' },
+    keyData,
+    { name: 'AES-CBC' },
     false,
-    ['sign']
-  )
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    new TextEncoder().encode(payload)
-  )
-  const signatureBytes = new Uint8Array(signature)
-
-  const tokenInfo = new Uint8Array(
-    12 + 2 + signatureBytes.length + 2 + payload.length
-  )
-  const dv = new DataView(tokenInfo.buffer)
-  dv.setBigInt64(0, BigInt(expireTime), false)
-  dv.setInt16(8, signatureBytes.length, false)
-  tokenInfo.set(signatureBytes, 12)
-  dv.setInt16(12 + signatureBytes.length, payload.length, false)
-  tokenInfo.set(
-    new TextEncoder().encode(payload),
-    12 + signatureBytes.length + 2
+    ['encrypt']
   )
 
-  const base64Token = Buffer.from(tokenInfo).toString('base64')
-  return `04${base64Token}`
+  // Encrypt payload with AES-CBC (PKCS7 padding is automatic)
+  const encrypted = new Uint8Array(
+    await crypto.subtle.encrypt(
+      { name: 'AES-CBC', iv },
+      key,
+      new TextEncoder().encode(payload)
+    )
+  )
+
+  // Binary format: expireTime(8) + ivLen(2) + iv + encryptedLen(2) + encrypted
+  const totalLen = 8 + 2 + iv.length + 2 + encrypted.length
+  const buf = new Uint8Array(totalLen)
+  const dv = new DataView(buf.buffer)
+
+  let offset = 0
+  dv.setBigInt64(offset, BigInt(expireTime), false)
+  offset += 8
+  dv.setUint16(offset, iv.length, false)
+  offset += 2
+  buf.set(iv, offset)
+  offset += iv.length
+  dv.setUint16(offset, encrypted.length, false)
+  offset += 2
+  buf.set(encrypted, offset)
+
+  return '04' + Buffer.from(buf).toString('base64')
 }
 
 /**
