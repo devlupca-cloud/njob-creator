@@ -52,8 +52,12 @@ export default function LoginPage() {
         if (info) setCreator(info)
         router.push('/home')
       },
-      isCreatorAndPending: (url) => {
-        router.push(`/stripe-setup?url=${encodeURIComponent(url)}`)
+      isCreatorAndPending: async () => {
+        // Allow access even with pending payout — creator can complete Stripe later via profile
+        const info = await getCreatorInfo(supabase)
+        if (info) setCreator(info)
+        toast.info(t('onboarding.registrationPending'))
+        router.push('/home')
       },
       isNotCreator: async () => {
         toast.error(t('auth.noAccess'))
