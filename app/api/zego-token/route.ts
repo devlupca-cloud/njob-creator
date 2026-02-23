@@ -30,8 +30,9 @@ async function generateToken04(
   // Random 16-byte IV for AES-CBC
   const iv = crypto.getRandomValues(new Uint8Array(16))
 
-  // Import serverSecret as AES-CBC key (32 chars = AES-256)
-  const keyData = new TextEncoder().encode(serverSecret)
+  // ZegoCloud serverSecret is a 32-char hex string → convert to 16 bytes for AES-128
+  const trimmed = serverSecret.trim()
+  const keyData = Buffer.from(trimmed, 'hex')
   const key = await crypto.subtle.importKey(
     'raw',
     keyData,
