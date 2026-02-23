@@ -51,10 +51,14 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
       const { generateToken, ZegoUIKitPrebuilt } = await import('@/lib/zegocloud')
 
       const userName = creator!.profile.full_name || 'Host'
+      console.log('[LIVE] Generating token for room:', id, 'user:', userId)
       const token = await generateToken(id, userId, userName)
+      console.log('[LIVE] Token received, length:', token.length)
 
+      console.log('[LIVE] Creating ZegoUIKitPrebuilt instance...')
       const zp = ZegoUIKitPrebuilt.create(token)
       zegoRef.current = zp
+      console.log('[LIVE] Instance created, joining room...')
 
       zp.joinRoom({
         container: containerRef.current!,
@@ -74,10 +78,12 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
         },
       })
 
+      console.log('[LIVE] joinRoom called successfully')
       setStatus('joined')
     }
 
-    initLive().catch(() => {
+    initLive().catch((err) => {
+      console.error('[LIVE] initLive error:', err)
       if (!cancelled) setStatus('error')
     })
 
