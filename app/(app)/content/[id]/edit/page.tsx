@@ -75,7 +75,7 @@ export default function ContentViewPage() {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{t('content.contentDetails') ?? title}</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{title}</h1>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Capa */}
