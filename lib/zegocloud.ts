@@ -1,24 +1,33 @@
 import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt'
 
-const ZEGO_APP_ID = 441258324
-const ZEGO_SERVER_SECRET = '19be871f7cb2c940c3cc65e32c825ea6'
-
 /**
- * Generates a ZegoCloud Kit Token using the SDK's built-in method.
- * TODO: Move token generation to server-side API route for production.
+ * Generates a ZegoCloud Kit Token via server-side API route.
+ * The serverSecret NEVER leaves the server — only the final token is returned.
  */
 export async function generateToken(
   roomID: string,
   userID: string,
   userName: string
 ): Promise<string> {
-  return ZegoUIKitPrebuilt.generateKitTokenForTest(
-    ZEGO_APP_ID,
-    ZEGO_SERVER_SECRET,
-    roomID,
-    userID,
-    userName
-  )
+  const res = await fetch('/api/zego-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomID, userID, userName }),
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(
+      `Falha ao gerar token de vídeo: ${body.error ?? res.statusText}`
+    )
+  }
+
+  const data = await res.json()
+  if (!data.token) {
+    throw new Error('Falha ao gerar token de vídeo: resposta inválida')
+  }
+
+  return data.token
 }
 
 export { ZegoUIKitPrebuilt }

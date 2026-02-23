@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import { createStripePack } from '@/lib/api/content'
+import { createPackWithItems } from '@/lib/api/content'
 import { uploadPackCover, uploadPackItem } from '@/lib/storage/packs'
 import { toast } from 'sonner'
 import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
@@ -112,7 +112,7 @@ export default function ContentCreatePage() {
         items.push({ url, type: 'video' })
       }
 
-      // Criar pacote no DB + Stripe via Edge Function (chamada única)
+      // STRIPE_DISABLED: Create pack in DB only (without Stripe product/price)
       const payload = {
         creator_id: uid,
         title: titleTrimmed,
@@ -125,7 +125,7 @@ export default function ContentCreatePage() {
         cover_image_url: coverImageUrl,
         items,
       }
-      await createStripePack(payload, token)
+      await createPackWithItems(payload, token)
 
       toast.success(tFn('content.contentSaved'))
       // Invalidar cache para a lista atualizar automaticamente
@@ -189,10 +189,25 @@ export default function ContentCreatePage() {
               +
             </button>
             {photoFiles.map((f, i) => (
-              <span key={i} style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                {f.name}
-                <button type="button" onClick={() => removePhoto(i)} aria-label={tFn('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>×</button>
-              </span>
+              <div key={i} style={{ position: 'relative', width: 80, height: 80 }}>
+                <img
+                  src={URL.createObjectURL(f)}
+                  alt={f.name}
+                  style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(i)}
+                  aria-label={tFn('common.delete')}
+                  style={{
+                    position: 'absolute', top: -6, right: -6,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: 'var(--color-error, #e53e3e)', color: '#fff',
+                    border: 'none', cursor: 'pointer', fontSize: 12,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >×</button>
+              </div>
             ))}
           </div>
         </label>
@@ -204,10 +219,24 @@ export default function ContentCreatePage() {
               +
             </button>
             {videoFiles.map((f, i) => (
-              <span key={i} style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                {f.name}
-                <button type="button" onClick={() => removeVideo(i)} aria-label={tFn('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>×</button>
-              </span>
+              <div key={i} style={{ position: 'relative', width: 80, height: 80 }}>
+                <video
+                  src={URL.createObjectURL(f)}
+                  style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeVideo(i)}
+                  aria-label={tFn('common.delete')}
+                  style={{
+                    position: 'absolute', top: -6, right: -6,
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: 'var(--color-error, #e53e3e)', color: '#fff',
+                    border: 'none', cursor: 'pointer', fontSize: 12,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >×</button>
+              </div>
             ))}
           </div>
         </label>

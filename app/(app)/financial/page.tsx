@@ -21,14 +21,11 @@ async function getStatement(year: number, month: number, token: string): Promise
   return res.json()
 }
 
-async function getPayoutLink(token: string): Promise<{ url?: string }> {
-  const res = await fetch(`${base()}/functions/v1/creator-payout-update-link`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-  })
-  if (!res.ok) throw new Error(await res.text())
-  return res.json()
-}
+// STRIPE_DISABLED: getPayoutLink temporarily disabled
+// async function getPayoutLink(token: string): Promise<{ url?: string }> {
+//   const res = await fetch(`${base()}/functions/v1/creator-payout-update-link`, { ... })
+//   return res.json()
+// }
 
 export default function FinancialPage() {
   const router = useRouter()
@@ -82,20 +79,9 @@ export default function FinancialPage() {
     },
   })
 
+  // STRIPE_DISABLED: Payout link temporarily disabled
   const openPayoutLink = async () => {
-    const { data: session } = await supabase.auth.getSession()
-    const token = session.session?.access_token
-    if (!token) {
-      toast.error('Sessão expirada')
-      return
-    }
-    try {
-      const { url } = await getPayoutLink(token)
-      if (url) window.open(url, '_blank')
-      else toast.error(t('financial.noTransactions'))
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t('common.error'))
-    }
+    toast.info('Em breve')
   }
 
   const tabs = [t('financial.totalEarnings'), t('financial.history'), t('financial.withdraw')]

@@ -2,11 +2,9 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslation } from '@/lib/i18n'
 import Link from 'next/link'
-import { createSubscriptionCheckout } from '@/lib/api/subscription'
 import { toast } from 'sonner'
 
 type PlanRow = {
@@ -32,32 +30,9 @@ export default function OnboardingSubscriptionPage() {
     },
   })
 
-  const handleAssinar = async (plan: PlanRow) => {
-    const priceId = plan.stripe_price_id
-    if (!priceId) {
-      toast.error(t('subscriptions.noPriceConfigured'))
-      return
-    }
-    const { data: session } = await supabase.auth.getSession()
-    const token = session.session?.access_token
-    if (!token) {
-      toast.error(t('subscriptions.loginToSubscribe'))
-      return
-    }
-    setLoadingId(plan.id)
-    try {
-      const { url, error } = await createSubscriptionCheckout(priceId, token)
-      if (error) {
-        toast.error(error)
-        return
-      }
-      if (url) window.location.href = url
-      else toast.error(t('subscriptions.checkoutLinkError'))
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t('subscriptions.checkoutError'))
-    } finally {
-      setLoadingId(null)
-    }
+  // STRIPE_DISABLED: Subscription checkout temporarily disabled
+  const handleAssinar = async (_plan: PlanRow) => {
+    toast.info('Em breve')
   }
 
   return (

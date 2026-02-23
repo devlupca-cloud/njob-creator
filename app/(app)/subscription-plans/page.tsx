@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
 import { useTranslation } from '@/lib/i18n'
-import { createSubscriptionCheckout } from '@/lib/api/subscription'
 import { toast } from 'sonner'
 
 type PlanRow = {
@@ -32,32 +31,9 @@ export default function SubscriptionPlansPage() {
     },
   })
 
-  const handleAssinar = async (plan: PlanRow) => {
-    const priceId = plan.stripe_price_id
-    if (!priceId) {
-      toast.error(t('subscriptions.noPriceConfigured'))
-      return
-    }
-    const { data: session } = await supabase.auth.getSession()
-    const token = session.session?.access_token
-    if (!token) {
-      toast.error(t('subscriptions.loginToSubscribe'))
-      return
-    }
-    setLoadingId(plan.id)
-    try {
-      const { url, error } = await createSubscriptionCheckout(priceId, token)
-      if (error) {
-        toast.error(error)
-        return
-      }
-      if (url) window.location.href = url
-      else toast.error(t('subscriptions.checkoutLinkError'))
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : t('subscriptions.checkoutError'))
-    } finally {
-      setLoadingId(null)
-    }
+  // STRIPE_DISABLED: Subscription checkout temporarily disabled
+  const handleAssinar = async (_plan: PlanRow) => {
+    toast.info('Em breve')
   }
 
   return (
@@ -76,7 +52,7 @@ export default function SubscriptionPlansPage() {
               <div style={{ fontSize: 14, marginBottom: 16 }}>{p.currency} {Number(p.price_monthly).toFixed(2)}/mês</div>
               <button
                 type="button"
-                disabled={!p.stripe_price_id || loadingId === p.id}
+                disabled={loadingId === p.id}
                 onClick={() => handleAssinar(p)}
                 style={{
                   padding: '10px 20px',
@@ -85,8 +61,8 @@ export default function SubscriptionPlansPage() {
                   background: 'var(--color-primary)',
                   color: '#fff',
                   fontWeight: 600,
-                  cursor: p.stripe_price_id && loadingId !== p.id ? 'pointer' : 'not-allowed',
-                  opacity: p.stripe_price_id && loadingId !== p.id ? 1 : 0.6,
+                  cursor: loadingId !== p.id ? 'pointer' : 'not-allowed',
+                  opacity: loadingId !== p.id ? 1 : 0.6,
                   fontSize: 14,
                 }}
               >

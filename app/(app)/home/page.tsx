@@ -135,9 +135,10 @@ export default function HomePage() {
   } = useQuery<VwCreatorEventRow[]>({
     queryKey: ['vw_creator_events', 'today', creator?.profile.username, todayISO],
     enabled: !!creator,
+    retry: 1,
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
       if (!userId) return []
 
       // Busca hoje e amanhã (por start_date UTC) para incluir eventos tipo "hoje 23h" que viram dia seguinte em UTC
@@ -218,13 +219,13 @@ export default function HomePage() {
   } = useQuery<CreatorMetrics>({
     queryKey: ['get_creator_metrics', creator?.profile.username],
     enabled: !!creator,
+    retry: 1,
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
       if (!userId) return { visitas_30d: 0, curtidas_30d: 0, faturamento_30d: 0 }
 
-      // Chama a RPC via fetch direto para evitar conflito com os tipos Database.Functions.
-      // No Flutter isso era chamado como Edge Function (SupabaseFunctionsGroup.gETMetricasHomeCall).
+      const { data: session } = await supabase.auth.getSession()
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/get_creator_metrics`,
         {
@@ -232,7 +233,7 @@ export default function HomePage() {
           headers: {
             'Content-Type': 'application/json',
             apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token ?? ''}`,
+            Authorization: `Bearer ${session.session?.access_token ?? ''}`,
           },
           body: JSON.stringify({ p_profile_id: userId }),
         }

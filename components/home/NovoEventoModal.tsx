@@ -347,23 +347,21 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
         }
       }
 
-      const { data, error } = await supabase.functions.invoke('create-stripe-live-ticket', {
-        body: {
+      // STRIPE_DISABLED: Create live stream directly in DB (without Stripe ticket product)
+      const { error } = await supabase
+        .from('live_streams')
+        .insert({
+          creator_id: userId,
           title: titulo.trim(),
           description: DURACAO_BACKEND_VALUE[duracao],
           scheduled_start_time: scheduledStartTime,
           ticket_price: valorNum,
           estimated_duration_minutes: DURACAO_MINUTOS[duracao],
-        },
-      })
+          status: 'scheduled',
+        })
 
       if (error) {
         toast.error(error.message ?? t('events.errorCreating'))
-        return
-      }
-
-      if (data?.error) {
-        toast.error(typeof data.error === 'string' ? data.error : t('events.errorCreating'))
         return
       }
 

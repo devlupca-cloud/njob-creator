@@ -56,12 +56,14 @@ export default function ContentPage() {
       applied.endDate,
     ],
     enabled: !!creator,
+    retry: 1,
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return []
       const { data: session } = await supabase.auth.getSession()
-      const uid = session.session?.user.id
       const token = session.session?.access_token
-      if (!uid || !token) return []
-      return getPacksByCreator(uid, token, {
+      if (!token) return []
+      return getPacksByCreator(user.id, token, {
         has_photo: applied.hasPhoto ?? undefined,
         has_video: applied.hasVideo ?? undefined,
         start_date: applied.startDate || undefined,

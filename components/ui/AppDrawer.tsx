@@ -81,8 +81,9 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
     { label: t('nav.support'), href: '/support', icon: <SupportIcon /> },
     { label: t('nav.notifications'), href: '/notifications', icon: <NotificationsIcon /> },
     { label: t('nav.financial'), href: '/financial', icon: <FinancialIcon /> },
-    { label: t('nav.payments'), href: '/payments', icon: <PaymentsIcon /> },
-    { label: t('nav.subscriptionPlans'), href: '/subscription-plans', icon: <PlanIcon /> },
+    // STRIPE_DISABLED: Payments and subscription plans hidden until Stripe is re-enabled
+    // { label: t('nav.payments'), href: '/payments', icon: <PaymentsIcon /> },
+    // { label: t('nav.subscriptionPlans'), href: '/subscription-plans', icon: <PlanIcon /> },
   ]
   const [guestModalOpen, setGuestModalOpen] = useState(false)
 

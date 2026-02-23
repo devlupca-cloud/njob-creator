@@ -13,7 +13,7 @@ import StepProgress from '@/components/ui/StepProgress'
 import PageHeader from '@/components/ui/PageHeader'
 import DicasFotosModal from '@/components/ui/DicasFotosModal'
 import { signUp } from '@/lib/supabase/auth'
-import { checkCreatorPayoutStatus, getCreatorInfo } from '@/lib/supabase/creator'
+import { getCreatorInfo } from '@/lib/supabase/creator'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
 import { useTranslation, type TranslationKey } from '@/lib/i18n'
@@ -500,25 +500,14 @@ export default function RegisterPage() {
           // Upload de imagens e salvar referências
           await uploadImagesAndSave(supabase, user.id)
 
-          // Verificar status de creator/payout
-          await checkCreatorPayoutStatus(supabase, {
-            isCreatorAndCompleted: async () => {
-              const info = await getCreatorInfo(supabase)
-              if (info) setCreator(info)
-              router.push('/home')
-            },
-            isCreatorAndPending: (url) => {
-              router.push(`/stripe-setup?url=${encodeURIComponent(url)}`)
-            },
-            isNotCreator: () => {
-              toast.error(t('auth.noAccess'))
-              setLoading(false)
-            },
-            onError: (msg) => {
-              toast.error(msg)
-              setLoading(false)
-            },
-          })
+          // Limpar estado de guest (cookie + store)
+          document.cookie = 'njob-guest=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
+          useAppStore.getState().setGuest(false)
+
+          // STRIPE_DISABLED: Skip Stripe payout check, go directly to home
+          const info = await getCreatorInfo(supabase)
+          if (info) setCreator(info)
+          router.push('/home')
         } catch (err) {
           const msg = err instanceof Error ? err.message : t('auth.errorFinishRegister')
           toast.error(msg)

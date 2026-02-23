@@ -12,11 +12,11 @@ interface FaqItem {
 const faqItems: FaqItem[] = [
   {
     q: 'Como configuro meus pagamentos?',
-    a: 'Acesse Financeiro > Pagamentos e conecte sua conta Stripe. Após a verificação, você poderá receber pagamentos e realizar saques.',
+    a: 'A funcionalidade de pagamentos estará disponível em breve. Você será notificado quando puder configurar seus recebimentos.',
   },
   {
     q: 'Como funciona a comissão da plataforma?',
-    a: 'A plataforma cobra 15% sobre cada venda (packs, ingressos de live, videochamadas). O restante é depositado diretamente na sua conta Stripe.',
+    a: 'A plataforma cobra 15% sobre cada venda (packs, ingressos de live, videochamadas). O restante é depositado diretamente na sua conta.',
   },
   {
     q: 'Como inicio uma live?',
@@ -32,7 +32,7 @@ const faqItems: FaqItem[] = [
   },
   {
     q: 'Quando recebo meus pagamentos?',
-    a: 'Os pagamentos são processados pelo Stripe. Após uma venda, o valor fica disponível para saque em 2-7 dias úteis, dependendo do seu banco.',
+    a: 'Após uma venda, o valor fica disponível para saque em 2-7 dias úteis, dependendo do seu banco. A funcionalidade de saques estará disponível em breve.',
   },
   {
     q: 'Como altero meu perfil?',

@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCreator } from '@/lib/store/app-store'
@@ -104,58 +103,10 @@ export default function ProfilePage() {
   const router = useRouter()
   const creator = useCreator()
   const { t } = useTranslation()
-  const [loadingFinanceiro, setLoadingFinanceiro] = useState(false)
 
+  // STRIPE_DISABLED: Stripe financial panel temporarily disabled
   const handleFinanceiro = async () => {
-    setLoadingFinanceiro(true)
-    try {
-      const supabaseClient = createClient()
-      const { data: session } = await supabaseClient.auth.getSession()
-      const token = session.session?.access_token
-      if (!token) {
-        toast.error(t('profile.sessionExpired'))
-        return
-      }
-
-      const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
-
-      // Tenta link de atualização (conta Stripe já completou onboarding)
-      const res = await fetch(`${baseUrl}/functions/v1/creator-payout-update-link`, {
-        method: 'POST',
-        headers,
-      })
-
-      let data = await res.json()
-      console.log('[Financeiro] payout-update-link response:', res.status, data)
-
-      // Se a conta ainda não completou o onboarding, faz fallback para o link de onboarding
-      if (!res.ok && data?.error?.includes?.('account_onboarding')) {
-        const onboardingRes = await fetch(`${baseUrl}/functions/v1/create-stripe-connected-account`, {
-          method: 'POST',
-          headers,
-        })
-        if (!onboardingRes.ok) throw new Error('Erro ao gerar link de onboarding')
-        data = await onboardingRes.json()
-        console.log('[Financeiro] onboarding response:', data)
-        toast.info(t('profile.stripeIncomplete'))
-      } else if (!res.ok) {
-        throw new Error(data?.error || 'Erro ao gerar link')
-      }
-
-      const url = data?.url ?? data?.onboarding_url ?? data?.login_url
-      console.log('[Financeiro] URL final:', url)
-
-      if (url && typeof url === 'string' && !url.includes('stripe.com/br?utm')) {
-        window.open(url, '_blank', 'noopener,noreferrer')
-      } else {
-        toast.error(t('profile.stripeError'))
-      }
-    } catch {
-      toast.error(t('profile.financialError'))
-    } finally {
-      setLoadingFinanceiro(false)
-    }
+    toast.info('Em breve')
   }
 
   const handleInativarConta = () => {
@@ -232,7 +183,7 @@ export default function ProfilePage() {
         <Divider />
         <MenuItem
           icon={<DollarIcon />}
-          label={loadingFinanceiro ? t('profile.openingPanel') : t('nav.financial')}
+          label={t('nav.financial')}
           onClick={handleFinanceiro}
         />
         <Divider />

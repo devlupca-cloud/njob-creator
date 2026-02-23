@@ -45,37 +45,9 @@ export async function checkCreatorPayoutStatus(
       return
     }
 
-    // Check payout status in creator_payout_info
-    const { data: payoutRaw } = await supabase
-      .from('creator_payout_info')
-      .select('status')
-      .eq('creator_id', user.id)
-      .maybeSingle()
-
-    const payoutInfo = payoutRaw as { status: string } | null
-
-    if (!payoutInfo) {
-      // No payout info found — need to create Stripe account
-      const result = await createStripeAccount(supabase)
-      if ('url' in result) {
-        callbacks.isCreatorAndPending(result.url)
-      } else {
-        callbacks.onError(result.error)
-      }
-      return
-    }
-
-    if (payoutInfo.status === 'COMPLETED') {
-      callbacks.isCreatorAndCompleted()
-    } else {
-      // pending or suspended — re-fetch onboarding URL
-      const result = await createStripeAccount(supabase)
-      if ('url' in result) {
-        callbacks.isCreatorAndPending(result.url)
-      } else {
-        callbacks.onError(result.error)
-      }
-    }
+    // STRIPE_DISABLED: Stripe integration temporarily disabled.
+    // Skip payout status check and treat all creators as completed.
+    callbacks.isCreatorAndCompleted()
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro desconhecido'
     callbacks.onError(msg)
@@ -188,47 +160,8 @@ function normalizeCreatorData(raw: Record<string, unknown>): CreatorData {
   }
 }
 
-/**
- * Calls the create-stripe-connected-account Edge Function.
- * Returns the Stripe onboarding URL or null on error.
- * Replaces Flutter's criarSubcontaSTRIPECall.
- */
-export async function createStripeAccount(
-  supabase: SupabaseClientType
-): Promise<{ url: string } | { error: string }> {
-  try {
-    const { data, error } = await supabase.functions.invoke(
-      'create-stripe-connected-account'
-    )
-
-    if (error) {
-      const msg = error?.message ?? JSON.stringify(error)
-      console.error('createStripeAccount error:', msg)
-      return { error: msg }
-    }
-
-    if (!data) {
-      console.error('createStripeAccount: data is null/undefined')
-      return { error: 'Edge function retornou vazio' }
-    }
-
-    console.log('createStripeAccount data:', JSON.stringify(data))
-
-    // Try common URL field names
-    const url =
-      (data as Record<string, unknown>).url ??
-      (data as Record<string, unknown>).onboarding_url ??
-      (typeof data === 'string' ? data : null)
-
-    if (!url || typeof url !== 'string') {
-      console.error('createStripeAccount: URL not found in response', data)
-      return { error: `Resposta inesperada da edge function: ${JSON.stringify(data)}` }
-    }
-
-    return { url }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Erro desconhecido'
-    console.error('createStripeAccount exception:', msg)
-    return { error: msg }
-  }
-}
+// STRIPE_DISABLED: createStripeAccount temporarily disabled.
+// Will be re-enabled when Stripe integration is added back.
+// export async function createStripeAccount(
+//   supabase: SupabaseClientType
+// ): Promise<{ url: string } | { error: string }> { ... }
