@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from '@/lib/supabase/auth'
 import { useRouter } from 'next/navigation'
 import { useAppStore, useIsGuest } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
 import ComingSoonModal from '@/components/ui/ComingSoonModal'
 import GuestAuthModal from '@/components/ui/GuestAuthModal'
 
@@ -68,20 +69,20 @@ const SignOutIcon = () => (
   </svg>
 )
 
-const navItems: NavItem[] = [
-  { label: 'Home', href: '/home', icon: <HomeIcon /> },
-  { label: 'Conteúdo', href: '/content', icon: <ContentIcon /> },
-  { label: 'Chat', href: '/chat', icon: <ChatIcon />, comingSoon: true },
-  { label: 'Agenda', href: '/schedule', icon: <ScheduleIcon /> },
-  { label: 'Cupons', href: '/subscriptions', icon: <CouponsIcon /> },
-  { label: 'Perfil', href: '/profile', icon: <ProfileIcon /> },
-]
-
 export default function Sidebar() {
+  const { t } = useTranslation()
   const pathname = usePathname()
   const router = useRouter()
   const isGuest = useIsGuest()
   const setGuest = useAppStore((s) => s.setGuest)
+
+  const navItems: NavItem[] = [
+    { label: t('nav.home'), href: '/home', icon: <HomeIcon /> },
+    { label: t('nav.content'), href: '/content', icon: <ContentIcon /> },
+    { label: t('nav.schedule'), href: '/schedule', icon: <ScheduleIcon /> },
+    { label: t('nav.coupons'), href: '/subscriptions', icon: <CouponsIcon /> },
+    { label: t('nav.profile'), href: '/profile', icon: <ProfileIcon /> },
+  ]
   const [comingSoonOpen, setComingSoonOpen] = useState(false)
   const [comingSoonFeature, setComingSoonFeature] = useState('')
   const [guestModalOpen, setGuestModalOpen] = useState(false)
@@ -185,7 +186,7 @@ export default function Sidebar() {
       <GuestAuthModal
         open={guestModalOpen}
         onClose={() => setGuestModalOpen(false)}
-        message="Você precisa de uma conta para navegar pela plataforma."
+        message={t('modals.guestNeedAccount')}
       />
 
       {/* Sign out */}
@@ -196,7 +197,7 @@ export default function Sidebar() {
           style={{ color: 'var(--color-muted)' }}
         >
           <SignOutIcon />
-          Sair
+          {t('nav.signOut')}
         </button>
       </div>
     </aside>

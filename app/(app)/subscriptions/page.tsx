@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
 import { getAvailableCoupons, type CouponItem } from '@/lib/api/coupons'
 import EmptyState from '@/components/ui/EmptyState'
+import { useTranslation } from '@/lib/i18n'
 
 function formatDiscount(c: CouponItem): string | null {
   if (c.discount_type === 'percentage' && c.discount_value != null) {
@@ -61,6 +62,7 @@ export default function SubscriptionsPage() {
   const supabase = createClient()
   const creator = useCreator()
   const router = useRouter()
+  const { t } = useTranslation()
 
   const { data: coupons = [], isLoading } = useQuery({
     queryKey: ['get_available_coupons', creator?.profile?.username],
@@ -78,10 +80,10 @@ export default function SubscriptionsPage() {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0, color: 'var(--color-foreground)' }}>
-          Cupons
+          {t('subscriptions.couponsTitle')}
         </h1>
         <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: '6px 0 0' }}>
-          Ofertas e descontos disponíveis na loja
+          {t('subscriptions.couponsSubtitle')}
         </p>
       </div>
 
@@ -89,8 +91,8 @@ export default function SubscriptionsPage() {
         <Spinner />
       ) : coupons.length === 0 ? (
         <EmptyState
-          title="Nenhum cupom disponível"
-          description="Quando houver ofertas ou descontos, eles aparecerão aqui."
+          title={t('subscriptions.noCoupons')}
+          description={t('subscriptions.emptyCoupons')}
           icon="🎫"
         />
       ) : (

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
 import { getPacksByCreator, type PackListItem } from '@/lib/api/content'
 import EmptyState from '@/components/ui/EmptyState'
 
@@ -14,12 +15,21 @@ const FilterIcon = () => (
   </svg>
 )
 
-function countActiveFilters(hasPhoto: boolean | null, hasVideo: boolean | null, startDate: string, endDate: string): number {
+interface AppliedFilters {
+  hasPhoto: boolean | null
+  hasVideo: boolean | null
+  startDate: string
+  endDate: string
+}
+
+const emptyFilters: AppliedFilters = { hasPhoto: null, hasVideo: null, startDate: '', endDate: '' }
+
+function countActive(f: AppliedFilters): number {
   let n = 0
-  if (hasPhoto === true) n++
-  if (hasVideo === true) n++
-  if (startDate) n++
-  if (endDate) n++
+  if (f.hasPhoto === true) n++
+  if (f.hasVideo === true) n++
+  if (f.startDate) n++
+  if (f.endDate) n++
   return n
 }
 
@@ -27,50 +37,73 @@ export default function ContentPage() {
   const supabase = createClient()
   const creator = useCreator()
   const router = useRouter()
-  const [hasPhoto, setHasPhoto] = useState<boolean | null>(null)
-  const [hasVideo, setHasVideo] = useState<boolean | null>(null)
-  const [startDate, setStartDate] = useState<string>('')
-  const [endDate, setEndDate] = useState<string>('')
+  const { t } = useTranslation()
+
+  // Filtros aplicados (usados para filtrar a lista)
+  const [applied, setApplied] = useState<AppliedFilters>(emptyFilters)
+
+  // Filtros temporários (estado do modal enquanto o usuário seleciona)
+  const [draft, setDraft] = useState<AppliedFilters>(emptyFilters)
   const [filterModalOpen, setFilterModalOpen] = useState(false)
 
-  const filters = {
-    has_photo: hasPhoto ?? undefined,
-    has_video: hasVideo ?? undefined,
-    start_date: startDate || undefined,
-    end_date: endDate || undefined,
-  }
-
   const { data: packs = [], isLoading } = useQuery({
-    queryKey: ['get_packs_by_creator', creator?.profile?.username, filters],
+    queryKey: [
+      'get_packs_by_creator',
+      creator?.profile?.username,
+      applied.hasPhoto,
+      applied.hasVideo,
+      applied.startDate,
+      applied.endDate,
+    ],
     enabled: !!creator,
     queryFn: async () => {
       const { data: session } = await supabase.auth.getSession()
       const uid = session.session?.user.id
       const token = session.session?.access_token
       if (!uid || !token) return []
-      return getPacksByCreator(uid, token, filters)
+      return getPacksByCreator(uid, token, {
+        has_photo: applied.hasPhoto ?? undefined,
+        has_video: applied.hasVideo ?? undefined,
+        start_date: applied.startDate || undefined,
+        end_date: applied.endDate || undefined,
+      })
     },
   })
 
-  const activeCount = countActiveFilters(hasPhoto, hasVideo, startDate, endDate)
+  const activeCount = countActive(applied)
   const hasActiveFilters = activeCount > 0
 
-  const clearFilters = () => {
-    setHasPhoto(null)
-    setHasVideo(null)
-    setStartDate('')
-    setEndDate('')
+  // Abrir modal: copiar filtros aplicados para o draft
+  const openFilterModal = () => {
+    setDraft({ ...applied })
+    setFilterModalOpen(true)
   }
 
-  const applyAndClose = () => setFilterModalOpen(false)
+  // Aplicar: copiar draft para applied e fechar
+  const applyAndClose = () => {
+    setApplied({ ...draft })
+    setFilterModalOpen(false)
+  }
+
+  // Limpar: resetar draft e applied, fechar modal
+  const clearFilters = () => {
+    setDraft(emptyFilters)
+    setApplied(emptyFilters)
+    setFilterModalOpen(false)
+  }
+
+  // Limpar tudo (dentro do modal, sem fechar)
+  const clearDraft = () => {
+    setDraft(emptyFilters)
+  }
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 80 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>Venda de Conteúdo</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>{t('content.salesTitle')}</h1>
         <button
           type="button"
-          onClick={() => setFilterModalOpen(true)}
+          onClick={openFilterModal}
           style={{
             minHeight: 44,
             padding: '0 16px',
@@ -87,7 +120,7 @@ export default function ContentPage() {
           }}
         >
           <FilterIcon />
-          <span>Filtros</span>
+          <span>{t('content.filters')}</span>
           {hasActiveFilters && (
             <span
               style={{
@@ -113,7 +146,7 @@ export default function ContentPage() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Filtros de conteúdo"
+          aria-label={t('content.contentFilters')}
           className="content-filters-overlay"
           style={{
             position: 'fixed',
@@ -138,11 +171,11 @@ export default function ContentPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Filtros</h3>
-              {hasActiveFilters && (
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{t('content.filters')}</h3>
+              {countActive(draft) > 0 && (
                 <button
                   type="button"
-                  onClick={clearFilters}
+                  onClick={clearDraft}
                   style={{
                     padding: '6px 12px',
                     border: 'none',
@@ -152,62 +185,62 @@ export default function ContentPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  Limpar tudo
+                  {t('content.clearAll')}
                 </button>
               )}
             </div>
 
             <section style={{ marginBottom: 20 }}>
               <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Tipo de mídia
+                {t('content.mediaType')}
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <button
                   type="button"
-                  onClick={() => setHasPhoto(hasPhoto === true ? null : true)}
+                  onClick={() => setDraft((d) => ({ ...d, hasPhoto: d.hasPhoto === true ? null : true }))}
                   style={{
                     minHeight: 44,
                     padding: '0 16px',
                     borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--color-border)',
-                    background: hasPhoto === true ? 'var(--color-primary)' : 'var(--color-surface-2)',
-                    color: hasPhoto === true ? '#fff' : 'var(--color-foreground)',
+                    background: draft.hasPhoto === true ? 'var(--color-primary)' : 'var(--color-surface-2)',
+                    color: draft.hasPhoto === true ? '#fff' : 'var(--color-foreground)',
                     fontSize: 14,
                     cursor: 'pointer',
                   }}
                 >
-                  Com foto
+                  {t('content.withPhoto')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setHasVideo(hasVideo === true ? null : true)}
+                  onClick={() => setDraft((d) => ({ ...d, hasVideo: d.hasVideo === true ? null : true }))}
                   style={{
                     minHeight: 44,
                     padding: '0 16px',
                     borderRadius: 'var(--radius-full)',
                     border: '1px solid var(--color-border)',
-                    background: hasVideo === true ? 'var(--color-primary)' : 'var(--color-surface-2)',
-                    color: hasVideo === true ? '#fff' : 'var(--color-foreground)',
+                    background: draft.hasVideo === true ? 'var(--color-primary)' : 'var(--color-surface-2)',
+                    color: draft.hasVideo === true ? '#fff' : 'var(--color-foreground)',
                     fontSize: 14,
                     cursor: 'pointer',
                   }}
                 >
-                  Com vídeo
+                  {t('content.withVideo')}
                 </button>
               </div>
             </section>
 
             <section style={{ marginBottom: 24 }}>
               <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Período
+                {t('financial.period')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ fontSize: 13, color: 'var(--color-foreground)' }}>De</span>
+                  <span style={{ fontSize: 13, color: 'var(--color-foreground)' }}>{t('content.from')}</span>
                   <input
                     type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    value={draft.startDate}
+                    onChange={(e) => setDraft((d) => ({ ...d, startDate: e.target.value }))}
                     style={{
                       minHeight: 44,
                       padding: '0 12px',
@@ -220,11 +253,11 @@ export default function ContentPage() {
                   />
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span style={{ fontSize: 13, color: 'var(--color-foreground)' }}>Até</span>
+                  <span style={{ fontSize: 13, color: 'var(--color-foreground)' }}>{t('content.until')}</span>
                   <input
                     type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    value={draft.endDate}
+                    onChange={(e) => setDraft((d) => ({ ...d, endDate: e.target.value }))}
                     style={{
                       minHeight: 44,
                       padding: '0 12px',
@@ -263,7 +296,7 @@ export default function ContentPage() {
                   cursor: 'pointer',
                 }}
               >
-                Limpar
+                {t('content.clear')}
               </button>
               <button
                 type="button"
@@ -281,16 +314,16 @@ export default function ContentPage() {
                   cursor: 'pointer',
                 }}
               >
-                Aplicar
+                {t('content.apply')}
               </button>
             </div>
           </div>
         </div>
       )}
       {isLoading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>Carregando...</div>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
       ) : packs.length === 0 ? (
-        <EmptyState title="Nenhum pacote" description="Crie seu primeiro pacote de conteúdo para começar a vender." icon="📦" />
+        <EmptyState title={t('content.noPackages')} description={hasActiveFilters ? t('content.noFilterResults') : t('content.createFirstPackage')} icon="📦" />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16 }}>
           {(packs as PackListItem[]).map((p) => (
@@ -314,14 +347,14 @@ export default function ContentPage() {
                   <img src={p.cover_image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-muted)', fontSize: 12 }}>
-                    Sem capa
+                    {t('content.noCover')}
                   </div>
                 )}
               </div>
               <div style={{ padding: 8 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{p.title}</div>
                 <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>
-                  R$ {Number(p.price).toFixed(2)} · {p.photo_count ?? 0} fotos · {p.video_count ?? 0} vídeos
+                  R$ {Number(p.price).toFixed(2)} · {p.photo_count ?? 0} {t('content.photos')} · {p.video_count ?? 0} {t('content.videos')}
                 </div>
               </div>
             </button>

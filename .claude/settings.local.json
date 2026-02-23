@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run lint:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next build:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npx supabase:*)",
+      "Bash(node -e \":*)",
+      "Bash(node -e:*)",
+      "Bash(/tmp/test_db2.ts:*)",
+      "Bash(/tmp/test_db3.ts:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_b55a22d5d1cc68196631045b04275ebfd831d869 npx supabase:*)",
+      "Bash(/Users/samanthamaia/development/njob_creator_web/lib/types/database.ts:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

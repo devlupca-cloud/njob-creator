@@ -2,20 +2,22 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import { createPackWithItems, createStripePack, updatePackWithItems } from '@/lib/api/content'
+import { createStripePack } from '@/lib/api/content'
 import { uploadPackCover, uploadPackItem } from '@/lib/storage/packs'
 import { toast } from 'sonner'
+import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
 
 // ─── Currency helpers ──────────────────────────────────────────────
 
 const MIN_PRICE = 10
 
-function formatCurrencyBRL(raw: string): string {
+function formatCurrencyBRL(raw: string, bcp47 = 'pt-BR'): string {
   const digits = raw.replace(/\D/g, '')
   if (!digits) return ''
   const num = parseInt(digits, 10) / 100
-  return new Intl.NumberFormat('pt-BR', {
+  return new Intl.NumberFormat(bcp47, {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
@@ -34,6 +36,9 @@ type PackItem = { url: string; type: 'photo' | 'video' }
 export default function ContentCreatePage() {
   const supabase = createClient()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  const { t: tFn, locale } = useTranslation()
+  const bcp47 = getLocaleBcp47(locale)
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
   const [priceError, setPriceError] = useState(false)
@@ -68,34 +73,30 @@ export default function ContentCreatePage() {
   const removeVideo = (i: number) => setVideoFiles((prev) => prev.filter((_, idx) => idx !== i))
 
   const submit = async () => {
-    const t = title.trim()
+    const titleTrimmed = title.trim()
     const p = parseCurrencyBRL(price)
-    if (!t) {
-      toast.error('Título é obrigatório')
+    if (!titleTrimmed) {
+      toast.error(tFn('content.titleRequired'))
       return
     }
     if (p < MIN_PRICE) {
       setPriceError(true)
-      toast.error(`Preço mínimo é R$ ${MIN_PRICE},00`)
+      toast.error(`${tFn('content.price')} mín. R$ ${MIN_PRICE},00`)
       return
     }
     const { data: session } = await supabase.auth.getSession()
     const uid = session.session?.user.id
     const token = session.session?.access_token
     if (!uid || !token) {
-      toast.error('Sessão expirada')
+      toast.error(tFn('profile.sessionExpired'))
       return
     }
     setLoading(true)
     try {
-      const payload = { creator_id: uid, title: t, price: p, currency: 'BRL', description: description.trim() || '', photo_count: photoFiles.length, video_count: videoFiles.length }
-      const result = await createPackWithItems(payload, token)
-      const packId = result.pack_id
-      if (!packId) {
-        toast.success('Pacote criado')
-        router.push('/content')
-        return
-      }
+      // Gerar pack_id no cliente para upload de arquivos
+      const packId = crypto.randomUUID()
+
+      // Upload de arquivos
       let coverImageUrl: string | undefined
       const items: PackItem[] = []
       if (coverFile) {
@@ -110,22 +111,28 @@ export default function ContentCreatePage() {
         const url = await uploadPackItem(packId, file, 'video', idx++)
         items.push({ url, type: 'video' })
       }
-      if (coverImageUrl || items.length > 0) {
-        await updatePackWithItems(
-          { pack_id: packId, title: t, price: p, currency: 'BRL', description: description.trim() || '', cover_image_url: coverImageUrl ?? null, items },
-          token
-        )
+
+      // Criar pacote no DB + Stripe via Edge Function (chamada única)
+      const payload = {
+        creator_id: uid,
+        title: titleTrimmed,
+        price: p,
+        currency: 'BRL',
+        description: description.trim() || '',
+        photo_count: photoFiles.length,
+        video_count: videoFiles.length,
+        pack_id: packId,
+        cover_image_url: coverImageUrl,
+        items,
       }
-      try {
-        await createStripePack({ ...payload, pack_id: packId, cover_image_url: coverImageUrl, items }, token)
-      } catch (stripeErr) {
-        console.warn('[ContentCreate] create-stripe-pack:', stripeErr)
-        toast.info('Pacote criado. Sincronização com Stripe pode ser feita depois.')
-      }
-      toast.success('Pacote criado')
+      await createStripePack(payload, token)
+
+      toast.success(tFn('content.contentSaved'))
+      // Invalidar cache para a lista atualizar automaticamente
+      await queryClient.invalidateQueries({ queryKey: ['get_packs_by_creator'] })
       router.push('/content')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao criar')
+      toast.error(e instanceof Error ? e.message : tFn('content.errorSaving'))
     } finally {
       setLoading(false)
     }
@@ -152,10 +159,10 @@ export default function ContentCreatePage() {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>Criar pacote</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{tFn('content.create')}</h1>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600 }}>
-          Capa
+          {tFn('content.coverImage')}
           <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
             <input ref={coverInputRef} type="file" accept="image/*" onChange={onCoverChange} className="sr-only" id="cover-upload" />
             <button
@@ -164,9 +171,9 @@ export default function ContentCreatePage() {
               style={{ ...slotStyle, cursor: 'pointer', padding: 0 }}
             >
               {coverPreview ? (
-                <img src={coverPreview} alt="Capa" style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
+                <img src={coverPreview} alt={tFn('content.coverImage')} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
               ) : (
-                <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>+ Capa</span>
+                <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>+ {tFn('content.coverImage')}</span>
               )}
             </button>
             {coverFile && (
@@ -175,37 +182,37 @@ export default function ContentCreatePage() {
           </div>
         </label>
         <label style={{ fontSize: 14, fontWeight: 600 }}>
-          Fotos
+          {tFn('register.additionalPhotos').split(' ')[0]}
           <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={onPhotosChange} className="sr-only" id="photos-upload" />
             <button type="button" onClick={() => photoInputRef.current?.click()} style={{ ...slotStyle, cursor: 'pointer', fontSize: 12, color: 'var(--color-muted)' }}>
-              + Foto
+              +
             </button>
             {photoFiles.map((f, i) => (
               <span key={i} style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 {f.name}
-                <button type="button" onClick={() => removePhoto(i)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>×</button>
+                <button type="button" onClick={() => removePhoto(i)} aria-label={tFn('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>×</button>
               </span>
             ))}
           </div>
         </label>
         <label style={{ fontSize: 14, fontWeight: 600 }}>
-          Vídeos
+          {tFn('content.uploadMedia')}
           <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <input ref={videoInputRef} type="file" accept="video/*" multiple onChange={onVideosChange} className="sr-only" id="videos-upload" />
             <button type="button" onClick={() => videoInputRef.current?.click()} style={{ ...slotStyle, cursor: 'pointer', fontSize: 12, color: 'var(--color-muted)' }}>
-              + Vídeo
+              +
             </button>
             {videoFiles.map((f, i) => (
               <span key={i} style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 {f.name}
-                <button type="button" onClick={() => removeVideo(i)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>×</button>
+                <button type="button" onClick={() => removeVideo(i)} aria-label={tFn('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>×</button>
               </span>
             ))}
           </div>
         </label>
         <label style={{ fontSize: 14, fontWeight: 600 }}>
-          Título
+          {tFn('content.contentTitle')}
           <input
             type="text"
             value={title}
@@ -214,23 +221,23 @@ export default function ContentCreatePage() {
           />
         </label>
         <label style={{ fontSize: 14, fontWeight: 600 }}>
-          Descrição (opcional)
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={inputStyle} placeholder="Descreva o pacote" />
+          {tFn('content.contentDescription')} ({tFn('common.optional')})
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={inputStyle} />
         </label>
         <label style={{ fontSize: 14, fontWeight: 600 }}>
-          Preço (R$)
+          {tFn('content.price')} (R$)
           <input
             type="text"
             inputMode="numeric"
             value={price}
-            onChange={(e) => { setPrice(formatCurrencyBRL(e.target.value)); setPriceError(false) }}
+            onChange={(e) => { setPrice(formatCurrencyBRL(e.target.value, bcp47)); setPriceError(false) }}
             onBlur={() => { if (price && parseCurrencyBRL(price) < MIN_PRICE) setPriceError(true) }}
-            placeholder="R$ 0,00"
+            placeholder={new Intl.NumberFormat(bcp47, { style: 'currency', currency: 'BRL' }).format(0)}
             style={{ ...inputStyle, borderColor: priceError ? 'var(--color-error)' : undefined }}
           />
           {priceError && (
             <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-              Valor mínimo de R$ {MIN_PRICE},00
+              {tFn('register.minValue')}
             </span>
           )}
         </label>
@@ -247,7 +254,7 @@ export default function ContentCreatePage() {
               fontSize: 14,
             }}
           >
-            Voltar
+            {tFn('common.back')}
           </button>
           <button
             type="button"
@@ -264,7 +271,7 @@ export default function ContentCreatePage() {
               fontSize: 14,
             }}
           >
-            {loading ? 'Criando...' : 'Criar'}
+            {loading ? tFn('events.creating') : tFn('content.publish')}
           </button>
         </div>
       </div>

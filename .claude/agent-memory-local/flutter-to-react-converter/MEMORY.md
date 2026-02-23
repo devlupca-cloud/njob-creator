@@ -142,3 +142,20 @@ function deleteCookie(name: string) {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`
 }
 ```
+
+## i18n System
+- Hook: `useTranslation` from `@/lib/i18n` → retorna `{ t, locale }`
+- Locale-aware formatting: `getLocaleBcp47(locale)` → `'pt-BR' | 'en-US' | 'es-ES'`
+- Chaves importantes: `common.close|back|cancel|confirm|delete|loading|optional`, `events.newEvent|eventName|eventDuration|eventPrice|eventDate|eventTime|fieldRequired|minPriceHint|selectDate|invalidTime|localTimezoneHint|creating|eventCreated|errorCreating|duration30min|duration1hour|eventTitlePlaceholder`, `schedule.title|noEvents|live|videoCall|date|time|duration|ticketPrice`, `content.create|edit|coverImage|uploadMedia|contentTitle|contentDescription|price|contentSaved|contentDeleted|titleRequired|errorSaving|errorDeleting|deleteContent|deleteConfirm|publish`, `financial.title|totalEarnings|history|withdraw|period|noTransactions`, `home.visits|likes|revenue|last30days`
+- IMPORTANTE: Se variável local `t` conflita com hook, renomear: `const { t: tFn, locale } = useTranslation()`
+- Funções de formatação fora do componente: adicionar parâmetro `bcp47 = 'pt-BR'`
+- Valores internos de duração: `'1hora'` e `'30min'`; mapa `DURACAO_BACKEND_VALUE` preserva strings para Edge Function
+
+## i18n Pattern (useTranslation)
+- Hook: `import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'`
+- Inside component: `const { t, locale } = useTranslation()`
+- For Intl/toLocaleString: `getLocaleBcp47(locale)` → returns 'pt-BR' | 'en-US' | 'es-ES'
+- Locale change: `useAppStore((s) => s.setLocale)` — persisted via Zustand + localStorage
+- New keys go in pt.ts (master), en.ts, es.ts — all three must stay in sync
+- Sub-components in same file that need t(): pass translated strings as props (no restructuring)
+- `Translations` type in pt.ts uses `DeepStringify<typeof pt>` — all values become `string`

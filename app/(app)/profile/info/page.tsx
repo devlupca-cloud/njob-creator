@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { useAppStore, useCreator } from '@/lib/store/app-store'
 import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/ui/PageHeader'
+import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -76,9 +76,13 @@ interface PhotoModalProps {
   onClose: () => void
   onUpload: (file: File) => Promise<void>
   uploading: boolean
+  labelTitle: string
+  labelTakePhoto: string
+  labelChooseFromGallery: string
+  labelUploading: string
 }
 
-function PhotoModal({ currentUrl, onClose, onUpload, uploading }: PhotoModalProps) {
+function PhotoModal({ currentUrl, onClose, onUpload, uploading, labelTitle, labelTakePhoto, labelChooseFromGallery, labelUploading }: PhotoModalProps) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -100,7 +104,7 @@ function PhotoModal({ currentUrl, onClose, onUpload, uploading }: PhotoModalProp
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
-            Alterar foto de perfil
+            {labelTitle}
           </h3>
           <button onClick={onClose} style={{ color: 'var(--color-muted)' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -129,7 +133,7 @@ function PhotoModal({ currentUrl, onClose, onUpload, uploading }: PhotoModalProp
               className="w-full py-3 rounded-xl text-center text-sm font-medium transition-opacity hover:opacity-90"
               style={{ background: 'var(--color-primary)', color: '#fff' }}
             >
-              {uploading ? 'Enviando...' : 'Tirar foto'}
+              {uploading ? labelUploading : labelTakePhoto}
             </div>
           </label>
           <label className="block w-full cursor-pointer">
@@ -144,7 +148,7 @@ function PhotoModal({ currentUrl, onClose, onUpload, uploading }: PhotoModalProp
               className="w-full py-3 rounded-xl text-center text-sm font-medium transition-opacity hover:opacity-90 border"
               style={{ borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
             >
-              {uploading ? 'Enviando...' : 'Escolher da galeria'}
+              {uploading ? labelUploading : labelChooseFromGallery}
             </div>
           </label>
         </div>
@@ -155,11 +159,11 @@ function PhotoModal({ currentUrl, onClose, onUpload, uploading }: PhotoModalProp
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string | null | undefined): string {
+function formatDate(iso: string | null | undefined, localeBcp47: string): string {
   if (!iso) return '-'
   try {
     const d = new Date(iso)
-    return d.toLocaleDateString('pt-BR')
+    return d.toLocaleDateString(localeBcp47)
   } catch {
     return '-'
   }
@@ -177,6 +181,7 @@ function getLanguageLabel(code: string): string {
 export default function InformacoesPessoaisPage() {
   const creator = useCreator()
   const setCreator = useAppStore((s) => s.setCreator)
+  const { t, locale } = useTranslation()
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
@@ -219,11 +224,11 @@ export default function InformacoesPessoaisPage() {
         ...creator,
         profile: { ...creator.profile, avatar_url: publicUrl },
       })
-      toast.success('Foto atualizada com sucesso')
+      toast.success(t('profile.photoUpdated'))
       setPhotoModalOpen(false)
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao atualizar foto')
+      toast.error(t('profile.photoError'))
     } finally {
       setUploading(false)
     }
@@ -232,7 +237,7 @@ export default function InformacoesPessoaisPage() {
   if (!creator) {
     return (
       <div className="flex flex-col min-h-full items-center justify-center">
-        <p style={{ color: 'var(--color-muted)' }}>Carregando...</p>
+        <p style={{ color: 'var(--color-muted)' }}>{t('common.loading')}</p>
       </div>
     )
   }
@@ -241,7 +246,7 @@ export default function InformacoesPessoaisPage() {
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-      <PageHeader title="Informações pessoais" />
+      <PageHeader title={t('profile.info')} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-6 space-y-6">
@@ -252,7 +257,7 @@ export default function InformacoesPessoaisPage() {
               onClick={() => setPhotoModalOpen(true)}
               className="relative w-20 h-20 rounded-full overflow-hidden transition-opacity hover:opacity-80"
               style={{ background: 'var(--color-surface-2)' }}
-              aria-label="Alterar foto de perfil"
+              aria-label={t('profile.changeProfilePhoto')}
             >
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt={profile.full_name} className="w-full h-full object-cover" />
@@ -269,47 +274,47 @@ export default function InformacoesPessoaisPage() {
               </div>
             </button>
             <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-              Toque para alterar a foto
+              {t('profile.tapToChangePhoto')}
             </p>
           </div>
 
           {/* Card: Dados básicos */}
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Dados básicos</p>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>{t('profile.basicData')}</p>
             </div>
             <div className="px-4">
-              <InfoRow label="Nome" value={profile.full_name} href="/profile/edit/name" navigable />
+              <InfoRow label={t('profile.name')} value={profile.full_name} href="/profile/edit/name" navigable />
               <Divider />
-              <InfoRow label="Idioma" value={getLanguageLabel('pt')} href="/profile/edit/language" navigable />
+              <InfoRow label={t('profile.language')} value={getLanguageLabel(locale)} href="/profile/edit/language" navigable />
               <Divider />
-              <InfoRow label="Nascimento" value={formatDate(creator_description?.date_birth)} />
+              <InfoRow label={t('profile.birthDate')} value={formatDate(creator_description?.date_birth, getLocaleBcp47(locale))} />
             </div>
           </div>
 
           {/* Card: Acesso */}
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Acesso</p>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>{t('profile.access')}</p>
             </div>
             <div className="px-4">
-              <InfoRow label="E-mail" value={currentUserEmail ?? undefined} href="/profile/edit/email" navigable />
+              <InfoRow label={t('profile.email')} value={currentUserEmail ?? undefined} href="/profile/edit/email" navigable />
               <Divider />
-              <InfoRow label="Senha" value={undefined} href="/profile/edit/password" navigable />
+              <InfoRow label={t('profile.password')} value={undefined} href="/profile/edit/password" navigable />
             </div>
           </div>
 
           {/* Card: Personalização */}
           <div className="rounded-xl overflow-hidden" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>Personalização</p>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-muted)' }}>{t('profile.customization')}</p>
             </div>
             <div className="px-4">
-              <InfoRow label="Descrição" value={undefined} href="/profile/edit/description" navigable />
+              <InfoRow label={t('profile.description')} value={undefined} href="/profile/edit/description" navigable />
               <Divider />
-              <InfoRow label="Interações" value={undefined} href="/profile/edit/interactions" navigable />
+              <InfoRow label={t('profile.interactions')} value={undefined} href="/profile/edit/interactions" navigable />
               <Divider />
-              <InfoRow label="Fotos de perfil" value={undefined} href="/profile/edit/images" navigable />
+              <InfoRow label={t('profile.photos')} value={undefined} href="/profile/edit/images" navigable />
             </div>
           </div>
 
@@ -322,6 +327,10 @@ export default function InformacoesPessoaisPage() {
           onClose={() => setPhotoModalOpen(false)}
           onUpload={handleAvatarUpload}
           uploading={uploading}
+          labelTitle={t('profile.changeProfilePhoto')}
+          labelTakePhoto={t('profile.takePhoto')}
+          labelChooseFromGallery={t('profile.chooseFromGallery')}
+          labelUploading={t('profile.uploading')}
         />
       )}
     </div>

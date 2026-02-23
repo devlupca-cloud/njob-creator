@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import Button from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation } from '@/lib/i18n'
 import { checkCreatorPayoutStatus, getCreatorInfo } from '@/lib/supabase/creator'
 import { signOut } from '@/lib/supabase/auth'
 import { useAppStore } from '@/lib/store/app-store'
@@ -13,6 +14,7 @@ import { useAppStore } from '@/lib/store/app-store'
 function StripeSetupContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { t } = useTranslation()
   const onboardingUrl = searchParams.get('url') ?? ''
   const [loading, setLoading] = useState(false)
   const setCreator = useAppStore((s) => s.setCreator)
@@ -29,10 +31,10 @@ function StripeSetupContent() {
       },
       isCreatorAndPending: () => {
         setLoading(false)
-        toast.info('Cadastro ainda pendente. Finalize o processo no Stripe.')
+        toast.info(t('onboarding.registrationPending'))
       },
       isNotCreator: async () => {
-        toast.error('Acesso não permitido.')
+        toast.error(t('onboarding.accessDenied'))
         await signOut()
         router.push('/login')
       },
@@ -67,10 +69,10 @@ function StripeSetupContent() {
           className="text-2xl font-bold"
           style={{ color: 'var(--color-foreground)' }}
         >
-          Cadastro no Stripe
+          {t('onboarding.stripeSetupTitle')}
         </h1>
         <p className="mt-2 text-sm" style={{ color: 'var(--color-muted)' }}>
-          Para receber pagamentos, você precisa completar seu cadastro no Stripe.
+          {t('onboarding.stripeSetupDesc')}
         </p>
       </div>
 
@@ -83,16 +85,16 @@ function StripeSetupContent() {
           color: 'var(--color-muted)',
         }}
       >
-        <p>1. Clique no link abaixo para acessar o Stripe</p>
-        <p>2. Preencha todas as informações solicitadas</p>
-        <p>3. Volte aqui e clique em &quot;Verificar cadastro&quot;</p>
+        <p>{t('onboarding.stripeStep1')}</p>
+        <p>{t('onboarding.stripeStep2')}</p>
+        <p>{t('onboarding.stripeStep3')}</p>
       </div>
 
       {/* Onboarding URL */}
       {onboardingUrl && (
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-            Link de cadastro Stripe:
+            {t('onboarding.stripeLink')}
           </p>
           <a
             href={onboardingUrl}
@@ -118,15 +120,17 @@ function StripeSetupContent() {
         loading={loading}
         onClick={handleVerify}
       >
-        Verificar cadastro
+        {t('onboarding.verifyRegistration')}
       </Button>
     </div>
   )
 }
 
 export default function StripeSetupPage() {
+  const { t } = useTranslation()
+
   return (
-    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">Carregando...</div>}>
+    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">{t('common.loading')}</div>}>
       <StripeSetupContent />
     </Suspense>
   )

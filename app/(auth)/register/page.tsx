@@ -16,6 +16,7 @@ import { signUp } from '@/lib/supabase/auth'
 import { checkCreatorPayoutStatus, getCreatorInfo } from '@/lib/supabase/creator'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
+import { useTranslation, type TranslationKey } from '@/lib/i18n'
 
 // ─── Currency helpers ────────────────────────────────────────────
 
@@ -56,72 +57,95 @@ function formatCPF(value: string): string {
 
 const TOTAL_STEPS = 5
 
-const GENDER_OPTIONS = [
-  { value: 'Masculino', label: 'Masculino' },
-  { value: 'Feminino', label: 'Feminino' },
-  { value: 'Não-binário', label: 'Não-binário' },
-  { value: 'Gênero fluido', label: 'Gênero fluido' },
-  { value: 'Prefiro não dizer', label: 'Prefiro não dizer' },
-]
+/** Helper: cria options com value fixo e label traduzido */
+function opts(t: (k: TranslationKey) => string, items: { value: string; labelKey: TranslationKey }[]) {
+  return items.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))
+}
 
-const SEXUALITY_OPTIONS = [
-  { value: 'Heterossexual', label: 'Heterossexual' },
-  { value: 'Homossexual', label: 'Homossexual' },
-  { value: 'Bissexual', label: 'Bissexual' },
-  { value: 'Pansexual', label: 'Pansexual' },
-  { value: 'Assexual', label: 'Assexual' },
-  { value: 'Prefiro não dizer', label: 'Prefiro não dizer' },
-]
+function getGenderOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'Masculino', labelKey: 'register.genderMale' },
+    { value: 'Feminino', labelKey: 'register.genderFemale' },
+    { value: 'Não-binário', labelKey: 'register.genderNonBinary' },
+    { value: 'Gênero fluido', labelKey: 'register.genderFluid' },
+    { value: 'Prefiro não dizer', labelKey: 'register.genderPreferNotSay' },
+  ])
+}
 
-const LANGUAGE_OPTIONS = [
-  { value: 'Português', label: 'Português' },
-  { value: 'Inglês', label: 'Inglês' },
-  { value: 'Espanhol', label: 'Espanhol' },
-]
+function getSexualityOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'Heterossexual', labelKey: 'register.sexHetero' },
+    { value: 'Homossexual', labelKey: 'register.sexHomo' },
+    { value: 'Bissexual', labelKey: 'register.sexBi' },
+    { value: 'Pansexual', labelKey: 'register.sexPan' },
+    { value: 'Assexual', labelKey: 'register.sexAce' },
+    { value: 'Prefiro não dizer', labelKey: 'register.sexPreferNotSay' },
+  ])
+}
 
-const EU_SOU_OPTIONS = [
-  { value: 'Creator', label: 'Creator' },
-  { value: 'Influencer', label: 'Influencer' },
-  { value: 'Artista', label: 'Artista' },
-  { value: 'Streamer', label: 'Streamer' },
-  { value: 'Modelo', label: 'Modelo' },
-]
+function getLanguageOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'Português', labelKey: 'register.langPt' },
+    { value: 'Inglês', labelKey: 'register.langEn' },
+    { value: 'Espanhol', labelKey: 'register.langEs' },
+  ])
+}
 
-const POR_OPTIONS = [
-  { value: 'conteúdo exclusivo', label: 'conteúdo exclusivo' },
-  { value: 'lives interativas', label: 'lives interativas' },
-  { value: 'videochamadas', label: 'videochamadas' },
-  { value: 'encontros', label: 'encontros' },
-]
+function getEuSouOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'Creator', labelKey: 'register.euSouCreator' },
+    { value: 'Influencer', labelKey: 'register.euSouInfluencer' },
+    { value: 'Artista', labelKey: 'register.euSouArtist' },
+    { value: 'Streamer', labelKey: 'register.euSouStreamer' },
+    { value: 'Modelo', labelKey: 'register.euSouModel' },
+  ])
+}
 
-const ME_CONSIDERO_OPTIONS = [
-  { value: 'divertida', label: 'divertida' },
-  { value: 'carismática', label: 'carismática' },
-  { value: 'criativa', label: 'criativa' },
-  { value: 'empolgante', label: 'empolgante' },
-  { value: 'misteriosa', label: 'misteriosa' },
-]
+function getPorOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'conteúdo exclusivo', labelKey: 'register.porExclusiveContent' },
+    { value: 'lives interativas', labelKey: 'register.porInteractiveLives' },
+    { value: 'videochamadas', labelKey: 'register.porVideoCalls' },
+    { value: 'encontros', labelKey: 'register.porMeetings' },
+  ])
+}
 
-const ADORO_OPTIONS = [
-  { value: 'dançar', label: 'dançar' },
-  { value: 'cozinhar', label: 'cozinhar' },
-  { value: 'viajar', label: 'viajar' },
-  { value: 'jogar', label: 'jogar' },
-  { value: 'ler', label: 'ler' },
-]
+function getMeConsideroOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'divertida', labelKey: 'register.meConsideroFun' },
+    { value: 'carismática', labelKey: 'register.meConsideroCharismatic' },
+    { value: 'criativa', labelKey: 'register.meConsideroCreative' },
+    { value: 'empolgante', labelKey: 'register.meConsideroExciting' },
+    { value: 'misteriosa', labelKey: 'register.meConsideroMysterious' },
+  ])
+}
 
-const PESSOAS_QUE_OPTIONS = [
-  { value: 'curtem entretenimento', label: 'curtem entretenimento' },
-  { value: 'buscam conexão', label: 'buscam conexão' },
-  { value: 'valorizam exclusividade', label: 'valorizam exclusividade' },
-  { value: 'amam novidades', label: 'amam novidades' },
-]
+function getAdoroOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'dançar', labelKey: 'register.adoroDance' },
+    { value: 'cozinhar', labelKey: 'register.adoroCook' },
+    { value: 'viajar', labelKey: 'register.adoroTravel' },
+    { value: 'jogar', labelKey: 'register.adoroGame' },
+    { value: 'ler', labelKey: 'register.adoroRead' },
+  ])
+}
 
-const DOCUMENT_TYPE_OPTIONS = [
-  { value: 'CPF', label: 'CPF' },
-  { value: 'Identidade', label: 'Identidade' },
-  { value: 'Passaporte', label: 'Passaporte' },
-]
+function getPessoasQueOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'curtem entretenimento', labelKey: 'register.pessoasEntertainment' },
+    { value: 'buscam conexão', labelKey: 'register.pessoasConnection' },
+    { value: 'valorizam exclusividade', labelKey: 'register.pessoasExclusivity' },
+    { value: 'amam novidades', labelKey: 'register.pessoasNovelty' },
+  ])
+}
+
+function getDocumentTypeOptions(t: (k: TranslationKey) => string) {
+  return opts(t, [
+    { value: 'CPF', labelKey: 'register.docCPF' },
+    { value: 'Identidade', labelKey: 'register.docID' },
+    { value: 'Passaporte', labelKey: 'register.docPassport' },
+  ])
+}
 
 // ─── Form Data ──────────────────────────────────────────────────
 
@@ -185,6 +209,7 @@ async function fetchCidade(cep: string): Promise<string> {
 // ─── Component ──────────────────────────────────────────────────
 
 export default function RegisterPage() {
+  const { t } = useTranslation()
   const router = useRouter()
   const setCreator = useAppStore((s) => s.setCreator)
 
@@ -225,7 +250,7 @@ export default function RegisterPage() {
     setCepLoading(true)
     const cidade = await fetchCidade(formData.cep)
     if (cidade) update('cidade', cidade)
-    else toast.error('CEP não encontrado')
+    else toast.error(t('register.zipNotFound'))
     setCepLoading(false)
   }
 
@@ -258,35 +283,35 @@ export default function RegisterPage() {
     const newErrors: Partial<Record<keyof FormData, string>> = {}
 
     if (step === 0) {
-      if (!formData.nome) newErrors.nome = 'Nome obrigatório'
-      if (!formData.dataNascimento) newErrors.dataNascimento = 'Data obrigatória'
-      if (!formData.genero) newErrors.genero = 'Gênero obrigatório'
-      if (!formData.sexualidade) newErrors.sexualidade = 'Sexualidade obrigatória'
-      if (!formData.cep) newErrors.cep = 'CEP obrigatório'
-      if (!formData.cidade) newErrors.cidade = 'Cidade obrigatória'
-      if (!formData.email) newErrors.email = 'E-mail obrigatório'
-      if (!formData.senha) newErrors.senha = 'Senha obrigatória'
-      else if (formData.senha.length < 6) newErrors.senha = 'Mínimo de 6 caracteres'
+      if (!formData.nome) newErrors.nome = t('register.nameRequired')
+      if (!formData.dataNascimento) newErrors.dataNascimento = t('register.dateRequired')
+      if (!formData.genero) newErrors.genero = t('register.genderRequired')
+      if (!formData.sexualidade) newErrors.sexualidade = t('register.sexualityRequired')
+      if (!formData.cep) newErrors.cep = t('register.zipRequired')
+      if (!formData.cidade) newErrors.cidade = t('register.cityRequired')
+      if (!formData.email) newErrors.email = t('auth.emailRequired')
+      if (!formData.senha) newErrors.senha = t('auth.passwordRequired')
+      else if (formData.senha.length < 6) newErrors.senha = t('register.min6Chars')
     }
 
     if (step === 2) {
       if (formData.fazVideochamada) {
         const v30 = parseCurrency(formData.valor30min)
         const v1h = parseCurrency(formData.valor1hora)
-        if (v30 < 10) newErrors.valor30min = 'Valor mínimo é R$ 10,00'
-        if (v1h < 10) newErrors.valor1hora = 'Valor mínimo é R$ 10,00'
+        if (v30 < 10) newErrors.valor30min = t('register.minValue')
+        if (v1h < 10) newErrors.valor1hora = t('register.minValue')
       }
     }
 
     if (step === 3) {
       if (!profileFile) {
-        toast.error('Foto de perfil obrigatória')
+        toast.error(t('register.photoRequired'))
         return false
       }
     }
 
     if (step === 4) {
-      if (!formData.documentoNumero) newErrors.documentoNumero = 'Documento obrigatório'
+      if (!formData.documentoNumero) newErrors.documentoNumero = t('register.documentRequired')
     }
 
     setErrors(newErrors)
@@ -310,8 +335,8 @@ export default function RegisterPage() {
           console.error('Erro ao verificar email:', error)
           // Se a função RPC não existir, avança sem verificar
         } else if (data === true) {
-          setErrors((prev) => ({ ...prev, email: 'Este e-mail já está cadastrado' }))
-          toast.error('Este e-mail já está cadastrado. Tente fazer login.')
+          setErrors((prev) => ({ ...prev, email: t('auth.emailAlreadyRegistered') }))
+          toast.error(t('auth.emailAlreadyRegisteredLogin'))
           setLoading(false)
           return
         }
@@ -383,6 +408,20 @@ export default function RegisterPage() {
         console.error('Erro ao criar descrição:', descError)
       }
     }
+
+    // 3) Inserir na tabela profile_settings (dados do step 2 — interações)
+    const { error: settingsError } = await supabase.from('profile_settings').insert({
+      profile_id: userId,
+      sell_packs: formData.vendeConteudo,
+      sell_calls: formData.fazVideochamada,
+      face_to_face_meeting: formData.fazEncontro,
+      call_per_30_min: parseCurrency(formData.valor30min),
+      call_per_1_hr: parseCurrency(formData.valor1hora),
+    })
+
+    if (settingsError) {
+      console.error('Erro ao criar configurações de interação:', settingsError)
+    }
   }
 
   // ─── Upload de imagens e salvar referências ─────────────────────
@@ -450,7 +489,7 @@ export default function RegisterPage() {
           const { data: { user } } = await supabase.auth.getUser()
 
           if (!user) {
-            toast.error('Erro ao obter usuário após cadastro.')
+            toast.error(t('auth.errorAfterRegister'))
             setLoading(false)
             return
           }
@@ -472,7 +511,7 @@ export default function RegisterPage() {
               router.push(`/stripe-setup?url=${encodeURIComponent(url)}`)
             },
             isNotCreator: () => {
-              toast.error('Você não tem acesso a esta plataforma.')
+              toast.error(t('auth.noAccess'))
               setLoading(false)
             },
             onError: (msg) => {
@@ -481,19 +520,19 @@ export default function RegisterPage() {
             },
           })
         } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Erro ao finalizar cadastro'
+          const msg = err instanceof Error ? err.message : t('auth.errorFinishRegister')
           toast.error(msg)
           setLoading(false)
         }
       },
       onEmailAlreadyInUse: () => {
-        toast.error('E-mail já cadastrado.')
+        toast.error(t('auth.emailInUse'))
         setStep(0)
-        setErrors((prev) => ({ ...prev, email: 'Este e-mail já está cadastrado' }))
+        setErrors((prev) => ({ ...prev, email: t('auth.emailAlreadyRegistered') }))
         setLoading(false)
       },
       onWeakPassword: () => {
-        toast.error('Senha muito fraca.')
+        toast.error(t('auth.weakPassword'))
         setStep(0)
         setLoading(false)
       },
@@ -509,11 +548,11 @@ export default function RegisterPage() {
   const renderStep = () => {
     switch (step) {
       case 0:
-        return <Step0 formData={formData} errors={errors} update={update} cepLoading={cepLoading} onCepBlur={handleCepBlur} formatCEP={formatCEP} />
+        return <Step0 formData={formData} errors={errors} update={update} cepLoading={cepLoading} onCepBlur={handleCepBlur} formatCEP={formatCEP} t={t} />
       case 1:
-        return <Step1 formData={formData} update={update} onSkip={() => setStep(2)} />
+        return <Step1 formData={formData} update={update} onSkip={() => setStep(2)} t={t} />
       case 2:
-        return <Step2 formData={formData} update={update} errors={errors} />
+        return <Step2 formData={formData} update={update} errors={errors} t={t} />
       case 3:
         return (
           <Step3
@@ -527,21 +566,22 @@ export default function RegisterPage() {
             onAdditionalImg={handleAdditionalImg}
             onBannerImg={handleBannerImg}
             onOpenDicas={() => setDicasModalOpen(true)}
+            t={t}
           />
         )
       case 4:
-        return <Step4 formData={formData} errors={errors} update={update} />
+        return <Step4 formData={formData} errors={errors} update={update} t={t} />
       default:
         return null
     }
   }
 
   const stepTitles = [
-    'Dados pessoais',
-    'Descrição',
-    'Interações',
-    'Fotos',
-    'Documento',
+    t('register.stepPersonalData'),
+    t('register.stepDescription'),
+    t('register.stepInteractions'),
+    t('register.stepPhotos'),
+    t('register.stepDocument'),
   ]
 
   return (
@@ -577,23 +617,23 @@ export default function RegisterPage() {
         <div className="flex flex-col gap-3 mt-6">
           {step < TOTAL_STEPS - 1 ? (
             <Button type="submit" variant="primary" size="lg" fullWidth loading={step === 0 && loading}>
-              Próxima etapa
+              {t('register.nextStep')}
             </Button>
           ) : (
             <Button type="submit" variant="primary" size="lg" fullWidth loading={loading}>
-              Confirmar
+              {t('common.confirm')}
             </Button>
           )}
 
           {step === 0 && (
             <p className="text-center text-sm" style={{ color: 'var(--color-muted)' }}>
-              Já tem conta?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <Link
                 href="/login"
                 className="font-medium transition-opacity hover:opacity-70"
                 style={{ color: 'var(--color-primary)' }}
               >
-                Fazer login
+                {t('auth.doLogin')}
               </Link>
             </p>
           )}
@@ -605,10 +645,13 @@ export default function RegisterPage() {
   )
 }
 
+// ─── Tipo helper para t ──────────────────────────────────────
+type TFn = (key: TranslationKey, params?: Record<string, string | number>) => string
+
 // ─── Step 0 — Dados pessoais ───────────────────────────────────
 
 function Step0({
-  formData, errors, update, cepLoading, onCepBlur, formatCEP,
+  formData, errors, update, cepLoading, onCepBlur, formatCEP, t,
 }: {
   formData: FormData
   errors: Partial<Record<keyof FormData, string>>
@@ -616,19 +659,20 @@ function Step0({
   cepLoading: boolean
   onCepBlur: () => void
   formatCEP: (v: string) => string
+  t: TFn
 }) {
   return (
     <>
       <Input
-        label="Nome completo"
-        placeholder="Seu nome"
+        label={t('register.fullName')}
+        placeholder={t('register.fullNamePlaceholder')}
         value={formData.nome}
         onChange={(e) => update('nome', e.target.value)}
         error={errors.nome}
         required
       />
       <Input
-        label="Data de nascimento"
+        label={t('register.birthDate')}
         type="date"
         value={formData.dataNascimento}
         onChange={(e) => update('dataNascimento', e.target.value)}
@@ -636,37 +680,37 @@ function Step0({
         required
       />
       <SelectField
-        label="Gênero"
-        options={GENDER_OPTIONS}
+        label={t('register.gender')}
+        options={getGenderOptions(t)}
         value={formData.genero}
         onChange={(e) => update('genero', e.target.value)}
         error={errors.genero}
-        placeholder="Selecione"
+        placeholder={t('common.select')}
         required
       />
       <SelectField
-        label="Sexualidade"
-        options={SEXUALITY_OPTIONS}
+        label={t('register.sexuality')}
+        options={getSexualityOptions(t)}
         value={formData.sexualidade}
         onChange={(e) => update('sexualidade', e.target.value)}
         error={errors.sexualidade}
-        placeholder="Selecione"
+        placeholder={t('common.select')}
         required
       />
       <Input
-        label="CEP"
-        placeholder="00000000"
+        label={t('register.zipCode')}
+        placeholder={t('register.zipCodePlaceholder')}
         value={formData.cep}
         onChange={(e) => update('cep', formatCEP(e.target.value))}
         onBlur={onCepBlur}
         error={errors.cep}
         inputMode="numeric"
-        hint={cepLoading ? 'Buscando cidade...' : undefined}
+        hint={cepLoading ? t('register.searchingCity') : undefined}
         required
       />
       <Input
-        label="Cidade"
-        placeholder="Preenchido automaticamente"
+        label={t('register.city')}
+        placeholder={t('register.cityPlaceholder')}
         value={formData.cidade}
         onChange={(e) => update('cidade', e.target.value)}
         error={errors.cidade}
@@ -674,16 +718,16 @@ function Step0({
         required
       />
       <SelectField
-        label="Idioma"
-        options={LANGUAGE_OPTIONS}
+        label={t('register.language')}
+        options={getLanguageOptions(t)}
         value={formData.idioma}
         onChange={(e) => update('idioma', e.target.value)}
         required
       />
       <Input
-        label="E-mail"
+        label={t('auth.email')}
         type="email"
-        placeholder="seu@email.com"
+        placeholder={t('auth.emailPlaceholder')}
         value={formData.email}
         onChange={(e) => update('email', e.target.value)}
         error={errors.email}
@@ -691,8 +735,8 @@ function Step0({
         required
       />
       <PasswordInput
-        label="Senha"
-        placeholder="Mínimo 6 caracteres"
+        label={t('auth.password')}
+        placeholder={t('register.passwordMinChars')}
         value={formData.senha}
         onChange={(e) => update('senha', e.target.value)}
         error={errors.senha}
@@ -706,76 +750,77 @@ function Step0({
 // ─── Step 1 — Descrição ───────────────────────────────────────
 
 function Step1({
-  formData, update, onSkip,
+  formData, update, onSkip, t,
 }: {
   formData: FormData
   update: (field: keyof FormData, value: string | boolean) => void
   onSkip: () => void
+  t: TFn
 }) {
   return (
     <>
       <p className="text-sm mb-2" style={{ color: 'var(--color-muted)' }}>
-        Complete a frase sobre você:
+        {t('register.completePhrase')}
       </p>
       <div
         className="rounded-xl p-4 text-sm space-y-3"
         style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
       >
         <p>
-          Sou{' '}
+          {t('register.iAm')}{' '}
           <span className="font-medium" style={{ color: 'var(--color-primary)' }}>
-            {formData.nome || 'seu nome'}
+            {formData.nome || t('register.yourName')}
           </span>
-          , moro em{' '}
+          , {t('register.liveIn')}{' '}
           <span className="font-medium" style={{ color: 'var(--color-primary)' }}>
-            {formData.cidade || 'sua cidade'}
+            {formData.cidade || t('register.yourCity')}
           </span>{' '}
-          e sou{' '}
+          {t('register.andIAm')}{' '}
           <span style={{ color: 'var(--color-primary)' }}>{formData.euSou || '___'}</span>{' '}
-          por{' '}
+          {t('register.for')}{' '}
           <span style={{ color: 'var(--color-primary)' }}>{formData.por || '___'}</span>.{' '}
-          Me considero uma pessoa{' '}
+          {t('register.iConsiderMyself')}{' '}
           <span style={{ color: 'var(--color-primary)' }}>{formData.meConsidero || '___'}</span>,{' '}
           <span style={{ color: 'var(--color-primary)' }}>{formData.pessoasQue || '___'}</span>{' '}
-          que adora{' '}
+          {t('register.whoLoves')}{' '}
           <span style={{ color: 'var(--color-primary)' }}>{formData.adoro || '___'}</span>.
         </p>
       </div>
 
       <SelectField
-        label="Sou"
-        options={EU_SOU_OPTIONS}
+        label={t('register.selectLabelIAm')}
+        options={getEuSouOptions(t)}
         value={formData.euSou}
         onChange={(e) => update('euSou', e.target.value)}
-        placeholder="Selecione"
+        placeholder={t('common.select')}
       />
       <SelectField
-        label="Por"
-        options={POR_OPTIONS}
+        label={t('register.selectLabelFor')}
+        options={getPorOptions(t)}
         value={formData.por}
         onChange={(e) => update('por', e.target.value)}
-        placeholder="Selecione"
+        placeholder={t('common.select')}
       />
       <SelectField
-        label="Me considero"
-        options={ME_CONSIDERO_OPTIONS}
+        label={t('register.selectLabelIConsider')}
+        options={getMeConsideroOptions(t)}
         value={formData.meConsidero}
         onChange={(e) => update('meConsidero', e.target.value)}
-        placeholder="Selecione"
+        placeholder={t('common.select')}
       />
       <SelectField
-        label="Que adora"
-        options={ADORO_OPTIONS}
+        label={t('register.selectLabelWhoLoves')}
+        options={getAdoroOptions(t)}
         value={formData.adoro}
         onChange={(e) => update('adoro', e.target.value)}
-        placeholder="Selecione"
+        placeholder={t('common.select')}
       />
       <SelectField
-        label="Pessoas que"
-        options={PESSOAS_QUE_OPTIONS}
+        label={t('register.selectLabelPeopleWho')}
+        options={getPessoasQueOptions(t)}
         value={formData.pessoasQue}
         onChange={(e) => update('pessoasQue', e.target.value)}
-        placeholder="Selecione"
+        placeholder={t('common.select')}
       />
 
       <button
@@ -784,7 +829,7 @@ function Step1({
         className="text-sm font-medium text-center transition-opacity hover:opacity-70"
         style={{ color: 'var(--color-muted)' }}
       >
-        Pular etapa
+        {t('register.skipStep')}
       </button>
     </>
   )
@@ -793,26 +838,27 @@ function Step1({
 // ─── Step 2 — Interações ──────────────────────────────────────
 
 function Step2({
-  formData, update, errors,
+  formData, update, errors, t,
 }: {
   formData: FormData
   update: (field: keyof FormData, value: string | boolean) => void
   errors: Partial<Record<keyof FormData, string>>
+  t: TFn
 }) {
   return (
     <>
       <p className="text-sm mb-2" style={{ color: 'var(--color-muted)' }}>
-        Defina o que você oferece:
+        {t('register.defineOffers')}
       </p>
 
       <ToggleRow
-        label="Vende conteúdo?"
+        label={t('register.sellsContent')}
         checked={formData.vendeConteudo}
         onChange={(v) => update('vendeConteudo', v)}
       />
 
       <ToggleRow
-        label="Faz vídeochamada individual?"
+        label={t('register.doesVideoCall')}
         checked={formData.fazVideochamada}
         onChange={(v) => update('fazVideochamada', v)}
       />
@@ -820,7 +866,7 @@ function Step2({
       {formData.fazVideochamada && (
         <>
           <Input
-            label="Valor por 30 minutos (R$)"
+            label={t('register.value30min')}
             inputMode="numeric"
             placeholder="R$ 0,00"
             value={formData.valor30min ? `R$ ${formData.valor30min}` : ''}
@@ -831,7 +877,7 @@ function Step2({
             error={errors.valor30min}
           />
           <Input
-            label="Valor por 1 hora (R$)"
+            label={t('register.value1hour')}
             inputMode="numeric"
             placeholder="R$ 0,00"
             value={formData.valor1hora ? `R$ ${formData.valor1hora}` : ''}
@@ -845,7 +891,7 @@ function Step2({
       )}
 
       <ToggleRow
-        label="Faz encontro presencial?"
+        label={t('register.doesMeeting')}
         checked={formData.fazEncontro}
         onChange={(v) => update('fazEncontro', v)}
       />
@@ -901,7 +947,7 @@ function ToggleRow({
 function Step3({
   profilePreview, additionalPreviews, bannerPreview,
   profileImgRef, additionalImgRefs, bannerImgRef,
-  onProfileImg, onAdditionalImg, onBannerImg, onOpenDicas,
+  onProfileImg, onAdditionalImg, onBannerImg, onOpenDicas, t,
 }: {
   profilePreview: string | null
   additionalPreviews: (string | null)[]
@@ -913,25 +959,26 @@ function Step3({
   onAdditionalImg: (index: number, e: ChangeEvent<HTMLInputElement>) => void
   onBannerImg: (e: ChangeEvent<HTMLInputElement>) => void
   onOpenDicas?: () => void
+  t: TFn
 }) {
   return (
     <>
       <p className="text-sm mb-2" style={{ color: 'var(--color-muted)' }}>
-        Adicione suas fotos de perfil. A foto principal é obrigatória.
+        {t('register.addPhotosDesc')}
         {onOpenDicas && (
-          <button type="button" onClick={onOpenDicas} className="ml-1 underline" style={{ color: 'var(--color-primary)' }}>Ver dicas de fotos</button>
+          <button type="button" onClick={onOpenDicas} className="ml-1 underline" style={{ color: 'var(--color-primary)' }}>{t('register.viewPhotoTips')}</button>
         )}
       </p>
 
       {/* Profile photo */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
-          Foto de perfil <span style={{ color: 'var(--color-primary)' }}>*</span>
+          {t('register.profilePhoto')} <span style={{ color: 'var(--color-primary)' }}>*</span>
         </label>
         <ImageUploadBox
           preview={profilePreview}
           onClick={() => profileImgRef.current?.click()}
-          label="Foto principal"
+          label={t('register.mainPhoto')}
         />
         <input
           ref={profileImgRef}
@@ -945,7 +992,7 @@ function Step3({
       {/* Additional photos */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
-          Fotos complementares (até 3)
+          {t('register.additionalPhotos')}
         </label>
         <div className="grid grid-cols-3 gap-3">
           {additionalImgRefs.map((ref, i) => (
@@ -971,12 +1018,12 @@ function Step3({
       {/* Banner photo */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
-          Foto de capa
+          {t('register.coverPhoto')}
         </label>
         <ImageUploadBox
           preview={bannerPreview}
           onClick={() => bannerImgRef.current?.click()}
-          label="Foto de capa"
+          label={t('register.coverPhoto')}
           banner
         />
         <input
@@ -990,7 +1037,7 @@ function Step3({
 
       {onOpenDicas && (
         <button type="button" onClick={onOpenDicas} className="rounded-xl p-3 text-xs w-full text-left" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-primary)' }}>
-          💡 Ver dicas para as fotos
+          {t('register.photoTipsBtn')}
         </button>
       )}
     </>
@@ -1043,19 +1090,20 @@ function ImageUploadBox({
 // ─── Step 4 — Documento ───────────────────────────────────────
 
 function Step4({
-  formData, errors, update,
+  formData, errors, update, t,
 }: {
   formData: FormData
   errors: Partial<Record<keyof FormData, string>>
   update: (field: keyof FormData, value: string | boolean) => void
+  t: TFn
 }) {
   const placeholder = formData.documentoTipo === 'Passaporte' ? 'AA1234567' : '000.000.000-00'
 
   return (
     <>
       <SelectField
-        label="Tipo de documento"
-        options={DOCUMENT_TYPE_OPTIONS}
+        label={t('register.documentType')}
+        options={getDocumentTypeOptions(t)}
         value={formData.documentoTipo}
         onChange={(e) => {
           update('documentoTipo', e.target.value)

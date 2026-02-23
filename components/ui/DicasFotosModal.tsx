@@ -1,11 +1,14 @@
 'use client'
 
-const TIPS = [
-  'Use fotos com boa iluminação',
-  'Evite fotos com outros rostos',
-  'Mostre seu rosto claramente na foto de perfil',
-  'A foto de capa pode ser uma foto de ambiente ou estilo',
-  'Fotos nítidas e em boa resolução ajudam a passar confiança',
+import { useTranslation } from '@/lib/i18n'
+import type { TranslationKey } from '@/lib/i18n'
+
+const TIP_KEYS: TranslationKey[] = [
+  'photoTips.tip1',
+  'photoTips.tip2',
+  'photoTips.tip3',
+  'photoTips.tip4',
+  'photoTips.tip5',
 ]
 
 interface DicasFotosModalProps {
@@ -13,6 +16,8 @@ interface DicasFotosModalProps {
 }
 
 export default function DicasFotosModal({ onClose }: DicasFotosModalProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       role="dialog"
@@ -43,12 +48,12 @@ export default function DicasFotosModal({ onClose }: DicasFotosModalProps) {
       >
         <div className="flex items-center justify-between mb-4">
           <h2 id="dicas-fotos-title" className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
-            Dicas para as fotos
+            {t('photoTips.title')}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fechar"
+            aria-label={t('common.close')}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--color-muted)' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -57,10 +62,10 @@ export default function DicasFotosModal({ onClose }: DicasFotosModalProps) {
           </button>
         </div>
         <ul className="space-y-2">
-          {TIPS.map((tip, i) => (
+          {TIP_KEYS.map((key, i) => (
             <li key={i} className="text-sm flex gap-2" style={{ color: 'var(--color-foreground)' }}>
               <span style={{ color: 'var(--color-primary)' }}>•</span>
-              {tip}
+              {t(key)}
             </li>
           ))}
         </ul>
@@ -71,7 +76,7 @@ export default function DicasFotosModal({ onClose }: DicasFotosModalProps) {
             className="px-4 py-2 rounded-lg text-sm font-medium"
             style={{ background: 'var(--color-primary)', color: '#fff' }}
           >
-            Entendi
+            {t('common.understood')}
           </button>
         </div>
       </div>

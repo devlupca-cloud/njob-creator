@@ -8,10 +8,12 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import PageHeader from '@/components/ui/PageHeader'
 import { sendPasswordResetOtp } from '@/lib/supabase/auth'
+import { useTranslation } from '@/lib/i18n'
 
 function ResetPasswordContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useTranslation()
   const [email, setEmail] = useState(searchParams.get('email') ?? '')
   const [loading, setLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
@@ -21,7 +23,7 @@ function ResetPasswordContent() {
     setEmailError('')
 
     if (!email) {
-      setEmailError('E-mail obrigatório')
+      setEmailError(t('auth.emailRequired'))
       return
     }
 
@@ -29,11 +31,11 @@ function ResetPasswordContent() {
 
     await sendPasswordResetOtp(email, {
       onSuccess: () => {
-        toast.success('E-mail enviado! Verifique sua caixa de entrada.')
+        toast.success(t('resetPassword.emailSent'))
         router.push(`/reset-password/verify?email=${encodeURIComponent(email)}`)
       },
       onInvalidEmail: () => {
-        setEmailError('E-mail inválido')
+        setEmailError(t('auth.invalidEmail'))
         setLoading(false)
       },
       onError: (msg) => {
@@ -45,17 +47,17 @@ function ResetPasswordContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Recuperar senha" />
+      <PageHeader title={t('resetPassword.title')} />
 
       <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-        Digite seu e-mail para receber um código de verificação.
+        {t('resetPassword.subtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
-          label="E-mail"
+          label={t('auth.email')}
           type="email"
-          placeholder="seu@email.com"
+          placeholder={t('auth.emailPlaceholder')}
           value={email}
           onChange={(e) => { setEmail(e.target.value); setEmailError('') }}
           error={emailError}
@@ -72,18 +74,18 @@ function ResetPasswordContent() {
           disabled={!email}
           className="mt-2"
         >
-          Recuperar acesso
+          {t('resetPassword.recoverAccess')}
         </Button>
       </form>
 
       <p className="text-center text-sm" style={{ color: 'var(--color-muted)' }}>
-        Lembrou a senha?{' '}
+        {t('resetPassword.rememberPassword')}{' '}
         <Link
           href="/login"
           className="font-medium transition-opacity hover:opacity-70"
           style={{ color: 'var(--color-primary)' }}
         >
-          Fazer login
+          {t('auth.doLogin')}
         </Link>
       </p>
     </div>
@@ -91,8 +93,9 @@ function ResetPasswordContent() {
 }
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation()
   return (
-    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">Carregando...</div>}>
+    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">{t('common.loading')}</div>}>
       <ResetPasswordContent />
     </Suspense>
   )

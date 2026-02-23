@@ -1,7 +1,10 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import type { TipoEventoAgenda } from './CardEventoAgenda'
+import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 interface DetalhesAgendamentoModalProps {
   isOpen: boolean
@@ -13,6 +16,14 @@ interface DetalhesAgendamentoModalProps {
   date: string
   time: string
   typeEvent: TipoEventoAgenda
+  /** ID do evento (live_streams.id ou one_on_one_calls.id) */
+  eventId?: string | null
+  /** Callback executado após cancelar com sucesso */
+  onCancel?: () => void
+  /** Status derivado do evento (para ocultar botão de cancelar em eventos finalizados) */
+  status?: 'upcoming' | 'available' | 'finished' | 'cancelled'
+  /** Status real da call vindo de one_on_one_calls (requested, confirmed, etc.) */
+  callStatus?: string
 }
 
 // ─── Ícones ───────────────────────────────────────────────────────
@@ -64,11 +75,11 @@ const UserIcon = () => (
   </svg>
 )
 
-// ─── Cores por tipo ────────────────────────────────────────────────
+// ─── Cores por tipo (labels resolvidos dentro do componente via t()) ────────
 
-const typeConfig: Record<TipoEventoAgenda, { label: string; color: string; bg: string }> = {
-  live: { label: 'LIVE', color: '#6E8BFF', bg: 'rgba(110, 139, 255, 0.15)' },
-  call: { label: 'CHAMADA', color: '#FFDF6E', bg: 'rgba(255, 223, 110, 0.15)' },
+const typeColors: Record<TipoEventoAgenda, { color: string; bg: string }> = {
+  live: { color: '#6E8BFF', bg: 'rgba(110, 139, 255, 0.15)' },
+  call: { color: '#FFDF6E', bg: 'rgba(255, 223, 110, 0.15)' },
 }
 
 // ─── Keyframes CSS ─────────────────────────────────────────────────
@@ -100,21 +111,93 @@ export default function DetalhesAgendamentoModal({
   date,
   time,
   typeEvent,
+  eventId,
+  onCancel,
+  status,
+  callStatus,
 }: DetalhesAgendamentoModalProps) {
+  const { t, locale } = useTranslation()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+
   // Fechar com Escape
   useEffect(() => {
     if (!isOpen) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (confirmOpen) setConfirmOpen(false)
+        else onClose()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, confirmOpen])
+
+  // Reset confirm state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setConfirmOpen(false)
+      setCancelling(false)
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
-  const valueFormatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-  const cfg = typeConfig[typeEvent] ?? typeConfig.live
+  const terminalCallStatuses = ['completed', 'cancelled_by_user', 'cancelled_by_creator', 'rejected']
+  const canCancel = !!eventId
+    && status !== 'finished'
+    && status !== 'cancelled'
+    && (!callStatus || !terminalCallStatuses.includes(callStatus))
+
+  const handleCancel = async () => {
+    if (!eventId) return
+    setCancelling(true)
+    try {
+      const supabase = createClient()
+      if (typeEvent === 'live') {
+        const { error } = await supabase
+          .from('live_streams')
+          .update({ status: 'cancelled' })
+          .eq('id', eventId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('one_on_one_calls')
+          .update({ status: 'cancelled_by_creator' })
+          .eq('id', eventId)
+        if (error) throw error
+      }
+      toast.success(t('schedule.eventCancelled'))
+      setConfirmOpen(false)
+      onClose()
+      onCancel?.()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('schedule.errorCancel'))
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  // Call status badge
+  const callStatusBadge = (() => {
+    if (!callStatus) return null
+    const map: Record<string, { color: string; bg: string; label: string }> = {
+      requested: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', label: t('schedule.pending') },
+      confirmed: { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', label: t('schedule.confirmed') },
+      completed: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.completed') },
+      cancelled_by_user: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.cancelled') },
+      cancelled_by_creator: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.cancelled') },
+      rejected: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.callStatusRejected') },
+    }
+    return map[callStatus] ?? null
+  })()
+
+  const valueFormatted = new Intl.NumberFormat(getLocaleBcp47(locale), { style: 'currency', currency: 'BRL' }).format(value)
+  const typeLabels: Record<TipoEventoAgenda, string> = {
+    live: t('schedule.live').toUpperCase(),
+    call: t('schedule.videoCall').toUpperCase(),
+  }
+  const cfg = { ...typeColors[typeEvent] ?? typeColors.live, label: typeLabels[typeEvent] ?? typeLabels.live }
 
   return (
     <>
@@ -168,7 +251,7 @@ export default function DetalhesAgendamentoModal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Fechar"
+              aria-label={t('common.close')}
               style={{
                 position: 'absolute',
                 top: 16,
@@ -196,22 +279,39 @@ export default function DetalhesAgendamentoModal({
               <CloseIcon />
             </button>
 
-            {/* Badge tipo */}
-            <span
-              style={{
-                display: 'inline-block',
-                background: cfg.bg,
-                color: cfg.color,
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: 0.5,
-                padding: '3px 10px',
-                borderRadius: 4,
-                marginBottom: 12,
-              }}
-            >
-              {cfg.label}
-            </span>
+            {/* Badge tipo + status da call */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <span
+                style={{
+                  display: 'inline-block',
+                  background: cfg.bg,
+                  color: cfg.color,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
+                  padding: '3px 10px',
+                  borderRadius: 4,
+                }}
+              >
+                {cfg.label}
+              </span>
+              {callStatusBadge && (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    background: callStatusBadge.bg,
+                    color: callStatusBadge.color,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    padding: '3px 10px',
+                    borderRadius: 4,
+                  }}
+                >
+                  {callStatusBadge.label}
+                </span>
+              )}
+            </div>
 
             {/* Título do evento */}
             <h2
@@ -255,40 +355,126 @@ export default function DetalhesAgendamentoModal({
                 gap: 12,
               }}
             >
-              <FieldCard icon={<CalendarIcon />} label="Data" value={date} />
-              <FieldCard icon={<ClockIcon />} label="Horário" value={time} />
-              <FieldCard icon={<TimerIcon />} label="Duração" value={duration} />
-              <FieldCard icon={<DollarIcon />} label="Valor" value={valueFormatted} />
+              <FieldCard icon={<CalendarIcon />} label={t('schedule.date')} value={date} />
+              <FieldCard icon={<ClockIcon />} label={t('schedule.time')} value={time} />
+              <FieldCard icon={<TimerIcon />} label={t('schedule.duration')} value={duration} />
+              <FieldCard icon={<DollarIcon />} label={t('schedule.ticketPrice')} value={valueFormatted} />
             </div>
 
-            {/* Botão fechar */}
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                width: '100%',
-                height: 44,
-                marginTop: 20,
-                borderRadius: 10,
-                border: '1px solid var(--color-border)',
-                background: 'transparent',
-                color: 'var(--color-foreground)',
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'background 150ms, border-color 150ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--color-surface-2)'
-                e.currentTarget.style.borderColor = 'var(--color-muted)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent'
-                e.currentTarget.style.borderColor = 'var(--color-border)'
-              }}
-            >
-              Fechar
-            </button>
+            {/* Botões */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
+              {/* Botão cancelar evento */}
+              {canCancel && !confirmOpen && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(true)}
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    borderRadius: 10,
+                    border: '1px solid var(--color-error, #ef4444)',
+                    background: 'transparent',
+                    color: 'var(--color-error, #ef4444)',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background 150ms',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  {t('schedule.cancelEvent')}
+                </button>
+              )}
+
+              {/* Confirmação de cancelamento inline */}
+              {confirmOpen && (
+                <div
+                  style={{
+                    padding: 16,
+                    borderRadius: 10,
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                  }}
+                >
+                  <p style={{ margin: '0 0 12px', fontSize: 14, color: 'var(--color-foreground)' }}>
+                    {t('schedule.cancelConfirm')}
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmOpen(false)}
+                      disabled={cancelling}
+                      style={{
+                        flex: 1,
+                        height: 40,
+                        borderRadius: 8,
+                        border: '1px solid var(--color-border)',
+                        background: 'transparent',
+                        color: 'var(--color-foreground)',
+                        fontSize: 14,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('common.back')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                      style={{
+                        flex: 1,
+                        height: 40,
+                        borderRadius: 8,
+                        border: 'none',
+                        background: 'var(--color-error, #ef4444)',
+                        color: '#fff',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        cursor: cancelling ? 'not-allowed' : 'pointer',
+                        opacity: cancelling ? 0.7 : 1,
+                      }}
+                    >
+                      {cancelling ? '...' : t('common.cancel')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Botão fechar */}
+              {!confirmOpen && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    borderRadius: 10,
+                    border: '1px solid var(--color-border)',
+                    background: 'transparent',
+                    color: 'var(--color-foreground)',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background 150ms, border-color 150ms',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--color-surface-2)'
+                    e.currentTarget.style.borderColor = 'var(--color-muted)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.borderColor = 'var(--color-border)'
+                  }}
+                >
+                  {t('common.close')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

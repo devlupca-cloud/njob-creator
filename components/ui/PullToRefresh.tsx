@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from '@/lib/i18n'
 
 const PULL_THRESHOLD = 72
 const PULL_RESISTANCE = 0.45
@@ -14,6 +15,7 @@ interface PullToRefreshProps {
 
 export default function PullToRefresh({ children, className = '' }: PullToRefreshProps) {
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
@@ -115,7 +117,7 @@ export default function PullToRefresh({ children, className = '' }: PullToRefres
                 opacity: Math.min(1, pullDistance / PULL_THRESHOLD),
               }}
             >
-              {pullDistance >= PULL_THRESHOLD ? 'Solte para atualizar' : 'Puxe para atualizar'}
+              {pullDistance >= PULL_THRESHOLD ? t('ui.releaseToRefresh') : t('ui.pullToRefresh')}
             </span>
           )}
         </div>

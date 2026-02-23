@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Button from '@/components/ui/Button'
@@ -18,6 +19,7 @@ function validarSenha(password: string): boolean {
 
 export default function AlterarSenhaPage() {
   const router = useRouter()
+  const { t } = useTranslation()
 
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -34,12 +36,12 @@ export default function AlterarSenhaPage() {
     setErrorConfirm(undefined)
 
     if (!validarSenha(newPassword)) {
-      setErrorNew('Deve conter pelo menos 8 caracteres, letras e números')
+      setErrorNew(t('profile.passwordMin8Chars'))
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorConfirm('As senhas não coincidem')
+      setErrorConfirm(t('resetPassword.passwordsMismatch'))
       return
     }
 
@@ -49,11 +51,11 @@ export default function AlterarSenhaPage() {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
 
-      toast.success('Senha alterada com sucesso')
+      toast.success(t('profile.passwordSaved'))
       router.back()
     } catch (err: unknown) {
       console.error(err)
-      const msg = err instanceof Error ? err.message : 'Erro ao alterar senha'
+      const msg = err instanceof Error ? err.message : t('profile.errorEditPassword')
       toast.error(msg)
     } finally {
       setLoading(false)
@@ -62,38 +64,38 @@ export default function AlterarSenhaPage() {
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-      <PageHeader title="Alterar senha" />
+      <PageHeader title={t('profile.editPassword')} />
 
       <div className="flex-1 flex flex-col px-4 py-6">
         <div className="space-y-4">
           <div className="space-y-1">
             <PasswordInput
-              label="Nova senha"
+              label={t('profile.newPasswordLabel')}
               value={newPassword}
               onChange={(e) => {
                 setNewPassword(e.target.value)
                 setErrorNew(undefined)
               }}
-              placeholder="Informe a nova senha"
+              placeholder={t('profile.newPasswordLabel')}
               error={errorNew}
               required
               autoFocus
             />
             {!errorNew && (
               <p className="text-xs italic" style={{ color: 'var(--color-muted)' }}>
-                Deve conter 8 dígitos, entre letras e números
+                {t('profile.passwordHint')}
               </p>
             )}
           </div>
 
           <PasswordInput
-            label="Confirme a nova senha"
+            label={t('profile.confirmNewPassword')}
             value={confirmPassword}
             onChange={(e) => {
               setConfirmPassword(e.target.value)
               setErrorConfirm(undefined)
             }}
-            placeholder="Confirme a nova senha"
+            placeholder={t('profile.confirmNewPassword')}
             error={errorConfirm}
             required
           />
@@ -108,7 +110,7 @@ export default function AlterarSenhaPage() {
             disabled={isDisabled}
             onClick={handleConfirm}
           >
-            Confirmar
+            {t('common.confirm')}
           </Button>
         </div>
       </div>

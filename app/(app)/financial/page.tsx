@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
 import { toast } from 'sonner'
 import EmptyState from '@/components/ui/EmptyState'
+import { useTranslation } from '@/lib/i18n'
 
 const base = () => process.env.NEXT_PUBLIC_SUPABASE_URL!
 
@@ -33,6 +34,7 @@ export default function FinancialPage() {
   const router = useRouter()
   const supabase = createClient()
   const creator = useCreator()
+  const { t } = useTranslation()
   const [tab, setTab] = useState(0)
   const now = new Date()
   const [year, setYear] = useState(now.getFullYear())
@@ -90,19 +92,19 @@ export default function FinancialPage() {
     try {
       const { url } = await getPayoutLink(token)
       if (url) window.open(url, '_blank')
-      else toast.error('Link não disponível')
+      else toast.error(t('financial.noTransactions'))
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro')
+      toast.error(e instanceof Error ? e.message : t('common.error'))
     }
   }
 
-  const tabs = ['Visão Geral', 'Extrato', 'Saques']
+  const tabs = [t('financial.totalEarnings'), t('financial.history'), t('financial.withdraw')]
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600 }}>Financeiro</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 600 }}>{t('financial.title')}</h1>
         <button type="button" onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-          ← Voltar
+          ← {t('common.back')}
         </button>
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
@@ -129,15 +131,15 @@ export default function FinancialPage() {
       {tab === 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>Visitas (30 dias)</div>
+            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{t('home.visits')} ({t('home.last30days')})</div>
             <div style={{ fontSize: 20, fontWeight: 700 }}>{metrics?.visitas_30d ?? 0}</div>
           </div>
           <div style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>Curtidas (30 dias)</div>
+            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{t('home.likes')} ({t('home.last30days')})</div>
             <div style={{ fontSize: 20, fontWeight: 700 }}>{metrics?.curtidas_30d ?? 0}</div>
           </div>
           <div style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>Faturamento (30 dias)</div>
+            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{t('home.revenue')} ({t('home.last30days')})</div>
             <div style={{ fontSize: 20, fontWeight: 700 }}>R$ {Number(metrics?.faturamento_30d ?? 0).toFixed(2)}</div>
           </div>
         </div>
@@ -145,10 +147,10 @@ export default function FinancialPage() {
       {tab === 1 && (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', fontWeight: 600 }}>Intervalo de datas</div>
+            <div style={{ fontSize: 12, color: 'var(--color-muted)', fontWeight: 600 }}>{t('financial.period')}</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>De</span>
+                <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>{t('schedule.date')}</span>
                 <input
                   type="date"
                   value={startDate}
@@ -165,7 +167,7 @@ export default function FinancialPage() {
                 />
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>Até</span>
+                <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>{t('schedule.time')}</span>
                 <input
                   type="date"
                   value={endDate}
@@ -182,33 +184,33 @@ export default function FinancialPage() {
                 min={1}
                 max={12}
                 style={{ width: 60, padding: 8, borderRadius: 8, border: '1px solid var(--color-border)' }}
-                title="Mês"
+                title={t('schedule.minutes')}
               />
               <input
                 type="number"
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())}
                 style={{ width: 80, padding: 8, borderRadius: 8, border: '1px solid var(--color-border)' }}
-                title="Ano"
+                title={t('financial.period')}
               />
-              <span style={{ fontSize: 12, color: 'var(--color-muted)', alignSelf: 'center' }}>Mês/Ano (extrato)</span>
+              <span style={{ fontSize: 12, color: 'var(--color-muted)', alignSelf: 'center' }}>{t('schedule.minutes')}/{t('financial.period')}</span>
             </div>
           </div>
           {statementLoading ? (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>Carregando extrato...</div>
+            <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
           ) : statement ? (
             <pre style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8, overflow: 'auto', fontSize: 12 }}>
               {JSON.stringify(statement, null, 2)}
             </pre>
           ) : (
-            <EmptyState title="Nenhum dado para o período" description="Altere as datas ou o mês/ano para ver o extrato." />
+            <EmptyState title={t('financial.noTransactions')} description={t('financial.period')} />
           )}
         </>
       )}
       {tab === 2 && (
         <div>
           <p style={{ marginBottom: 16, color: 'var(--color-muted)', fontSize: 14 }}>
-            Atualize seus dados bancários para receber saques.
+            {t('financial.withdraw')}
           </p>
           <button
             type="button"
@@ -224,7 +226,7 @@ export default function FinancialPage() {
               fontSize: 14,
             }}
           >
-            Atualizar dados para saque
+            {t('financial.withdraw')}
           </button>
         </div>
       )}

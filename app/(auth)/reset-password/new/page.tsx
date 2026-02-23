@@ -7,9 +7,11 @@ import Button from '@/components/ui/Button'
 import PasswordInput from '@/components/ui/PasswordInput'
 import PageHeader from '@/components/ui/PageHeader'
 import { updatePassword, signOut } from '@/lib/supabase/auth'
+import { useTranslation } from '@/lib/i18n'
 
 function NewPasswordContent() {
   const router = useRouter()
+  const { t } = useTranslation()
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -22,15 +24,15 @@ function NewPasswordContent() {
     setConfirmError('')
 
     if (!newPassword) {
-      setNewPasswordError('Nova senha obrigatória')
+      setNewPasswordError(t('resetPassword.passwordRequired'))
       return
     }
     if (newPassword.length < 6) {
-      setNewPasswordError('Mínimo de 6 caracteres')
+      setNewPasswordError(t('resetPassword.min6Chars'))
       return
     }
     if (newPassword !== confirmPassword) {
-      setConfirmError('As senhas não coincidem')
+      setConfirmError(t('resetPassword.passwordsMismatch'))
       return
     }
 
@@ -38,7 +40,7 @@ function NewPasswordContent() {
 
     await updatePassword(newPassword, {
       onSuccess: async () => {
-        toast.success('Senha alterada com sucesso!')
+        toast.success(t('resetPassword.passwordChanged'))
         await signOut()
         router.push('/login')
       },
@@ -51,15 +53,15 @@ function NewPasswordContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Nova senha" />
+      <PageHeader title={t('resetPassword.newPassword')} />
 
       <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-        Crie uma nova senha para sua conta.
+        {t('resetPassword.newPasswordSubtitle')}
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <PasswordInput
-          label="Nova senha"
+          label={t('resetPassword.newPassword')}
           placeholder="••••••••"
           value={newPassword}
           onChange={(e) => { setNewPassword(e.target.value); setNewPasswordError('') }}
@@ -69,7 +71,7 @@ function NewPasswordContent() {
         />
 
         <PasswordInput
-          label="Confirmar senha"
+          label={t('resetPassword.confirmPassword')}
           placeholder="••••••••"
           value={confirmPassword}
           onChange={(e) => { setConfirmPassword(e.target.value); setConfirmError('') }}
@@ -87,7 +89,7 @@ function NewPasswordContent() {
           disabled={!newPassword || !confirmPassword}
           className="mt-2"
         >
-          Confirmar
+          {t('common.confirm')}
         </Button>
       </form>
     </div>
@@ -95,8 +97,9 @@ function NewPasswordContent() {
 }
 
 export default function ResetPasswordNewPage() {
+  const { t } = useTranslation()
   return (
-    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">Carregando...</div>}>
+    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">{t('common.loading')}</div>}>
       <NewPasswordContent />
     </Suspense>
   )

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/types/database'
+import { useTranslation } from '@/lib/i18n'
 
 type MessageRow = Database['public']['Views']['vw_messages']['Row']
 type ConversationRow = Database['public']['Views']['vw_creator_conversations']['Row']
@@ -13,6 +14,7 @@ export default function ChatConversationPage() {
   const id = params?.id as string
   const router = useRouter()
   const supabase = createClient()
+  const { t } = useTranslation()
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
@@ -117,7 +119,7 @@ export default function ChatConversationPage() {
         <button
           type="button"
           onClick={() => router.back()}
-          aria-label="Voltar"
+          aria-label={t('common.back')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -139,9 +141,9 @@ export default function ChatConversationPage() {
         }}
       >
         {loading ? (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>Carregando...</div>
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
         ) : messages.length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>Nenhuma mensagem ainda.</div>
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('chat.noMessages')}</div>
         ) : (
           messages.map((m) => {
             const isMe = m.sender_id === userId
@@ -170,7 +172,7 @@ export default function ChatConversationPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-          placeholder="Mensagem"
+          placeholder={t('chat.messagePlaceholder')}
           style={{
             flex: 1,
             padding: '10px 12px',
@@ -196,7 +198,7 @@ export default function ChatConversationPage() {
             opacity: input.trim() ? 1 : 0.5,
           }}
         >
-          Enviar
+          {t('chat.send')}
         </button>
       </div>
     </div>

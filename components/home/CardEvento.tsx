@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { formatTimeLocal } from '@/lib/utils/datetime'
+import { useTranslation } from '@/lib/i18n'
+import { getLocaleBcp47 } from '@/lib/i18n'
 
 export type TipoEvento = 'live' | 'call'
 
@@ -21,6 +23,8 @@ interface CardEventoProps {
   eventId: string
   /** ISO string ou Date — data do evento */
   date?: string | Date | null
+  /** Preço do ingresso */
+  ticketPrice?: number | null
 }
 
 // ─── Ícones inline ────────────────────────────────────────────────
@@ -136,7 +140,9 @@ export default function CardEvento({
   users = 0,
   eventId,
   date,
+  ticketPrice,
 }: CardEventoProps) {
+  const { t, locale } = useTranslation()
   const [status, setStatus] = useState<EventStatus>(() => getEventStatus(time, duration))
   const [countdown, setCountdown] = useState(() => getTimeUntilAvailable(time))
 
@@ -207,11 +213,11 @@ export default function CardEvento({
                 fontWeight: 600,
               }}
             >
-              {formatTimeLocal(time)}
+              {formatTimeLocal(time, getLocaleBcp47(locale))}
             </span>
           </div>
 
-          {/* Duração e participantes */}
+          {/* Duração, participantes e preço */}
           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <span
               style={{
@@ -238,6 +244,18 @@ export default function CardEvento({
               >
                 <UserIcon />
                 {users}
+              </span>
+            )}
+
+            {ticketPrice != null && ticketPrice > 0 && (
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--color-primary)',
+                }}
+              >
+                {ticketPrice.toLocaleString(getLocaleBcp47(locale), { style: 'currency', currency: 'BRL' })}
               </span>
             )}
           </div>
@@ -294,7 +312,7 @@ export default function CardEvento({
           >
             <LockIcon />
             <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>
-              Disponível em {countdown || 'breve'}
+              {t('events.availableIn', { time: countdown || t('events.availableSoon') })}
             </span>
           </div>
         )}
@@ -312,7 +330,7 @@ export default function CardEvento({
             }}
           >
             <span style={{ fontSize: 12, color: 'var(--color-muted)', fontStyle: 'italic' }}>
-              Evento encerrado
+              {t('events.eventFinished')}
             </span>
           </div>
         )}

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
 import { useAppStore } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -28,12 +29,11 @@ export default function GuestAuthModal({
 }: GuestAuthModalProps) {
   const router = useRouter()
   const setGuest = useAppStore((s) => s.setGuest)
+  const { t } = useTranslation()
 
   if (!open) return null
 
-  const description =
-    message ??
-    'Para acessar este recurso, você precisa de uma conta NJob. O cadastro é rápido e gratuito.'
+  const description = message ?? t('modals.guestDescription')
 
   function handleRegister() {
     // 1. Close modal first to avoid any flash
@@ -163,7 +163,7 @@ export default function GuestAuthModal({
               lineHeight: 1.3,
             }}
           >
-            Crie sua conta para continuar
+            {t('modals.guestTitle')}
           </h2>
 
           {/* Description */}
@@ -195,7 +195,7 @@ export default function GuestAuthModal({
               fullWidth
               onClick={handleRegister}
             >
-              Cadastrar
+              {t('modals.guestRegister')}
             </Button>
 
             <Button
@@ -204,7 +204,7 @@ export default function GuestAuthModal({
               fullWidth
               onClick={onClose}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
           </div>
         </div>

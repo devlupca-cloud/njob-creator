@@ -7,6 +7,7 @@ import Button from '@/components/ui/Button'
 import PinInput from '@/components/ui/PinInput'
 import PageHeader from '@/components/ui/PageHeader'
 import { verifyPasswordResetOtp, sendPasswordResetOtp } from '@/lib/supabase/auth'
+import { useTranslation } from '@/lib/i18n'
 
 const TIMER_SECONDS = 5 * 60 // 5 minutes
 
@@ -17,6 +18,7 @@ function pad(n: number) {
 function VerifyOtpContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { t } = useTranslation()
   const email = searchParams.get('email') ?? ''
 
   const [pin, setPin] = useState('')
@@ -54,12 +56,12 @@ function VerifyOtpContent() {
       },
       onInvalidOtp: () => {
         setPinError(true)
-        toast.error('Código inválido. Tente novamente.')
+        toast.error(t('resetPassword.invalidCode'))
         setLoading(false)
       },
       onExpiredOtp: () => {
         setPinError(true)
-        toast.error('Código expirado. Solicite um novo.')
+        toast.error(t('resetPassword.expiredCode'))
         setLoading(false)
       },
       onError: (msg) => {
@@ -72,7 +74,7 @@ function VerifyOtpContent() {
   const handleResend = useCallback(async () => {
     await sendPasswordResetOtp(email, {
       onSuccess: () => {
-        toast.success('Novo código enviado!')
+        toast.success(t('resetPassword.newCodeSent'))
         setTimeLeft(TIMER_SECONDS)
         setCanResend(false)
         setPin('')
@@ -80,18 +82,18 @@ function VerifyOtpContent() {
       },
       onError: (msg) => toast.error(msg),
     })
-  }, [email])
+  }, [email, t])
 
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Verificar código" />
+      <PageHeader title={t('resetPassword.verifyCode')} />
 
       <div className="flex flex-col gap-1">
         <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-          Enviamos um código de 6 dígitos para
+          {t('resetPassword.codeSentTo')}
         </p>
         <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
           {email}
@@ -107,7 +109,7 @@ function VerifyOtpContent() {
 
         {!canResend ? (
           <p className="text-center text-sm" style={{ color: 'var(--color-muted)' }}>
-            Solicite novo código em{' '}
+            {t('resetPassword.requestNewIn')}{' '}
             <span className="font-mono font-medium" style={{ color: 'var(--color-foreground)' }}>
               {pad(minutes)}:{pad(seconds)}
             </span>
@@ -119,7 +121,7 @@ function VerifyOtpContent() {
             className="text-center text-sm font-medium transition-opacity hover:opacity-70"
             style={{ color: 'var(--color-primary)' }}
           >
-            Enviar novamente
+            {t('resetPassword.resend')}
           </button>
         )}
       </div>
@@ -133,15 +135,16 @@ function VerifyOtpContent() {
         disabled={pin.length < 6}
         onClick={handleConfirm}
       >
-        Confirmar
+        {t('common.confirm')}
       </Button>
     </div>
   )
 }
 
 export default function ResetPasswordVerifyPage() {
+  const { t } = useTranslation()
   return (
-    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">Carregando...</div>}>
+    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">{t('common.loading')}</div>}>
       <VerifyOtpContent />
     </Suspense>
   )

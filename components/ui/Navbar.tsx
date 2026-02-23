@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useIsGuest } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
 import ComingSoonModal from '@/components/ui/ComingSoonModal'
 import GuestAuthModal from '@/components/ui/GuestAuthModal'
 
@@ -51,17 +52,17 @@ const ProfileIcon = () => (
   </svg>
 )
 
-const mobileNav: NavItem[] = [
-  { label: 'Home', href: '/home', icon: <HomeIcon /> },
-  { label: 'Conteúdo', href: '/content', icon: <ContentIcon /> },
-  { label: 'Chat', href: '/chat', icon: <ChatIcon />, comingSoon: true },
-  { label: 'Agenda', href: '/schedule', icon: <ScheduleIcon /> },
-  { label: 'Perfil', href: '/profile', icon: <ProfileIcon /> },
-]
-
 export default function Navbar() {
+  const { t } = useTranslation()
   const pathname = usePathname()
   const isGuest = useIsGuest()
+
+  const mobileNav: NavItem[] = [
+    { label: t('nav.home'), href: '/home', icon: <HomeIcon /> },
+    { label: t('nav.content'), href: '/content', icon: <ContentIcon /> },
+    { label: t('nav.schedule'), href: '/schedule', icon: <ScheduleIcon /> },
+    { label: t('nav.profile'), href: '/profile', icon: <ProfileIcon /> },
+  ]
   const [comingSoonOpen, setComingSoonOpen] = useState(false)
   const [comingSoonFeature, setComingSoonFeature] = useState('')
   const [guestModalOpen, setGuestModalOpen] = useState(false)
@@ -149,7 +150,7 @@ export default function Navbar() {
       <GuestAuthModal
         open={guestModalOpen}
         onClose={() => setGuestModalOpen(false)}
-        message="Você precisa de uma conta para navegar pela plataforma."
+        message={t('modals.guestNeedAccount')}
       />
     </>
   )

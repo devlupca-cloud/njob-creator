@@ -1,19 +1,22 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
 import type { Database } from '@/lib/types/database'
+import Spinner from '@/components/ui/Spinner'
 import CalendarioEventos from '@/components/schedule/CalendarioEventos'
 import CardEventoAgenda from '@/components/schedule/CardEventoAgenda'
 import DetalhesAgendamentoModal from '@/components/schedule/DetalhesAgendamentoModal'
 import NovoEventoModal from '@/components/home/NovoEventoModal'
 import { formatTimeLocal, eventDateKeyLocal } from '@/lib/utils/datetime'
+import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
+import { useLiveStreamCleanup } from '@/lib/hooks/useLiveStreamCleanup'
 
 type VwCreatorEventRow = Database['public']['Views']['vw_creator_events']['Row']
-type TabCalendario = 'Dia' | 'Semana' | 'Mês'
+type TabCalendario = 'day' | 'week' | 'month'
 
 function formatDDMMY(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0')
@@ -39,22 +42,18 @@ function eventTimeISO(row: VwCreatorEventRow): string {
   return `${row.start_date}T${timePart}:00.000Z`
 }
 
-function Spinner() {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-      <div
-        style={{
-          width: 50,
-          height: 50,
-          border: '3px solid var(--color-border)',
-          borderTopColor: 'var(--color-primary)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  )
+/** Derives frontend status from event time + duration (mirrors CardEvento logic). */
+function deriveEventStatus(row: VwCreatorEventRow): 'upcoming' | 'available' | 'finished' {
+  const iso = eventTimeISO(row)
+  if (!iso) return 'upcoming'
+  const eventTime = new Date(iso).getTime()
+  const durationMin = row.duration_min ?? 60
+  const eventEnd = eventTime + durationMin * 60 * 1000
+  const bufferStart = eventTime - 15 * 60 * 1000
+  const now = Date.now()
+  if (now > eventEnd) return 'finished'
+  if (now >= bufferStart) return 'available'
+  return 'upcoming'
 }
 
 const EditIcon = () => (
@@ -73,8 +72,9 @@ const AddIcon = () => (
 export default function SchedulePage() {
   const supabase = createClient()
   const creator = useCreator()
+  const { t, locale } = useTranslation()
 
-  const [tabCalendarioSelect, setTabCalendarioSelect] = useState<TabCalendario>('Mês')
+  const [tabCalendarioSelect, setTabCalendarioSelect] = useState<TabCalendario>('month')
   const [dataSelect, setDataSelect] = useState<Date>(() => new Date())
   const [modalNovoOpen, setModalNovoOpen] = useState(false)
   const [detalhesEvento, setDetalhesEvento] = useState<VwCreatorEventRow | null>(null)
@@ -102,6 +102,45 @@ export default function SchedulePage() {
     },
   })
 
+  // ── Query suplementar: detalhes das calls (status + nome do cliente) ──
+  const callEventIds = useMemo(
+    () => eventos.filter((e) => e.event_type === 'call' && e.event_id).map((e) => e.event_id!),
+    [eventos],
+  )
+
+  const { data: callInfoMap = new Map<string, { status: string; clientName: string }>() } = useQuery({
+    queryKey: ['call_details', callEventIds],
+    enabled: callEventIds.length > 0,
+    queryFn: async () => {
+      const { data: calls, error: callsErr } = await supabase
+        .from('one_on_one_calls')
+        .select('id, status, user_id')
+        .in('id', callEventIds)
+      if (callsErr || !calls?.length) return new Map<string, { status: string; clientName: string }>()
+
+      const userIds = [...new Set(calls.map((c) => c.user_id))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds)
+
+      const profileMap = new Map<string, string>()
+      profiles?.forEach((p) => profileMap.set(p.id, p.full_name || ''))
+
+      const result = new Map<string, { status: string; clientName: string }>()
+      calls.forEach((c) => {
+        result.set(c.id, {
+          status: c.status,
+          clientName: profileMap.get(c.user_id) || '',
+        })
+      })
+      return result
+    },
+  })
+
+  // ── L3: Lazy status cleanup — mark past live_streams as 'finished' ──
+  useLiveStreamCleanup(creator, refetchEventos)
+
   const selectedKey = formatDMY(dataSelect)
   const listaEventos = eventos.filter((e) => eventDateKey(e) === selectedKey)
 
@@ -125,44 +164,48 @@ export default function SchedulePage() {
             margin: '0 0 16px',
           }}
         >
-          Agenda
+          {t('schedule.title')}
         </h1>
 
         {/* Tabs Dia / Semana / Mês */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {(['Dia', 'Semana', 'Mês'] as const).map((tab) => (
+          {([
+            { key: 'day' as const, label: t('schedule.day') },
+            { key: 'week' as const, label: t('schedule.week') },
+            { key: 'month' as const, label: t('schedule.month') },
+          ]).map(({ key, label }) => (
             <button
-              key={tab}
+              key={key}
               type="button"
               onClick={() => {
-                setTabCalendarioSelect(tab)
-                if (tab === 'Dia') setDataSelect(new Date())
+                setTabCalendarioSelect(key)
+                if (key === 'day') setDataSelect(new Date())
               }}
               style={{
                 flex: 1,
                 padding: '10px 16px',
                 borderRadius: 4,
                 border: 'none',
-                background: tabCalendarioSelect === tab ? 'var(--color-primary)' : 'var(--color-surface-2)',
-                color: tabCalendarioSelect === tab ? '#fff' : 'var(--color-foreground)',
+                background: tabCalendarioSelect === key ? 'var(--color-primary)' : 'var(--color-surface-2)',
+                color: tabCalendarioSelect === key ? '#fff' : 'var(--color-foreground)',
                 fontWeight: 600,
                 fontSize: 14,
                 cursor: 'pointer',
               }}
             >
-              {tab}
+              {label}
             </button>
           ))}
         </div>
 
-        {/* Calendar (hidden when Dia) */}
-        {tabCalendarioSelect !== 'Dia' && (
+        {/* Calendar (hidden when day) */}
+        {tabCalendarioSelect !== 'day' && (
           <div style={{ marginBottom: 16 }}>
             <CalendarioEventos
-              typeCalendario={tabCalendarioSelect === 'Mês' ? 'Mês' : 'Semana'}
+              typeCalendario={tabCalendarioSelect === 'month' ? 'Mês' : 'Semana'}
               selectedDate={dataSelect}
               onDateSelected={setDataSelect}
-              height={tabCalendarioSelect === 'Mês' ? 400 : 150}
+              height={tabCalendarioSelect === 'month' ? 400 : 150}
               datesWithEvents={[...new Set(eventos.map(eventDateKey).filter(Boolean))]}
             />
           </div>
@@ -193,31 +236,38 @@ export default function SchedulePage() {
             }}
           >
             <EditIcon />
-            Disponibilidade
+            {t('schedule.details')}
           </Link>
         </div>
 
         {/* Lista de eventos do dia */}
         {eventosLoading ? (
-          <Spinner />
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+            <Spinner size="lg" />
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {listaEventos.length === 0 ? (
               <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: 0, padding: '24px 0' }}>
-                Nenhum evento nesta data.
+                {t('schedule.noEvents')}
               </p>
             ) : (
-              listaEventos.map((ev) => (
-                <CardEventoAgenda
-                  key={ev.event_id ?? ev.title ?? ''}
-                  title={ev.title ?? ev.event_name ?? '-'}
-                  time={formatTimeLocal(eventTimeISO(ev) || undefined, 'pt-BR')}
-                  typeEvent={(ev.event_type ?? 'call') as 'live' | 'call'}
-                  duration={String(ev.duration_min ?? '-')}
-                  count={ev.attendee_count ?? undefined}
-                  onTap={() => openDetalhes(ev)}
-                />
-              ))
+              listaEventos.map((ev) => {
+                const callInfo = ev.event_type === 'call' && ev.event_id ? callInfoMap.get(ev.event_id) : undefined
+                return (
+                  <CardEventoAgenda
+                    key={ev.event_id ?? ev.title ?? ''}
+                    title={ev.title ?? ev.event_name ?? '-'}
+                    time={formatTimeLocal(eventTimeISO(ev) || undefined, getLocaleBcp47(locale))}
+                    typeEvent={(ev.event_type ?? 'call') as 'live' | 'call'}
+                    duration={String(ev.duration_min ?? '-')}
+                    count={ev.attendee_count ?? undefined}
+                    callStatus={callInfo?.status}
+                    clientName={callInfo?.clientName}
+                    onTap={() => openDetalhes(ev)}
+                  />
+                )
+              })
             )}
           </div>
         )}
@@ -228,7 +278,7 @@ export default function SchedulePage() {
         <button
           type="button"
           onClick={() => setModalNovoOpen(true)}
-          aria-label="Novo evento"
+          aria-label={t('events.newEvent')}
           style={{
             width: 56,
             height: 56,
@@ -254,18 +304,31 @@ export default function SchedulePage() {
         initialDate={dataSelect}
       />
 
-      {detalhesEvento && (
-        <DetalhesAgendamentoModal
-          isOpen={!!detalhesEvento}
-          onClose={() => setDetalhesEvento(null)}
-          title={detalhesEvento.title ?? detalhesEvento.event_name ?? '-'}
-          clientName={detalhesEvento.event_name ?? '-'}
-          duration={`${detalhesEvento.duration_min ?? '-'} min`}
-          date={formatDDMMY(new Date(detalhesEvento.start_date ?? ''))}
-          time={formatTimeLocal(eventTimeISO(detalhesEvento) || undefined, 'pt-BR')}
-          typeEvent={(detalhesEvento.event_type ?? 'call') as 'live' | 'call'}
-        />
-      )}
+      {detalhesEvento && (() => {
+        const detCallInfo = detalhesEvento.event_type === 'call' && detalhesEvento.event_id
+          ? callInfoMap.get(detalhesEvento.event_id)
+          : undefined
+        return (
+          <DetalhesAgendamentoModal
+            isOpen={!!detalhesEvento}
+            onClose={() => setDetalhesEvento(null)}
+            title={detalhesEvento.title ?? detalhesEvento.event_name ?? '-'}
+            clientName={detCallInfo?.clientName || detalhesEvento.event_name || '-'}
+            duration={`${detalhesEvento.duration_min ?? '-'} min`}
+            value={detalhesEvento.ticket_price ?? undefined}
+            date={formatDDMMY(new Date(detalhesEvento.start_date ?? ''))}
+            time={formatTimeLocal(eventTimeISO(detalhesEvento) || undefined, getLocaleBcp47(locale))}
+            typeEvent={(detalhesEvento.event_type ?? 'call') as 'live' | 'call'}
+            eventId={detalhesEvento.event_id}
+            status={deriveEventStatus(detalhesEvento)}
+            callStatus={detCallInfo?.status}
+            onCancel={() => {
+              setDetalhesEvento(null)
+              refetchEventos()
+            }}
+          />
+        )
+      })()}
     </>
   )
 }

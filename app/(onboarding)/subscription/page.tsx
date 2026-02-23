@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation } from '@/lib/i18n'
 import Link from 'next/link'
 import { createSubscriptionCheckout } from '@/lib/api/subscription'
 import { toast } from 'sonner'
@@ -19,6 +20,7 @@ type PlanRow = {
 export default function OnboardingSubscriptionPage() {
   const supabase = createClient()
   const router = useRouter()
+  const { t } = useTranslation()
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const { data: plans = [] } = useQuery({
@@ -33,13 +35,13 @@ export default function OnboardingSubscriptionPage() {
   const handleAssinar = async (plan: PlanRow) => {
     const priceId = plan.stripe_price_id
     if (!priceId) {
-      toast.error('Plano sem preço configurado.')
+      toast.error(t('subscriptions.noPriceConfigured'))
       return
     }
     const { data: session } = await supabase.auth.getSession()
     const token = session.session?.access_token
     if (!token) {
-      toast.error('Faça login para assinar.')
+      toast.error(t('subscriptions.loginToSubscribe'))
       return
     }
     setLoadingId(plan.id)
@@ -50,9 +52,9 @@ export default function OnboardingSubscriptionPage() {
         return
       }
       if (url) window.location.href = url
-      else toast.error('Link de checkout não retornado.')
+      else toast.error(t('subscriptions.checkoutLinkError'))
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao iniciar checkout.')
+      toast.error(e instanceof Error ? e.message : t('subscriptions.checkoutError'))
     } finally {
       setLoadingId(null)
     }
@@ -60,12 +62,12 @@ export default function OnboardingSubscriptionPage() {
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: 24 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>Escolha seu plano</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>{t('onboarding.choosePlan')}</h1>
       <p style={{ color: 'var(--color-muted)', fontSize: 14, marginBottom: 24 }}>
-        Assinatura no primeiro acesso.
+        {t('onboarding.firstAccessSubscription')}
       </p>
       {plans.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>Nenhum plano disponível.</div>
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('subscriptions.noPlans')}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {(plans as PlanRow[]).map((p) => (
@@ -89,7 +91,7 @@ export default function OnboardingSubscriptionPage() {
                   fontSize: 14,
                 }}
               >
-                {loadingId === p.id ? 'Abrindo checkout...' : 'Assinar'}
+                {loadingId === p.id ? t('subscriptions.openingCheckout') : t('subscriptions.subscribe')}
               </button>
             </div>
           ))}
@@ -97,7 +99,7 @@ export default function OnboardingSubscriptionPage() {
       )}
       <div style={{ marginTop: 24 }}>
         <Link href="/home" style={{ fontSize: 14, color: 'var(--color-primary)', fontWeight: 600 }}>
-          Pular e ir para o app →
+          {t('onboarding.skipToApp')}
         </Link>
       </div>
     </div>

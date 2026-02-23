@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useTranslation } from '@/lib/i18n'
 
 export type TipoEventoAgenda = 'live' | 'call'
 
@@ -13,6 +14,10 @@ export interface CardEventoAgendaProps {
   duration: string
   /** Attendee count (shown only for live) */
   count?: number | null
+  /** Status da call (requested, confirmed, completed, cancelled_*, rejected) */
+  callStatus?: string
+  /** Nome do cliente que comprou a call */
+  clientName?: string
   onTap: () => void
 }
 
@@ -45,15 +50,34 @@ const ActionIcon = () => (
  * CardEventoAgenda — replica do CardEventoAgendaWidget Flutter.
  * Layout: hora à esquerda, card à direita (título, hora, duração, count para live). onTap abre detalhes.
  */
+/** Resolve call status to badge color + translated label */
+function useCallStatusBadge(callStatus?: string) {
+  const { t } = useTranslation()
+  if (!callStatus) return null
+
+  const map: Record<string, { color: string; bg: string; label: string }> = {
+    requested: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', label: t('schedule.pending') },
+    confirmed: { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', label: t('schedule.confirmed') },
+    completed: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.completed') },
+    cancelled_by_user: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.cancelled') },
+    cancelled_by_creator: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.cancelled') },
+    rejected: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.callStatusRejected') },
+  }
+  return map[callStatus] ?? null
+}
+
 export default function CardEventoAgenda({
   title,
   time,
   typeEvent,
   duration,
   count,
+  callStatus,
+  clientName,
   onTap,
 }: CardEventoAgendaProps) {
   const borderColor = borderColors[typeEvent] ?? '#FFDF6E'
+  const badge = useCallStatusBadge(callStatus)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 30 }}>
@@ -94,17 +118,42 @@ export default function CardEventoAgenda({
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: 'var(--color-foreground)', fontSize: 12, fontWeight: 500 }}>
-              {title || '-'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span style={{ color: 'var(--color-foreground)', fontSize: 12, fontWeight: 500 }}>
+                {title || '-'}
+              </span>
+              {badge && (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    color: badge.color,
+                    background: badge.bg,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {badge.label}
+                </span>
+              )}
+            </div>
             <ActionIcon />
           </div>
+          {clientName && (
+            <div style={{ marginTop: 4 }}>
+              <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>
+                {clientName}
+              </span>
+            </div>
+          )}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: 14,
+              marginTop: clientName ? 8 : 14,
               gap: 8,
             }}
           >

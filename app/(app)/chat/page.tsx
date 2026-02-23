@@ -8,6 +8,7 @@ import { useCreator } from '@/lib/store/app-store'
 import type { Database } from '@/lib/types/database'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatTimeLocal, formatDateLocal } from '@/lib/utils/datetime'
+import { useTranslation } from '@/lib/i18n'
 
 type ConversationRow = Database['public']['Views']['vw_creator_conversations']['Row']
 
@@ -31,6 +32,7 @@ export default function ChatListPage() {
   const supabase = createClient()
   const creator = useCreator()
   const router = useRouter()
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [filterUnread, setFilterUnread] = useState(false)
   const [sortNewest, setSortNewest] = useState(true)
@@ -73,11 +75,11 @@ export default function ChatListPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>Chat</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{t('chat.title')}</h1>
       <div style={{ marginBottom: 12 }}>
         <input
           type="text"
-          placeholder="Buscar"
+          placeholder={t('common.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{
@@ -93,18 +95,18 @@ export default function ChatListPage() {
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
             <input type="checkbox" checked={filterUnread} onChange={(e) => setFilterUnread(e.target.checked)} />
-            Não lidas
+            {t('chat.unread')}
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
             <input type="checkbox" checked={sortNewest} onChange={(e) => setSortNewest(e.target.checked)} />
-            Mais recentes
+            {t('chat.recent')}
           </label>
         </div>
       </div>
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>Carregando...</div>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
       ) : filtered.length === 0 ? (
-        <EmptyState title="Nenhuma conversa" description="Quando alguém enviar uma mensagem, ela aparecerá aqui." icon="💬" />
+        <EmptyState title={t('chat.noConversations')} description={t('chat.emptyMessage')} icon="💬" />
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {filtered.map((c) => (
@@ -145,7 +147,7 @@ export default function ChatListPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-foreground)' }}>{c.peer_name ?? 'Sem nome'}</span>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-foreground)' }}>{c.peer_name ?? t('chat.noName')}</span>
                     <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{formatMessageTime(c.last_message_created_at)}</span>
                   </div>
                   <p style={{ margin: 0, fontSize: 13, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

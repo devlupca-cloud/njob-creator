@@ -1,6 +1,7 @@
 'use client'
 
 import Button from '@/components/ui/Button'
+import { useTranslation } from '@/lib/i18n'
 
 interface ComingSoonModalProps {
   open: boolean
@@ -11,8 +12,10 @@ interface ComingSoonModalProps {
 export default function ComingSoonModal({
   open,
   onClose,
-  feature = 'Este recurso',
+  feature,
 }: ComingSoonModalProps) {
+  const { t } = useTranslation()
+  const featureName = feature || t('modals.comingSoonDefaultFeature')
   if (!open) return null
 
   return (
@@ -116,7 +119,7 @@ export default function ComingSoonModal({
               lineHeight: 1.3,
             }}
           >
-            Em breve!
+            {t('modals.comingSoonTitle')}
           </h2>
 
           <p
@@ -129,7 +132,7 @@ export default function ComingSoonModal({
               lineHeight: 1.6,
             }}
           >
-            {feature} estará disponível na próxima versão. Fique ligado nas novidades!
+            {t('modals.comingSoonDescription', { feature: featureName })}
           </p>
 
           <Button
@@ -138,7 +141,7 @@ export default function ComingSoonModal({
             fullWidth
             onClick={onClose}
           >
-            Entendi
+            {t('common.understood')}
           </Button>
         </div>
       </div>

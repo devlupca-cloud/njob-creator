@@ -1712,6 +1712,7 @@ export type Database = {
           event_name: string | null
           event_type: string | null
           start_date: string | null
+          ticket_price: number | null
           time: string | null
           title: string | null
         }

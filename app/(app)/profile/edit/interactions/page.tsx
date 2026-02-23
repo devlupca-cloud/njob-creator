@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import PageHeader from '@/components/ui/PageHeader'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
 
 // ─── Toggle ──────────────────────────────────────────────────────────────────
 
@@ -55,11 +56,11 @@ function formatPhone(value: string): string {
 
 // ─── Currency input ───────────────────────────────────────────────────────────
 
-function formatCurrency(value: string): string {
+function formatCurrency(value: string, localeBcp47 = 'pt-BR'): string {
   const num = value.replace(/\D/g, '')
   if (!num) return ''
   const parsed = parseInt(num, 10) / 100
-  return parsed.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return parsed.toLocaleString(localeBcp47, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function parseCurrency(value: string): number {
@@ -72,16 +73,17 @@ interface CurrencyInputProps {
   value: string
   onChange: (raw: string) => void
   error?: string
+  localeBcp47?: string
 }
 
-function CurrencyInput({ label, value, onChange, error }: CurrencyInputProps) {
+function CurrencyInput({ label, value, onChange, error, localeBcp47 = 'pt-BR' }: CurrencyInputProps) {
   return (
     <Input
       label={label}
       value={value ? `R$ ${value}` : ''}
       onChange={(e) => {
         const raw = e.target.value.replace(/^R\$\s?/, '')
-        onChange(formatCurrency(raw))
+        onChange(formatCurrency(raw, localeBcp47))
       }}
       placeholder="R$ 0,00"
       error={error}
@@ -113,6 +115,8 @@ export default function AlterarInteracoesPage() {
   const router = useRouter()
   const creator = useCreator()
   const setCreator = useAppStore((s) => s.setCreator)
+  const { t, locale } = useTranslation()
+  const localeBcp47 = getLocaleBcp47(locale)
 
   const [vendePacks, setVendePacks] = useState(false)
   const [fazVideochamada, setFazVideochamada] = useState(false)
@@ -149,10 +153,10 @@ export default function AlterarInteracoesPage() {
           setFazVideochamada(data.sell_calls)
           setFazEncontro(data.face_to_face_meeting)
           if (data.call_per_30_min) {
-            setValor30min(formatCurrency(String(Math.round(data.call_per_30_min * 100))))
+            setValor30min(formatCurrency(String(Math.round(data.call_per_30_min * 100)), localeBcp47))
           }
           if (data.call_per_1_hr) {
-            setValor1hora(formatCurrency(String(Math.round(data.call_per_1_hr * 100))))
+            setValor1hora(formatCurrency(String(Math.round(data.call_per_1_hr * 100)), localeBcp47))
           }
         }
       } catch {
@@ -173,8 +177,8 @@ export default function AlterarInteracoesPage() {
       const v30 = parseCurrency(valor30min)
       const v1h = parseCurrency(valor1hora)
       const newErrors: { valor30min?: string; valor1hora?: string } = {}
-      if (v30 < 10) newErrors.valor30min = 'Valor mínimo é R$ 10,00'
-      if (v1h < 10) newErrors.valor1hora = 'Valor mínimo é R$ 10,00'
+      if (v30 < 10) newErrors.valor30min = t('register.minValue')
+      if (v1h < 10) newErrors.valor1hora = t('register.minValue')
       setErrors(newErrors)
       if (Object.keys(newErrors).length > 0) return
     } else {
@@ -187,17 +191,17 @@ export default function AlterarInteracoesPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Sem sessao')
 
-      // Update profile_settings
+      // Upsert profile_settings (cria se não existir, atualiza se já existir)
       const { error: settingsError } = await supabase
         .from('profile_settings')
-        .update({
+        .upsert({
+          profile_id: session.user.id,
           sell_packs: vendePacks,
           sell_calls: fazVideochamada,
           face_to_face_meeting: fazEncontro,
           call_per_30_min: parseCurrency(valor30min),
           call_per_1_hr: parseCurrency(valor1hora),
-        })
-        .eq('profile_id', session.user.id)
+        }, { onConflict: 'profile_id' })
 
       if (settingsError) throw settingsError
 
@@ -216,11 +220,11 @@ export default function AlterarInteracoesPage() {
         })
       }
 
-      toast.success('Interacoes alteradas com sucesso')
+      toast.success(t('profile.interactionsSaved'))
       router.back()
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao salvar. Tente novamente.')
+      toast.error(t('profile.interactionsError'))
     } finally {
       setLoading(false)
     }
@@ -229,7 +233,7 @@ export default function AlterarInteracoesPage() {
   if (initialLoading) {
     return (
       <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-        <PageHeader title="Alterar interacoes" />
+        <PageHeader title={t('profile.editInteractions')} />
         <div className="flex-1 flex items-center justify-center">
           <svg className="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--color-primary)' }}>
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -242,7 +246,7 @@ export default function AlterarInteracoesPage() {
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-      <PageHeader title="Alterar interacoes" />
+      <PageHeader title={t('profile.editInteractions')} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-6 space-y-4">
@@ -250,7 +254,7 @@ export default function AlterarInteracoesPage() {
           {/* Vende conteudo */}
           <SectionCard>
             <ToggleOption
-              title="Vende Conteudo?"
+              title={t('register.sellsContent')}
               value={vendePacks}
               onChange={setVendePacks}
             />
@@ -259,7 +263,7 @@ export default function AlterarInteracoesPage() {
           {/* Videochamada */}
           <SectionCard>
             <ToggleOption
-              title="Faz videochamada individual?"
+              title={t('register.doesVideoCall')}
               value={fazVideochamada}
               onChange={setFazVideochamada}
             />
@@ -267,16 +271,18 @@ export default function AlterarInteracoesPage() {
               <>
                 <div style={{ height: '1px', background: 'var(--color-border)' }} />
                 <CurrencyInput
-                  label="Valor por 30 minutos de videochamada"
+                  label={t('profile.videocallPer30min')}
                   value={valor30min}
                   onChange={setValor30min}
                   error={errors.valor30min}
+                  localeBcp47={localeBcp47}
                 />
                 <CurrencyInput
-                  label="Valor por hora de videochamada"
+                  label={t('profile.videocallPer1h')}
                   value={valor1hora}
                   onChange={setValor1hora}
                   error={errors.valor1hora}
+                  localeBcp47={localeBcp47}
                 />
               </>
             )}
@@ -285,7 +291,7 @@ export default function AlterarInteracoesPage() {
           {/* Encontro presencial */}
           <SectionCard>
             <ToggleOption
-              title="Faz encontro presencial?"
+              title={t('register.doesMeeting')}
               value={fazEncontro}
               onChange={setFazEncontro}
             />
@@ -306,7 +312,7 @@ export default function AlterarInteracoesPage() {
               loading={loading}
               onClick={handleConfirm}
             >
-              Confirmar
+              {t('common.confirm')}
             </Button>
           </div>
         </div>

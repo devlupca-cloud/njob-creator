@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
 
 /** Formato DD/MM/YYYY para comparar datas com eventos */
 function dateToKey(date: Date): string {
@@ -21,8 +22,21 @@ interface CalendarioEventosProps {
   datesWithEvents?: string[]
 }
 
-const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+function getWeekdayNames(bcp47: string): string[] {
+  const names: string[] = []
+  // Use a known Sunday as base (2024-01-07 is a Sunday)
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(2024, 0, 7 + i)
+    names.push(new Intl.DateTimeFormat(bcp47, { weekday: 'short' }).format(d))
+  }
+  return names
+}
+
+function getMonthName(bcp47: string, year: number, month: number): string {
+  const d = new Date(year, month, 1)
+  const name = new Intl.DateTimeFormat(bcp47, { month: 'long' }).format(d)
+  return name.charAt(0).toUpperCase() + name.slice(1)
+}
 
 function getMonthDays(year: number, month: number): (number | null)[] {
   const first = new Date(year, month, 1)
@@ -71,6 +85,9 @@ export default function CalendarioEventos({
   height = typeCalendario === 'Mês' ? 400 : 150,
   datesWithEvents = [],
 }: CalendarioEventosProps) {
+  const { t, locale } = useTranslation()
+  const bcp47 = getLocaleBcp47(locale)
+  const weekdays = React.useMemo(() => getWeekdayNames(bcp47), [bcp47])
   const eventSet = React.useMemo(() => new Set(datesWithEvents), [datesWithEvents])
   const [viewMonth, setViewMonth] = React.useState(() => ({
     year: selectedDate.getFullYear(),
@@ -108,7 +125,7 @@ export default function CalendarioEventos({
                   fontSize: 12,
                 }}
               >
-                <span style={{ opacity: 0.8 }}>{WEEKDAYS[d.getDay()]}</span>
+                <span style={{ opacity: 0.8 }}>{weekdays[d.getDay()]}</span>
                 <span style={{ fontWeight: 700, fontSize: 18 }}>{d.getDate()}</span>
                 {hasEvent && <span style={EVENT_DOT_STYLE} />}
               </button>
@@ -126,18 +143,18 @@ export default function CalendarioEventos({
   return (
     <div style={{ height, background: 'var(--color-surface)', borderRadius: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.1)', padding: 12, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <button type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 18 }} aria-label="Mês anterior">
+        <button type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 18 }} aria-label={t('ui.previousMonth')}>
           ‹
         </button>
         <span style={{ fontWeight: 600, color: 'var(--color-foreground)', fontSize: 14 }}>
-          {MONTHS[viewMonth.month]} {viewMonth.year}
+          {getMonthName(bcp47, viewMonth.year, viewMonth.month)} {viewMonth.year}
         </span>
-        <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 18 }} aria-label="Próximo mês">
+        <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 18 }} aria-label={t('ui.nextMonth')}>
           ›
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, flex: 1 }}>
-        {WEEKDAYS.map((w) => (
+        {weekdays.map((w) => (
           <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-muted)', fontWeight: 600 }}>
             {w}
           </div>

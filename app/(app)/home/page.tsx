@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -9,7 +9,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useCreator, useAppStore, useIsGuest } from '@/lib/store/app-store'
 import type { Database } from '@/lib/types/database'
 import { useGuestGuard } from '@/lib/hooks/useGuestGuard'
+import { useTranslation } from '@/lib/i18n'
 import GuestAuthModal from '@/components/ui/GuestAuthModal'
+import Spinner from '@/components/ui/Spinner'
 
 import ToggleOnline from '@/components/home/ToggleOnline'
 import CardEvento, { type TipoEvento } from '@/components/home/CardEvento'
@@ -20,6 +22,7 @@ import {
   getTomorrowLocalYYYYMMDD,
   eventStartDateLocal,
 } from '@/lib/utils/datetime'
+import { useLiveStreamCleanup } from '@/lib/hooks/useLiveStreamCleanup'
 
 // ─── Tipos vindos do schema ────────────────────────────────────────
 type VwCreatorEventRow = Database['public']['Views']['vw_creator_events']['Row']
@@ -72,26 +75,6 @@ const ArrowRightIcon = () => (
   </svg>
 )
 
-// ─── Spinner ──────────────────────────────────────────────────────
-
-function Spinner() {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          border: '3px solid var(--color-border)',
-          borderTopColor: 'var(--color-primary)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  )
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────
 
 /** Mantido por compatibilidade; preferir getTodayLocalYYYYMMDD de @/lib/utils/datetime */
@@ -99,20 +82,36 @@ function getTodayISO(): string {
   return getTodayLocalYYYYMMDD()
 }
 
+/** Retorna o timestamp (ms) UTC do evento a partir de start_date + time da view. */
+function eventTimestamp(row: VwCreatorEventRow): number {
+  if (!row.start_date || !row.time) return 0
+  const timePart = String(row.time).slice(0, 5)
+  return new Date(`${row.start_date}T${timePart}:00.000Z`).getTime()
+}
+
+/** Verifica se o evento já terminou (horário de início + duração < agora). */
+function isEventFinished(row: VwCreatorEventRow): boolean {
+  const ts = eventTimestamp(row)
+  if (!ts) return false
+  const durationMin = row.duration_min ?? 60
+  const eventEnd = ts + durationMin * 60 * 1000
+  return Date.now() > eventEnd
+}
+
 /**
- * Monta a URL de acesso à live-canvas conforme o tipo de evento.
- * Espelha exatamente o launchURL do Flutter.
+ * Retorna a rota interna do creator web para o evento.
  */
-function buildEventURL(event: VwCreatorEventRow, userId: string, fullName: string): string {
+function buildEventRoute(event: VwCreatorEventRow): string {
   if (event.event_type === 'live') {
-    return `https://live-canvas-vue.lovable.app/live?room=${event.event_id}&mode=host&userName=${encodeURIComponent(fullName)}&userID=${userId}`
+    return `/live/${event.event_id}`
   }
-  return `https://live-canvas-vue.lovable.app/video-call?room=${event.creator_id}&userName=${encodeURIComponent(fullName)}&userID=${userId}`
+  return `/video-call/${event.event_id}`
 }
 
 // ─── Page ─────────────────────────────────────────────────────────
 
 export default function HomePage() {
+  const { t } = useTranslation()
   const supabase = createClient()
   const creator = useCreator()
   const isGuest = useIsGuest()
@@ -157,10 +156,58 @@ export default function HomePage() {
     },
   })
 
-  // Filtra só os que caem no "hoje" no fuso local (ex.: 23h hoje no Brasil = 02h amanhã UTC)
-  const eventos = eventosRaw.filter(
-    (e) => eventStartDateLocal(e.start_date, e.time) === todayISO
-  ).slice(0, 3)
+  // ── L3: Lazy status cleanup — mark past live_streams as 'finished' ──
+  useLiveStreamCleanup(creator, refetchEventos)
+
+  // Filtra só os que caem no "hoje" no fuso local, remove finalizados
+  // e ordena pelo mais próximo do horário atual
+  const eventos = eventosRaw
+    .filter((e) => eventStartDateLocal(e.start_date, e.time) === todayISO)
+    .filter((e) => !isEventFinished(e))
+    .sort((a, b) => {
+      const now = Date.now()
+      const diffA = Math.abs(eventTimestamp(a) - now)
+      const diffB = Math.abs(eventTimestamp(b) - now)
+      return diffA - diffB
+    })
+    .slice(0, 3)
+
+  // ── Query suplementar: detalhes das calls (status + nome do cliente) ──
+  const callEventIds = useMemo(
+    () => eventos.filter((e) => e.event_type === 'call' && e.event_id).map((e) => e.event_id!),
+    [eventos],
+  )
+
+  const { data: homeCallInfoMap = new Map<string, { status: string; clientName: string }>() } = useQuery({
+    queryKey: ['home_call_details', callEventIds],
+    enabled: callEventIds.length > 0,
+    queryFn: async () => {
+      const { data: calls, error: callsErr } = await supabase
+        .from('one_on_one_calls')
+        .select('id, status, user_id')
+        .in('id', callEventIds)
+        .in('status', ['requested', 'confirmed'])
+      if (callsErr || !calls?.length) return new Map<string, { status: string; clientName: string }>()
+
+      const userIds = [...new Set(calls.map((c) => c.user_id))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds)
+
+      const profileMap = new Map<string, string>()
+      profiles?.forEach((p) => profileMap.set(p.id, p.full_name || ''))
+
+      const result = new Map<string, { status: string; clientName: string }>()
+      calls.forEach((c) => {
+        result.set(c.id, {
+          status: c.status,
+          clientName: profileMap.get(c.user_id) || '',
+        })
+      })
+      return result
+    },
+  })
 
   // ─── Query: métricas ───────────────────────────────────────────
 
@@ -210,12 +257,9 @@ export default function HomePage() {
 
   const handleOpenEvent = useCallback(async (event: VwCreatorEventRow) => {
     if (!requireAuth()) return
-    const { data: session } = await supabase.auth.getSession()
-    const userId = session.session?.user.id
-    if (!userId || !creator) return
+    if (!creator) return
 
-    const url = buildEventURL(event, userId, creator.profile.full_name)
-
+    // Verificar câmera/áudio antes de navegar
     if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -223,15 +267,15 @@ export default function HomePage() {
       } catch (err) {
         const name = err instanceof Error ? err.name : ''
         if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-          toast.error('Câmera e microfone são necessários para a live. Você pode permitir nas configurações do navegador e tentar novamente.')
-        } else {
-          toast.warning('Não foi possível acessar câmera ou microfone. Abrindo mesmo assim.')
+          toast.error(t('home.cameraRequired'))
+          return
         }
+        toast.warning(t('home.cameraWarning'))
       }
     }
 
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }, [supabase, creator])
+    router.push(buildEventRoute(event))
+  }, [creator, router])
 
   const handleRefreshAfterCreate = useCallback(() => {
     refetchEventos()
@@ -249,12 +293,12 @@ export default function HomePage() {
       try {
         const { error } = await supabase.from('profiles').update({ is_active: isActive }).eq('id', userId)
         if (error) {
-          toast.error('Não foi possível atualizar. Tente de novo.')
+          toast.error(t('home.errorUpdateOnline'))
           return
         }
         setCreator({ ...creator, profile: { ...creator.profile, is_active: isActive } })
       } catch {
-        toast.error('Erro ao atualizar status.')
+        toast.error(t('home.errorUpdateStatus'))
       } finally {
         setOnlineUpdating(false)
       }
@@ -266,7 +310,11 @@ export default function HomePage() {
 
   const userName = creator?.profile?.full_name?.trim() || null
   const avatarUrl = creator?.profile?.avatar_url
-  const greeting = isGuest ? 'Olá, Visitante' : userName ? `Olá, ${userName}` : 'Olá'
+  const greeting = isGuest
+    ? t('home.greetingGuest')
+    : userName
+      ? t('home.greetingName', { name: userName })
+      : t('home.greetingDefault')
 
   return (
     <>
@@ -342,7 +390,7 @@ export default function HomePage() {
                   fontWeight: 600,
                 }}
               >
-                Online
+                {t('common.online')}
               </span>
               <ToggleOnline
                 value={creator?.profile?.is_active ?? true}
@@ -351,19 +399,7 @@ export default function HomePage() {
               />
             </div>
 
-            <button
-              aria-label="Notificações"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-foreground)',
-                padding: 4,
-                display: 'flex',
-              }}
-            >
-              <BellIcon />
-            </button>
+            {/* Notificações — oculto por enquanto */}
           </div>
         </div>
 
@@ -382,7 +418,7 @@ export default function HomePage() {
             display: 'block',
           }}
         >
-          Ver perfil
+          {t('home.viewProfile')}
         </button>
 
         {/* ─── Seção: Eventos do Dia ─────────────────────────────────── */}
@@ -430,13 +466,15 @@ export default function HomePage() {
                 fontWeight: 600,
               }}
             >
-              Eventos do dia
+              {t('home.todayEvents')}
             </span>
           </div>
 
           {/* Lista de eventos */}
           {eventosLoading ? (
-            <Spinner />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+              <Spinner size="lg" />
+            </div>
           ) : eventos.length === 0 ? (
             /* Estado vazio */
             <div
@@ -456,15 +494,15 @@ export default function HomePage() {
                   margin: 0,
                 }}
               >
-                Você não possui eventos agendados hoje!
+                {t('home.noEventsToday')}
               </p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {eventos.slice(0, 3).map((evento) => {
                 const textBTN = evento.event_type === 'live'
-                  ? 'Entrar na live'
-                  : 'Entrar na videochamada'
+                  ? t('home.joinLive')
+                  : t('home.joinVideoCall')
 
                 // Monta ISO (UTC) a partir de start_date + time da view; data/hora exibidas no fuso local
                 const timeISO =
@@ -472,17 +510,26 @@ export default function HomePage() {
                     ? `${evento.start_date}T${evento.time.slice(0, 5)}:00.000Z`
                     : new Date().toISOString()
 
+                // Enriquece título da call com nome do cliente
+                const callInfo = evento.event_type === 'call' && evento.event_id
+                  ? homeCallInfoMap.get(evento.event_id)
+                  : undefined
+                const displayTitle = callInfo?.clientName
+                  ? `${evento.title ?? evento.event_name ?? 'Evento'} — ${callInfo.clientName}`
+                  : (evento.title ?? evento.event_name ?? 'Evento')
+
                 return (
                   <CardEvento
                     key={evento.event_id ?? evento.event_name}
                     typeEvento={(evento.event_type ?? 'call') as TipoEvento}
-                    title={evento.title ?? evento.event_name ?? 'Evento'}
+                    title={displayTitle}
                     time={timeISO}
                     duration={`${evento.duration_min ?? '-'}m`}
                     textBTN={textBTN}
                     users={evento.attendee_count ?? 0}
                     eventId={evento.event_id ?? ''}
                     date={timeISO}
+                    ticketPrice={evento.ticket_price}
                     onTapBTN={() => handleOpenEvent(evento)}
                   />
                 )
@@ -509,7 +556,7 @@ export default function HomePage() {
                 padding: 0,
               }}
             >
-              Ver todos
+              {t('common.viewAll')}
               <ArrowRightIcon />
             </button>
           )}
@@ -539,14 +586,16 @@ export default function HomePage() {
             onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
           >
             <AddIcon />
-            Criar evento
+            {t('home.createEvent')}
           </button>
         </section>
 
         {/* ─── Seção: Métricas ───────────────────────────────────────── */}
         <section>
           {metricasLoading ? (
-            <Spinner />
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+              <Spinner size="lg" />
+            </div>
           ) : (
             <div
               style={{
@@ -560,8 +609,8 @@ export default function HomePage() {
                 fillColor="#F1E2FF"
                 icon={<EyeIcon />}
                 value={metricas?.visitas_30d ?? 0}
-                title="Visitas"
-                subTitle="últimos 30 dias"
+                title={t('home.visits')}
+                subTitle={t('home.last30days')}
                 showIcon={true}
                 valueMoeda={false}
               />
@@ -571,8 +620,8 @@ export default function HomePage() {
                 fillColor="#E8CDFF"
                 icon={<HeartIcon />}
                 value={metricas?.curtidas_30d ?? 0}
-                title="Curtidas"
-                subTitle="últimos 30 dias"
+                title={t('home.likes')}
+                subTitle={t('home.last30days')}
                 showIcon={true}
                 valueMoeda={false}
               />
@@ -582,8 +631,8 @@ export default function HomePage() {
                 fillColor="#DEB8FF"
                 icon={<DollarIcon />}
                 value={Math.round(metricas?.faturamento_30d ?? 0)}
-                title="Faturamento"
-                subTitle="últimos 30 dias"
+                title={t('home.revenue')}
+                subTitle={t('home.last30days')}
                 showIcon={false}
                 valueMoeda={true}
               />
@@ -604,7 +653,7 @@ export default function HomePage() {
       <GuestAuthModal
         open={showGuestModal}
         onClose={() => setShowGuestModal(false)}
-        message="Você precisa de uma conta para realizar ações na plataforma."
+        message={t('modals.guestNeedAccountActions')}
       />
     </>
   )

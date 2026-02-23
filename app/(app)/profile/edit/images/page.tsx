@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAppStore, useCreator } from '@/lib/store/app-store'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import Button from '@/components/ui/Button'
 import DicasFotosModal from '@/components/ui/DicasFotosModal'
@@ -101,6 +102,7 @@ async function uploadImage(file: File, userId: string, path: string): Promise<st
 
 export default function AlterarImagensPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const creator = useCreator()
   const setCreator = useAppStore((s) => s.setCreator)
 
@@ -138,7 +140,7 @@ export default function AlterarImagensPage() {
       const url = await uploadImage(file, session.user.id, `profiles/${session.user.id}/capa.${ext}`)
       setCapaUrl(url)
     } catch {
-      toast.error('Erro ao fazer upload da foto de capa')
+      toast.error(t('profile.errorUploadCover'))
     } finally {
       setUploadingCapa(false)
     }
@@ -164,7 +166,7 @@ export default function AlterarImagensPage() {
       const url = await uploadImage(file, session.user.id, `profiles/${session.user.id}/comp${index + 1}.${ext}`)
       setters[index](url)
     } catch {
-      toast.error('Erro ao fazer upload da foto')
+      toast.error(t('profile.errorUploadPhoto'))
     } finally {
       setUploadingIndex(false)
     }
@@ -179,50 +181,33 @@ export default function AlterarImagensPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Sem sessão')
 
-      // Build new images array for local state
+      // Build images array for both RPC and local state
       const newImages: ImagesCreator[] = []
+      const p_images: Array<{ image_url: string; highlight_image_url: boolean; index: number }> = []
 
       if (capaUrl) {
         newImages.push({ highlight_image_url: true, image_url: capaUrl })
-        // Upsert highlight image in DB
-        const existing = capaImage
-        if (existing) {
-          await supabase
-            .from('profile_images')
-            .update({ image_url: capaUrl })
-            .eq('profile_id', session.user.id)
-            .eq('highlight_image_url', true)
-        } else {
-          await supabase
-            .from('profile_images')
-            .insert({ profile_id: session.user.id, highlight_image_url: true, image_url: capaUrl })
-        }
+        p_images.push({ image_url: capaUrl, highlight_image_url: true, index: 0 })
       }
 
       const compUrls = [comp1, comp2, comp3].filter(Boolean) as string[]
       for (let i = 0; i < compUrls.length; i++) {
         newImages.push({ highlight_image_url: false, image_url: compUrls[i] })
-        const existing = complementares[i]
-        if (existing) {
-          await supabase
-            .from('profile_images')
-            .update({ image_url: compUrls[i] })
-            .eq('profile_id', session.user.id)
-            .eq('highlight_image_url', false)
-            .eq('index', i)
-        } else {
-          await supabase
-            .from('profile_images')
-            .insert({ profile_id: session.user.id, highlight_image_url: false, image_url: compUrls[i], index: i })
-        }
+        p_images.push({ image_url: compUrls[i], highlight_image_url: false, index: i })
       }
 
+      const { error } = await supabase.rpc('upsert_profile_images', {
+        p_images,
+        p_profile_id: session.user.id,
+      })
+      if (error) throw error
+
       setCreator({ ...creator, images: newImages })
-      toast.success('Fotos atualizadas com sucesso')
+      toast.success(t('profile.savedSuccess'))
       router.back()
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao salvar fotos')
+      toast.error(t('profile.errorSavePhotos'))
     } finally {
       setLoading(false)
     }
@@ -232,23 +217,23 @@ export default function AlterarImagensPage() {
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-      <PageHeader title="Altere suas fotos" />
+      <PageHeader title={t('profile.editPhotos')} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-4 space-y-6">
 
           <p className="text-sm" style={{ color: 'var(--color-foreground)' }}>
-            Para finalizar seu cadastro, adicione fotos ao seu perfil. Elas serão exibidas para os clientes.
+            {t('profile.editPhotosDesc')}
           </p>
 
           {/* Fotos complementares */}
           <div className="space-y-3">
             <div>
               <p className="text-sm font-bold" style={{ color: 'var(--color-foreground)' }}>
-                Fotos complementares
+                {t('profile.complementaryPhotos')}
               </p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                Irão aparecer no seu perfil como galeria
+                {t('profile.complementaryPhotosDesc')}
               </p>
             </div>
 
@@ -288,10 +273,10 @@ export default function AlterarImagensPage() {
           <div className="space-y-3">
             <div>
               <p className="text-sm font-bold" style={{ color: 'var(--color-foreground)' }}>
-                Foto de capa
+                {t('register.coverPhoto')}
               </p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-                Aparece no topo do seu perfil
+                {t('profile.coverPhotoDesc')}
               </p>
             </div>
 
@@ -312,7 +297,7 @@ export default function AlterarImagensPage() {
             className="rounded-xl p-3 text-xs w-full text-left"
             style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-primary)' }}
           >
-            💡 Ver dicas para as fotos
+            {t('register.photoTipsBtn')}
           </button>
           {dicasModalOpen && <DicasFotosModal onClose={() => setDicasModalOpen(false)} />}
 
@@ -322,7 +307,7 @@ export default function AlterarImagensPage() {
               loading={loading}
               onClick={handleConfirm}
             >
-              Confirmar
+              {t('common.confirm')}
             </Button>
           </div>
         </div>

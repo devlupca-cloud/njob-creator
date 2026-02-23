@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useCreator } from '@/lib/store/app-store'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { useTranslation } from '@/lib/i18n'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ function Divider() {
 export default function ProfilePage() {
   const router = useRouter()
   const creator = useCreator()
+  const { t } = useTranslation()
   const [loadingFinanceiro, setLoadingFinanceiro] = useState(false)
 
   const handleFinanceiro = async () => {
@@ -111,7 +113,7 @@ export default function ProfilePage() {
       const { data: session } = await supabaseClient.auth.getSession()
       const token = session.session?.access_token
       if (!token) {
-        toast.error('Sessão expirada. Faça login novamente.')
+        toast.error(t('profile.sessionExpired'))
         return
       }
 
@@ -125,6 +127,7 @@ export default function ProfilePage() {
       })
 
       let data = await res.json()
+      console.log('[Financeiro] payout-update-link response:', res.status, data)
 
       // Se a conta ainda não completou o onboarding, faz fallback para o link de onboarding
       if (!res.ok && data?.error?.includes?.('account_onboarding')) {
@@ -134,26 +137,29 @@ export default function ProfilePage() {
         })
         if (!onboardingRes.ok) throw new Error('Erro ao gerar link de onboarding')
         data = await onboardingRes.json()
-        toast.info('Você precisa completar o cadastro no Stripe primeiro.')
+        console.log('[Financeiro] onboarding response:', data)
+        toast.info(t('profile.stripeIncomplete'))
       } else if (!res.ok) {
         throw new Error(data?.error || 'Erro ao gerar link')
       }
 
-      const url = data?.url ?? data?.onboarding_url
-      if (url && typeof url === 'string') {
+      const url = data?.url ?? data?.onboarding_url ?? data?.login_url
+      console.log('[Financeiro] URL final:', url)
+
+      if (url && typeof url === 'string' && !url.includes('stripe.com/br?utm')) {
         window.open(url, '_blank', 'noopener,noreferrer')
       } else {
-        toast.error('Não foi possível abrir o painel financeiro.')
+        toast.error(t('profile.stripeError'))
       }
     } catch {
-      toast.error('Erro ao acessar o financeiro. Tente novamente.')
+      toast.error(t('profile.financialError'))
     } finally {
       setLoadingFinanceiro(false)
     }
   }
 
   const handleInativarConta = () => {
-    toast.error('Esta funcionalidade ainda não está disponível.')
+    toast.error(t('profile.featureUnavailable'))
   }
 
   const handleLogout = async () => {
@@ -173,7 +179,7 @@ export default function ProfilePage() {
           className="text-center text-base font-semibold"
           style={{ color: 'var(--color-foreground)' }}
         >
-          Perfil
+          {t('profile.title')}
         </h1>
       </div>
 
@@ -202,12 +208,12 @@ export default function ProfilePage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-base font-semibold truncate" style={{ color: 'var(--color-foreground)' }}>
-              {creator.profile.full_name?.trim() || 'Definir nome'}
+              {creator.profile.full_name?.trim() || t('profile.setName')}
             </p>
             <p className="text-sm truncate" style={{ color: 'var(--color-muted)' }}>
               {creator.profile.username?.trim()
                 ? `@${creator.profile.username}`
-                : 'Definir @usuário'}
+                : t('profile.setUsername')}
             </p>
           </div>
           <span style={{ color: 'var(--color-muted)', flexShrink: 0 }}>
@@ -220,32 +226,32 @@ export default function ProfilePage() {
       <div className="flex-1 px-4 py-2">
         <MenuItem
           icon={<UserIcon />}
-          label="Informações pessoais"
+          label={t('profile.info')}
           href="/profile/info"
         />
         <Divider />
         <MenuItem
           icon={<DollarIcon />}
-          label={loadingFinanceiro ? 'Abrindo painel...' : 'Financeiro'}
+          label={loadingFinanceiro ? t('profile.openingPanel') : t('nav.financial')}
           onClick={handleFinanceiro}
         />
         <Divider />
         <MenuItem
           icon={<InfoIcon />}
-          label="Sobre essa versão"
+          label={t('profile.aboutVersion')}
           onClick={() => toast('njob Creator Web — v1.0.0')}
         />
         <Divider />
         <MenuItem
           icon={<XCircleIcon />}
-          label="Inativar conta"
+          label={t('profile.deactivateAccount')}
           onClick={handleInativarConta}
           danger
         />
         <Divider />
         <MenuItem
           icon={<LogOutIcon />}
-          label="Sair"
+          label={t('nav.signOut')}
           onClick={handleLogout}
           danger
         />

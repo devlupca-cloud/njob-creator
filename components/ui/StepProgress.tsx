@@ -1,18 +1,21 @@
 'use client'
 
+import { useTranslation } from '@/lib/i18n'
+
 interface StepProgressProps {
   currentStep: number
   totalSteps: number
 }
 
 export default function StepProgress({ currentStep, totalSteps }: StepProgressProps) {
+  const { t } = useTranslation()
   const percent = ((currentStep + 1) / totalSteps) * 100
 
   return (
     <div className="flex flex-col gap-2 mb-6">
       <div className="flex justify-between items-center">
         <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
-          Etapa {currentStep + 1} de {totalSteps}
+          {t('ui.step')} {currentStep + 1} {t('ui.of')} {totalSteps}
         </span>
         <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
           {Math.round(percent)}%

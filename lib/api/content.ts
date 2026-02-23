@@ -12,6 +12,7 @@ export interface PackListItem {
   price: number
   photo_count: number
   video_count: number
+  updated_at?: string
 }
 
 export async function getPacksByCreator(

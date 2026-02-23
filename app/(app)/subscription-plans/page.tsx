@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
 import { createSubscriptionCheckout } from '@/lib/api/subscription'
 import { toast } from 'sonner'
 
@@ -19,6 +20,7 @@ type PlanRow = {
 export default function SubscriptionPlansPage() {
   const supabase = createClient()
   const creator = useCreator()
+  const { t } = useTranslation()
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const { data: plans = [], isLoading } = useQuery({
@@ -33,13 +35,13 @@ export default function SubscriptionPlansPage() {
   const handleAssinar = async (plan: PlanRow) => {
     const priceId = plan.stripe_price_id
     if (!priceId) {
-      toast.error('Plano sem preço configurado.')
+      toast.error(t('subscriptions.noPriceConfigured'))
       return
     }
     const { data: session } = await supabase.auth.getSession()
     const token = session.session?.access_token
     if (!token) {
-      toast.error('Faça login para assinar.')
+      toast.error(t('subscriptions.loginToSubscribe'))
       return
     }
     setLoadingId(plan.id)
@@ -50,9 +52,9 @@ export default function SubscriptionPlansPage() {
         return
       }
       if (url) window.location.href = url
-      else toast.error('Link de checkout não retornado.')
+      else toast.error(t('subscriptions.checkoutLinkError'))
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Erro ao iniciar checkout.')
+      toast.error(e instanceof Error ? e.message : t('subscriptions.checkoutError'))
     } finally {
       setLoadingId(null)
     }
@@ -60,11 +62,11 @@ export default function SubscriptionPlansPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>Planos de assinatura</h1>
+      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{t('subscriptions.plans')}</h1>
       {isLoading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>Carregando...</div>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
       ) : plans.length === 0 ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>Nenhum plano disponível.</div>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>{t('subscriptions.noPlans')}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {(plans as PlanRow[]).map((p) => (
@@ -88,7 +90,7 @@ export default function SubscriptionPlansPage() {
                   fontSize: 14,
                 }}
               >
-                {loadingId === p.id ? 'Abrindo checkout...' : 'Assinar'}
+                {loadingId === p.id ? t('subscriptions.openingCheckout') : t('subscriptions.subscribe')}
               </button>
             </div>
           ))}

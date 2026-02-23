@@ -50,13 +50,24 @@ export async function updateSession(request: NextRequest) {
     pathname === '/notifications' ||
     pathname === '/stripe-setup'
 
-  // Allow guest access to app routes (read-only browsing)
+  // Allow guest access ONLY to safe read-only routes (not financial, chat, etc.)
   const isGuest = request.cookies.get('njob-guest')?.value === 'true'
+  const guestAllowedRoutes = ['/home']
+  const isGuestAllowedRoute = guestAllowedRoutes.some(
+    (r) => pathname === r || pathname.startsWith(r + '/')
+  )
 
   // Redirect unauthenticated non-guest users away from protected routes
   if (!user && !isGuest && isAppRoute) {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/login'
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // Guests can only access allowed routes — block access to sensitive routes
+  if (!user && isGuest && isAppRoute && !isGuestAllowedRoute) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/home'
     return NextResponse.redirect(redirectUrl)
   }
 

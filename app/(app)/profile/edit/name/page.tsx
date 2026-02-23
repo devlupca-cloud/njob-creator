@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAppStore, useCreator } from '@/lib/store/app-store'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 
 export default function AlterarNomePage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const creator = useCreator()
   const setCreator = useAppStore((s) => s.setCreator)
 
@@ -25,7 +27,7 @@ export default function AlterarNomePage() {
     const trimmed = name.trim()
 
     if (trimmed.length < 2) {
-      setError('Nome deve ter pelo menos 2 caracteres')
+      setError(t('profile.nameMinChars'))
       return
     }
 
@@ -48,11 +50,11 @@ export default function AlterarNomePage() {
         profile: { ...creator.profile, full_name: trimmed },
       })
 
-      toast.success('Nome alterado com sucesso')
+      toast.success(t('profile.nameSaved'))
       router.back()
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao alterar nome. Tente novamente.')
+      toast.error(t('profile.errorEditName'))
     } finally {
       setLoading(false)
     }
@@ -60,18 +62,18 @@ export default function AlterarNomePage() {
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-      <PageHeader title="Alterar nome" />
+      <PageHeader title={t('profile.editName')} />
 
       <div className="flex-1 flex flex-col px-4 py-6">
         <div className="space-y-1">
           <Input
-            label="Nome"
+            label={t('profile.name')}
             value={name}
             onChange={(e) => {
               setName(e.target.value)
               setError(undefined)
             }}
-            placeholder="Nome completo"
+            placeholder={t('register.fullNamePlaceholder')}
             error={error}
             required
             autoFocus
@@ -87,7 +89,7 @@ export default function AlterarNomePage() {
             disabled={isDisabled}
             onClick={handleConfirm}
           >
-            Confirmar
+            {t('common.confirm')}
           </Button>
         </div>
       </div>

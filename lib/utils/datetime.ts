@@ -35,7 +35,7 @@ export function formatTimeLocal(
   return new Intl.DateTimeFormat(loc, {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: undefined,
+    hour12: false,
   }).format(d)
 }
 
@@ -124,6 +124,6 @@ export function formatDateTimeLocal(
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: undefined,
+    hour12: false,
   }).format(d)
 }

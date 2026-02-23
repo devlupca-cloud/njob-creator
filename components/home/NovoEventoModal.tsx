@@ -3,14 +3,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
+import { getTodayLocalYYYYMMDD } from '@/lib/utils/datetime'
 
 // Opcoes de duracao — espelham FFAppConstants.DURACAO do Flutter
-const DURACAO_OPTIONS = ['1 hora', '30 minutos'] as const
-type DuracaoOption = typeof DURACAO_OPTIONS[number]
+type DuracaoOption = '1hora' | '30min'
 
 const DURACAO_MINUTOS: Record<DuracaoOption, number> = {
-  '1 hora': 60,
-  '30 minutos': 30,
+  '1hora': 60,
+  '30min': 30,
+}
+
+// Valor enviado ao backend (preserva o formato original da Edge Function)
+const DURACAO_BACKEND_VALUE: Record<DuracaoOption, string> = {
+  '1hora': '1 hora',
+  '30min': '30 minutos',
 }
 
 // ─── Ícones ───────────────────────────────────────────────────────
@@ -53,19 +60,19 @@ function parseCurrencyBRL(raw: string): number {
 
 const MIN_VALOR_REAIS = 10
 
-function formatCurrencyBRL(raw: string): string {
+function formatCurrencyBRL(raw: string, bcp47 = 'pt-BR'): string {
   const digits = raw.replace(/\D/g, '')
   if (!digits) return ''
   const num = parseInt(digits, 10) / 100
-  return new Intl.NumberFormat('pt-BR', {
+  return new Intl.NumberFormat(bcp47, {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
   }).format(num)
 }
 
-function formatMinCurrency(): string {
-  return new Intl.NumberFormat('pt-BR', {
+function formatMinCurrency(bcp47 = 'pt-BR'): string {
+  return new Intl.NumberFormat(bcp47, {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
@@ -78,19 +85,11 @@ function maskTime(raw: string): string {
   return `${digits.slice(0, 2)}:${digits.slice(2)}`
 }
 
-function formatDateDisplay(d: Date | null): string {
-  if (!d) return 'Selecionar data'
+function formatDateDisplay(d: Date | null, selectDateLabel: string): string {
+  if (!d) return selectDateLabel
   const day = String(d.getDate()).padStart(2, '0')
   const month = String(d.getMonth() + 1).padStart(2, '0')
   return `${day}/${month}/${d.getFullYear()}`
-}
-
-function getTodayLocalYYYYMMDD(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
 }
 
 // ─── Keyframes ────────────────────────────────────────────────────
@@ -153,9 +152,11 @@ interface NovoEventoModalProps {
 
 export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDate = null }: NovoEventoModalProps) {
   const supabase = createClient()
+  const { t, locale } = useTranslation()
+  const bcp47 = getLocaleBcp47(locale)
 
   const [titulo, setTitulo] = useState('')
-  const [duracao, setDuracao] = useState<DuracaoOption>('1 hora')
+  const [duracao, setDuracao] = useState<DuracaoOption>('1hora')
   const [valorRaw, setValorRaw] = useState('')
   const [dataSelecionada, setDataSelecionada] = useState<Date | null>(initialDate ?? null)
   const [horario, setHorario] = useState('')
@@ -195,7 +196,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
   useEffect(() => {
     if (!isOpen) {
       setTitulo('')
-      setDuracao('1 hora')
+      setDuracao('1hora')
       setValorRaw('')
       setDataSelecionada(initialDate ?? null)
       setHorario('')
@@ -214,7 +215,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
   // ─── Handlers ───────────────────────────────────────────────────
 
   const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValorRaw(formatCurrencyBRL(e.target.value))
+    setValorRaw(formatCurrencyBRL(e.target.value, bcp47))
     setErroValor(false)
   }
 
@@ -281,11 +282,15 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
       return
     }
 
-    // Monta timestamp com data + horário exatos da modal (sem conversão UTC)
-    const year = dataSelecionada!.getFullYear()
-    const month = String(dataSelecionada!.getMonth() + 1).padStart(2, '0')
-    const day = String(dataSelecionada!.getDate()).padStart(2, '0')
-    const scheduledStartTime = `${year}-${month}-${day}T${horario}:00`
+    // Monta timestamp UTC a partir da data/hora local selecionada pelo usuário
+    const [hh, mm] = horario.split(':').map(Number)
+    const localDate = new Date(
+      dataSelecionada!.getFullYear(),
+      dataSelecionada!.getMonth(),
+      dataSelecionada!.getDate(),
+      hh, mm, 0
+    )
+    const scheduledStartTime = localDate.toISOString()
 
     setLoading(true)
 
@@ -293,10 +298,59 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Sessão expirada')
 
+      // Verificar conflito de horário antes de criar
+      const durationMin = DURACAO_MINUTOS[duracao]
+      const newStart = localDate.getTime()
+      const newEnd = newStart + durationMin * 60 * 1000
+
+      const dayStart = new Date(localDate)
+      dayStart.setHours(0, 0, 0, 0)
+      const dayEnd = new Date(localDate)
+      dayEnd.setHours(23, 59, 59, 999)
+
+      const userId = session.user.id
+
+      const [{ data: lives }, { data: calls }] = await Promise.all([
+        supabase
+          .from('live_streams')
+          .select('scheduled_start_time, estimated_duration_minutes, title')
+          .eq('creator_id', userId)
+          .in('status', ['scheduled', 'live'])
+          .gte('scheduled_start_time', dayStart.toISOString())
+          .lte('scheduled_start_time', dayEnd.toISOString()),
+        supabase
+          .from('one_on_one_calls')
+          .select('scheduled_start_time, scheduled_duration_minutes')
+          .eq('creator_id', userId)
+          .in('status', ['requested', 'confirmed'])
+          .gte('scheduled_start_time', dayStart.toISOString())
+          .lte('scheduled_start_time', dayEnd.toISOString()),
+      ])
+
+      for (const live of lives ?? []) {
+        const existStart = new Date(live.scheduled_start_time).getTime()
+        const existEnd = existStart + (live.estimated_duration_minutes ?? 60) * 60 * 1000
+        if (newStart < existEnd && newEnd > existStart) {
+          toast.error(t('events.timeConflictLive'))
+          setLoading(false)
+          return
+        }
+      }
+
+      for (const call of calls ?? []) {
+        const existStart = new Date(call.scheduled_start_time).getTime()
+        const existEnd = existStart + (call.scheduled_duration_minutes ?? 60) * 60 * 1000
+        if (newStart < existEnd && newEnd > existStart) {
+          toast.error(t('events.timeConflictCall'))
+          setLoading(false)
+          return
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('create-stripe-live-ticket', {
         body: {
           title: titulo.trim(),
-          description: duracao,
+          description: DURACAO_BACKEND_VALUE[duracao],
           scheduled_start_time: scheduledStartTime,
           ticket_price: valorNum,
           estimated_duration_minutes: DURACAO_MINUTOS[duracao],
@@ -304,21 +358,21 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
       })
 
       if (error) {
-        toast.error(error.message ?? 'Erro ao criar evento. Tente novamente.')
+        toast.error(error.message ?? t('events.errorCreating'))
         return
       }
 
       if (data?.error) {
-        toast.error(typeof data.error === 'string' ? data.error : 'Erro ao criar evento. Tente novamente.')
+        toast.error(typeof data.error === 'string' ? data.error : t('events.errorCreating'))
         return
       }
 
-      toast.success('Live agendada com sucesso!')
+      toast.success(t('events.eventCreated'))
       onClose()
       onRefresh()
     } catch (err) {
       console.error('[NovoEventoModal] erro:', err)
-      toast.error('Erro inesperado. Tente novamente.')
+      toast.error(t('events.errorCreating'))
     } finally {
       setLoading(false)
     }
@@ -385,11 +439,11 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                 margin: 0,
               }}
             >
-              Novo evento
+              {t('events.newEvent')}
             </h2>
             <button
               onClick={onClose}
-              aria-label="Fechar"
+              aria-label={t('common.close')}
               style={{
                 background: 'rgba(255,255,255,0.06)',
                 border: 'none',
@@ -421,12 +475,12 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
             {/* Título do evento */}
             <div style={shakeStyle}>
               <label htmlFor="novo-evento-titulo-input" style={labelStyle}>
-                Título
+                {t('events.eventName')}
               </label>
               <input
                 id="novo-evento-titulo-input"
                 type="text"
-                placeholder="Escreva um título para o seu evento"
+                placeholder={t('events.eventTitlePlaceholder')}
                 value={titulo}
                 onChange={(e) => { setTitulo(e.target.value); setErroTitulo(false) }}
                 onFocus={handleFocus}
@@ -435,7 +489,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
               />
               {erroTitulo && (
                 <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                  Campo obrigatório*
+                  {t('events.fieldRequired')}
                 </span>
               )}
             </div>
@@ -443,7 +497,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
             {/* Duração */}
             <div style={shakeStyle}>
               <label htmlFor="novo-evento-duracao" style={labelStyle}>
-                Duração
+                {t('events.eventDuration')}
               </label>
               <select
                 id="novo-evento-duracao"
@@ -461,13 +515,12 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                   paddingRight: 36,
                 }}
               >
-                {DURACAO_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
+                <option value="1hora">{t('events.duration1hour')}</option>
+                <option value="30min">{t('events.duration30min')}</option>
               </select>
               {erroDuracao && (
                 <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                  Campo obrigatório*
+                  {t('events.fieldRequired')}
                 </span>
               )}
             </div>
@@ -475,13 +528,13 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
             {/* Valor do ingresso */}
             <div style={shakeStyle}>
               <label htmlFor="novo-evento-valor" style={labelStyle}>
-                Valor do ingresso
+                {t('events.eventPrice')}
               </label>
               <input
                 id="novo-evento-valor"
                 type="text"
                 inputMode="numeric"
-                placeholder={formatMinCurrency()}
+                placeholder={formatMinCurrency(bcp47)}
                 value={valorRaw}
                 onChange={handleValorChange}
                 onBlur={(e) => { handleValorBlur(); handleBlurStyle(e, erroValor) }}
@@ -490,7 +543,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
               />
               {erroValor && (
                 <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                  Valor mínimo de {formatMinCurrency()}*
+                  {t('events.minPriceHint', { value: formatMinCurrency(bcp47) })}
                 </span>
               )}
             </div>
@@ -500,7 +553,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
 
               {/* Dia do Evento */}
               <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Data</label>
+                <label style={labelStyle}>{t('events.eventDate')}</label>
 
                 {/* Input nativo oculto */}
                 <input
@@ -540,17 +593,17 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                     e.currentTarget.style.borderColor = erroData ? 'var(--color-error)' : 'var(--color-border)'
                     e.currentTarget.style.boxShadow = 'none'
                   }}
-                  aria-label="Selecionar data"
+                  aria-label={t('events.selectDate')}
                 >
                   <span style={{ color: 'var(--color-muted)', display: 'flex', flexShrink: 0 }}>
                     <CalendarIcon />
                   </span>
-                  <span>{formatDateDisplay(dataSelecionada)}</span>
+                  <span>{formatDateDisplay(dataSelecionada, t('events.selectDate'))}</span>
                 </button>
 
                 {erroData && (
                   <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                    Campo obrigatório*
+                    {t('events.fieldRequired')}
                   </span>
                 )}
               </div>
@@ -558,7 +611,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
               {/* Horário */}
               <div style={{ flex: 1 }}>
                 <label htmlFor="novo-evento-horario" style={labelStyle}>
-                  Horário
+                  {t('events.eventTime')}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <span
@@ -592,14 +645,14 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                 </div>
                 {erroHorario && (
                   <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
-                    Horário inválido (HH:MM)*
+                    {t('events.invalidTime')}
                   </span>
                 )}
               </div>
             </div>
 
             <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: 0 }}>
-              Data e horário no seu fuso local.
+              {t('events.localTimezoneHint')}
             </p>
 
             {/* Separador */}
@@ -633,7 +686,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
               onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             >
               {loading && <SpinnerIcon />}
-              {loading ? 'Criando...' : 'Confirmar'}
+              {loading ? t('events.creating') : t('common.confirm')}
             </button>
           </div>
         </div>

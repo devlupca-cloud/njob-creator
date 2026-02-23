@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { signOut } from '@/lib/supabase/auth'
 import { useState } from 'react'
 import { useAppStore, useIsGuest } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
 import GuestAuthModal from '@/components/ui/GuestAuthModal'
 
 export interface DrawerItem {
@@ -63,25 +64,26 @@ const SignOutIcon = () => (
   </svg>
 )
 
-const drawerItems: DrawerItem[] = [
-  { label: 'Cupons', href: '/subscriptions', icon: <CouponsIcon /> },
-  { label: 'Suporte', href: '/support', icon: <SupportIcon /> },
-  { label: 'Notificações', href: '/notifications', icon: <NotificationsIcon /> },
-  { label: 'Financeiro', href: '/financial', icon: <FinancialIcon /> },
-  { label: 'Pagamentos', href: '/payments', icon: <PaymentsIcon /> },
-  { label: 'Planos de assinatura', href: '/subscription-plans', icon: <PlanIcon /> },
-]
-
 interface AppDrawerProps {
   open: boolean
   onClose: () => void
 }
 
 export default function AppDrawer({ open, onClose }: AppDrawerProps) {
+  const { t } = useTranslation()
   const pathname = usePathname()
   const router = useRouter()
   const isGuest = useIsGuest()
   const setGuest = useAppStore((s) => s.setGuest)
+
+  const drawerItems: DrawerItem[] = [
+    { label: t('nav.coupons'), href: '/subscriptions', icon: <CouponsIcon /> },
+    { label: t('nav.support'), href: '/support', icon: <SupportIcon /> },
+    { label: t('nav.notifications'), href: '/notifications', icon: <NotificationsIcon /> },
+    { label: t('nav.financial'), href: '/financial', icon: <FinancialIcon /> },
+    { label: t('nav.payments'), href: '/payments', icon: <PaymentsIcon /> },
+    { label: t('nav.subscriptionPlans'), href: '/subscription-plans', icon: <PlanIcon /> },
+  ]
   const [guestModalOpen, setGuestModalOpen] = useState(false)
 
   const handleSignOut = async () => {
@@ -169,7 +171,7 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
             style={{ color: 'var(--color-error)' }}
           >
             <SignOutIcon />
-            Sair
+            {t('nav.signOut')}
           </button>
         </div>
       </aside>
@@ -177,7 +179,7 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
       <GuestAuthModal
         open={guestModalOpen}
         onClose={() => setGuestModalOpen(false)}
-        message="Você precisa de uma conta para navegar pela plataforma."
+        message={t('modals.guestNeedAccount')}
       />
     </>
   )

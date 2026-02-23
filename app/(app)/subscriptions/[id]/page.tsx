@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
 import { getAvailableCoupons, type CouponItem } from '@/lib/api/coupons'
+import { useTranslation } from '@/lib/i18n'
 
 export default function CouponDetailPage() {
   const params = useParams()
@@ -12,6 +13,7 @@ export default function CouponDetailPage() {
   const supabase = createClient()
   const creator = useCreator()
   const router = useRouter()
+  const { t } = useTranslation()
   const [coupon, setCoupon] = useState<CouponItem | null>(null)
 
   useEffect(() => {
@@ -27,12 +29,12 @@ export default function CouponDetailPage() {
   }, [id, creator, supabase])
 
   if (!id) return null
-  if (!coupon) return <div style={{ padding: 24 }}>Carregando...</div>
+  if (!coupon) return <div style={{ padding: 24 }}>{t('common.loading')}</div>
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>
       <button type="button" onClick={() => router.back()} style={{ marginBottom: 16, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>
-        ← Voltar
+        ← {t('common.back')}
       </button>
       <div style={{ padding: 24, background: 'var(--color-surface-2)', borderRadius: 12 }}>
         <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>{coupon.code}</h1>
@@ -40,11 +42,11 @@ export default function CouponDetailPage() {
           <img src={coupon.image_url} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} />
         )}
         <p style={{ margin: 0, fontSize: 14, color: 'var(--color-muted)', marginBottom: 8 }}>{coupon.description ?? '—'}</p>
-        <p style={{ margin: 0, fontSize: 14 }}>Loja: {coupon.store_name ?? '—'}</p>
-        {coupon.valid_from && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-muted)' }}>Válido de {coupon.valid_from} até {coupon.valid_until ?? '—'}</p>}
+        <p style={{ margin: 0, fontSize: 14 }}>{t('subscriptions.store')}: {coupon.store_name ?? '—'}</p>
+        {coupon.valid_from && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--color-muted)' }}>{t('subscriptions.validFrom')} {coupon.valid_from} {t('subscriptions.validUntil')} {coupon.valid_until ?? '—'}</p>}
         {coupon.discount_value != null && (
           <p style={{ margin: '8px 0 0', fontSize: 14, fontWeight: 600 }}>
-            Desconto: {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `R$ ${coupon.discount_value}`}
+            {t('subscriptions.discount')}: {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `R$ ${coupon.discount_value}`}
           </p>
         )}
       </div>

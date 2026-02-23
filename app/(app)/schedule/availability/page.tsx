@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo, useEffect, useRef, Suspense } from 'rea
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
 import { toast } from 'sonner'
 import {
   getCreatorDailySlots,
@@ -52,20 +53,44 @@ const HelpIcon = () => (
   </svg>
 )
 
+/** Convert a UTC ISO timestamp + duration into local "HH:mm" slot strings */
+function getBlockedSlotTimes(startTimeISO: string, durationMin: number): string[] {
+  const start = new Date(startTimeISO)
+  const slots: string[] = []
+  const slotCount = Math.ceil(durationMin / 30)
+  for (let i = 0; i < slotCount; i++) {
+    const d = new Date(start.getTime() + i * 30 * 60 * 1000)
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    slots.push(`${hh}:${mm}`)
+  }
+  return slots
+}
+
 function ExpandableSection({
   title,
   slots,
   selected,
+  purchasedSlots,
+  liveBlockedSlots,
+  purchasedLabel,
+  liveBlockedLabel,
   onToggleSlot,
   onSelectAll,
   isAllSelected,
+  selectAllLabel,
 }: {
   title: string
   slots: string[]
   selected: Set<string>
+  purchasedSlots: Set<string>
+  liveBlockedSlots: Set<string>
+  purchasedLabel: string
+  liveBlockedLabel: string
   onToggleSlot: (s: string) => void
   onSelectAll: (v: boolean) => void
   isAllSelected: boolean
+  selectAllLabel: string
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -100,23 +125,54 @@ function ExpandableSection({
         <div style={{ padding: '0 10px 10px', borderTop: '1px solid var(--color-border)' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
             {slots.map((s) => {
+              const isPurchased = purchasedSlots.has(s)
+              const isLiveBlocked = liveBlockedSlots.has(s)
+              const isBlocked = isPurchased || isLiveBlocked
               const isSelected = selected.has(s)
+
+              let bg: string
+              let border: string
+              let color: string
+              let label = s
+
+              if (isPurchased) {
+                bg = '#f59e0b'
+                border = '#d97706'
+                color = '#fff'
+                label = `${s} - ${purchasedLabel}`
+              } else if (isLiveBlocked) {
+                bg = '#3b82f6'
+                border = '#2563eb'
+                color = '#fff'
+                label = `${s} - ${liveBlockedLabel}`
+              } else if (isSelected) {
+                bg = 'var(--color-primary)'
+                border = 'var(--color-primary)'
+                color = '#fff'
+              } else {
+                bg = 'var(--color-surface-2)'
+                border = 'var(--color-border)'
+                color = 'var(--color-foreground)'
+              }
+
               return (
                 <button
                   key={s}
                   type="button"
-                  onClick={() => onToggleSlot(s)}
+                  onClick={() => !isBlocked && onToggleSlot(s)}
+                  title={isPurchased ? purchasedLabel : isLiveBlocked ? liveBlockedLabel : undefined}
                   style={{
                     padding: '6px 12px',
                     borderRadius: 4,
-                    border: `1.5px solid ${isSelected ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    background: isSelected ? 'var(--color-primary)' : 'var(--color-surface-2)',
-                    color: isSelected ? '#fff' : 'var(--color-foreground)',
+                    border: `1.5px solid ${border}`,
+                    background: bg,
+                    color,
                     fontSize: 12,
-                    cursor: 'pointer',
+                    cursor: isBlocked ? 'not-allowed' : 'pointer',
+                    opacity: isBlocked ? 0.85 : 1,
                   }}
                 >
-                  {s}
+                  {label}
                 </button>
               )
             })}
@@ -127,7 +183,7 @@ function ExpandableSection({
               checked={isAllSelected}
               onChange={(e) => onSelectAll(e.target.checked)}
             />
-            Selecionar todos
+            {selectAllLabel}
           </label>
         </div>
       )}
@@ -141,6 +197,7 @@ function ScheduleAvailabilityContent() {
   const supabase = createClient()
   const creator = useCreator()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const dateParam = searchParams.get('date')
   const selectedDate = useMemo(() => {
@@ -176,6 +233,7 @@ function ScheduleAvailabilityContent() {
   const slotsNoite = useMemo(() => generateTimeSlots('Noite'), [])
   const slotsMadrugada = useMemo(() => generateTimeSlots('Madrugada'), [])
 
+  // ── Existing query: creator availability slots ──
   const { data: slotsData, isLoading } = useQuery({
     queryKey: ['get_creator_daily_slots', creator?.profile.username, dateStr],
     enabled: !!creator,
@@ -187,6 +245,74 @@ function ScheduleAvailabilityContent() {
       return getCreatorDailySlots(userId, dateStr, token)
     },
   })
+
+  // ── New query: conflicts (purchased calls + scheduled lives) ──
+  const { data: conflictsData } = useQuery({
+    queryKey: ['availability_conflicts', creator?.profile.username, dateStr],
+    enabled: !!creator,
+    queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) throw new Error('Não autenticado')
+
+      // Day boundaries in UTC based on local date
+      const dayStart = new Date(selectedDate)
+      dayStart.setHours(0, 0, 0, 0)
+      const dayEnd = new Date(selectedDate)
+      dayEnd.setHours(23, 59, 59, 999)
+      const dayStartUTC = dayStart.toISOString()
+      const dayEndUTC = dayEnd.toISOString()
+
+      const [callsRes, livesRes] = await Promise.all([
+        supabase
+          .from('one_on_one_calls')
+          .select('scheduled_start_time, scheduled_duration_minutes')
+          .eq('creator_id', userId)
+          .in('status', ['requested', 'confirmed'])
+          .gte('scheduled_start_time', dayStartUTC)
+          .lte('scheduled_start_time', dayEndUTC),
+        supabase
+          .from('live_streams')
+          .select('scheduled_start_time, estimated_duration_minutes')
+          .eq('creator_id', userId)
+          .in('status', ['scheduled', 'live'])
+          .gte('scheduled_start_time', dayStartUTC)
+          .lte('scheduled_start_time', dayEndUTC),
+      ])
+
+      return {
+        calls: callsRes.data ?? [],
+        lives: livesRes.data ?? [],
+      }
+    },
+  })
+
+  // ── Derive blocked slot sets ──
+  const purchasedSlots = useMemo(() => {
+    const set = new Set<string>()
+    if (!conflictsData?.calls) return set
+    for (const call of conflictsData.calls) {
+      if (!call.scheduled_start_time) continue
+      const dur = call.scheduled_duration_minutes ?? 30
+      for (const slot of getBlockedSlotTimes(call.scheduled_start_time, dur)) {
+        set.add(slot)
+      }
+    }
+    return set
+  }, [conflictsData?.calls])
+
+  const liveBlockedSlots = useMemo(() => {
+    const set = new Set<string>()
+    if (!conflictsData?.lives) return set
+    for (const live of conflictsData.lives) {
+      if (!live.scheduled_start_time) continue
+      const dur = live.estimated_duration_minutes ?? 30
+      for (const slot of getBlockedSlotTimes(live.scheduled_start_time, dur)) {
+        set.add(slot)
+      }
+    }
+    return set
+  }, [conflictsData?.lives])
 
   const appliedApiRef = useRef(false)
   useEffect(() => {
@@ -204,6 +330,7 @@ function ScheduleAvailabilityContent() {
 
   const toggleSlot = useCallback(
     (period: PeriodKey, slot: string) => {
+      if (purchasedSlots.has(slot) || liveBlockedSlots.has(slot)) return
       const updater = (prev: string[]) =>
         prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]
       if (period === 'Manhã') setManha(updater)
@@ -211,33 +338,37 @@ function ScheduleAvailabilityContent() {
       else if (period === 'Noite') setNoite(updater)
       else setMadrugada(updater)
     },
-    []
+    [purchasedSlots, liveBlockedSlots]
   )
 
   const selectAll = useCallback((period: PeriodKey, value: boolean) => {
-    const slots = period === 'Manhã' ? slotsManha : period === 'Tarde' ? slotsTarde : period === 'Noite' ? slotsNoite : slotsMadrugada
-    if (period === 'Manhã') setManha(value ? [...slots] : [])
-    else if (period === 'Tarde') setTarde(value ? [...slots] : [])
-    else if (period === 'Noite') setNoite(value ? [...slots] : [])
-    else setMadrugada(value ? [...slots] : [])
-  }, [slotsManha, slotsTarde, slotsNoite, slotsMadrugada])
+    const allSlots = period === 'Manhã' ? slotsManha : period === 'Tarde' ? slotsTarde : period === 'Noite' ? slotsNoite : slotsMadrugada
+    const setter = period === 'Manhã' ? setManha : period === 'Tarde' ? setTarde : period === 'Noite' ? setNoite : setMadrugada
+    if (value) {
+      const selectable = allSlots.filter(s => !liveBlockedSlots.has(s))
+      setter([...selectable])
+    } else {
+      const mustKeep = allSlots.filter(s => purchasedSlots.has(s))
+      setter([...mustKeep])
+    }
+  }, [slotsManha, slotsTarde, slotsNoite, slotsMadrugada, purchasedSlots, liveBlockedSlots])
 
   const handleSave = useCallback(async () => {
     const { data: session } = await supabase.auth.getSession()
     const userId = session.session?.user.id
     const token = session.session?.access_token
     if (!userId || !token) {
-      toast.error('Sessão expirada. Faça login novamente.')
+      toast.error(t('profile.sessionExpired'))
       return
     }
     setSaving(true)
     try {
       const payload = buildAvailabilityPayload(userId, selectedDate, manha, tarde, noite, madrugada)
       await saveCreatorAvailability(payload, token)
-      toast.success('Disponibilidade salva')
+      toast.success(t('schedule.availabilitySaved'))
       queryClient.invalidateQueries({ queryKey: ['get_creator_daily_slots'] })
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Erro ao salvar'
+      const msg = e instanceof Error ? e.message : t('schedule.errorSaveAvailability')
       toast.error(msg)
     } finally {
       setSaving(false)
@@ -259,17 +390,17 @@ function ScheduleAvailabilityContent() {
         <button
           type="button"
           onClick={() => router.back()}
-          aria-label="Voltar"
+          aria-label={t('common.back')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--color-foreground)' }}
         >
           <BackIcon />
         </button>
         <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-foreground)' }}>
-          Editar disponibilidade
+          {t('schedule.editAvailability')}
         </span>
         <button
           type="button"
-          aria-label="Notificações"
+          aria-label={t('nav.notifications')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--color-foreground)' }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -286,7 +417,7 @@ function ScheduleAvailabilityContent() {
           <p style={{ fontWeight: 600, color: 'var(--color-foreground)', marginBottom: 8 }}>{formatDDMMY(selectedDate)}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
             <span style={{ fontSize: 14, color: 'var(--color-foreground)' }}>
-              Selecione os horários conforme sua disponibilidade.
+              {t('schedule.availabilitySubtitle')}
             </span>
             <HelpIcon />
           </div>
@@ -296,33 +427,53 @@ function ScheduleAvailabilityContent() {
               title="Manhã"
               slots={slotsManha}
               selected={new Set(manha)}
+              purchasedSlots={purchasedSlots}
+              liveBlockedSlots={liveBlockedSlots}
+              purchasedLabel={t('schedule.slotPurchased')}
+              liveBlockedLabel={t('schedule.slotBlockedByLive')}
               onToggleSlot={(s) => toggleSlot('Manhã', s)}
               onSelectAll={(v) => selectAll('Manhã', v)}
               isAllSelected={manha.length === slotsManha.length}
+              selectAllLabel={t('schedule.selectAll')}
             />
             <ExpandableSection
               title="Tarde"
               slots={slotsTarde}
               selected={new Set(tarde)}
+              purchasedSlots={purchasedSlots}
+              liveBlockedSlots={liveBlockedSlots}
+              purchasedLabel={t('schedule.slotPurchased')}
+              liveBlockedLabel={t('schedule.slotBlockedByLive')}
               onToggleSlot={(s) => toggleSlot('Tarde', s)}
               onSelectAll={(v) => selectAll('Tarde', v)}
               isAllSelected={tarde.length === slotsTarde.length}
+              selectAllLabel={t('schedule.selectAll')}
             />
             <ExpandableSection
               title="Noite"
               slots={slotsNoite}
               selected={new Set(noite)}
+              purchasedSlots={purchasedSlots}
+              liveBlockedSlots={liveBlockedSlots}
+              purchasedLabel={t('schedule.slotPurchased')}
+              liveBlockedLabel={t('schedule.slotBlockedByLive')}
               onToggleSlot={(s) => toggleSlot('Noite', s)}
               onSelectAll={(v) => selectAll('Noite', v)}
               isAllSelected={noite.length === slotsNoite.length}
+              selectAllLabel={t('schedule.selectAll')}
             />
             <ExpandableSection
               title="Madrugada"
               slots={slotsMadrugada}
               selected={new Set(madrugada)}
+              purchasedSlots={purchasedSlots}
+              liveBlockedSlots={liveBlockedSlots}
+              purchasedLabel={t('schedule.slotPurchased')}
+              liveBlockedLabel={t('schedule.slotBlockedByLive')}
               onToggleSlot={(s) => toggleSlot('Madrugada', s)}
               onSelectAll={(v) => selectAll('Madrugada', v)}
               isAllSelected={madrugada.length === slotsMadrugada.length}
+              selectAllLabel={t('schedule.selectAll')}
             />
           </div>
 
@@ -344,7 +495,7 @@ function ScheduleAvailabilityContent() {
               opacity: saving ? 0.7 : 1,
             }}
           >
-            {saving ? 'Salvando...' : 'Salvar'}
+            {saving ? t('schedule.saving') : t('common.save')}
           </button>
         </>
       )}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAppStore, useCreator } from '@/lib/store/app-store'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import SelectField from '@/components/ui/SelectField'
 import Button from '@/components/ui/Button'
@@ -82,6 +83,7 @@ interface PreviewProps {
 }
 
 function DescricaoPreview({ idade, cidade, euSou, por, meConsidero, adoro, pessoasQue }: PreviewProps) {
+  const { t } = useTranslation()
   const parts = []
   if (idade) parts.push(`Tenho ${idade} anos`)
   if (cidade) parts.push(`moro em ${cidade}`)
@@ -98,7 +100,7 @@ function DescricaoPreview({ idade, cidade, euSou, por, meConsidero, adoro, pesso
       style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
     >
       <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>
-        Preview
+        {t('profile.preview')}
       </p>
       <p className="text-sm leading-relaxed" style={{ color: 'var(--color-foreground)' }}>
         {parts.join('. ')}.
@@ -111,6 +113,7 @@ function DescricaoPreview({ idade, cidade, euSou, por, meConsidero, adoro, pesso
 
 export default function AlterarDescricaoPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const creator = useCreator()
   const setCreator = useAppStore((s) => s.setCreator)
 
@@ -168,11 +171,11 @@ export default function AlterarDescricaoPage() {
         },
       })
 
-      toast.success('Descrição alterada com sucesso')
+      toast.success(t('profile.descriptionSaved'))
       router.back()
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao salvar. Tente novamente.')
+      toast.error(t('profile.errorSaving'))
     } finally {
       setLoading(false)
     }
@@ -180,13 +183,13 @@ export default function AlterarDescricaoPage() {
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-      <PageHeader title="Alterar descrição" />
+      <PageHeader title={t('profile.editDescription')} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-6 space-y-4">
 
           <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            Preencha os campos abaixo para criar sua descrição personalizada.
+            {t('profile.editDescSubtitle')}
           </p>
 
           <DescricaoPreview
@@ -200,8 +203,8 @@ export default function AlterarDescricaoPage() {
           />
 
           <SelectField
-            label="Eu sou"
-            placeholder="Selecione..."
+            label={t('register.selectLabelIAm')}
+            placeholder={t('common.select')}
             value={euSou}
             onChange={(e) => setEuSou(e.target.value)}
             options={EU_SOU_OPTIONS}
@@ -209,8 +212,8 @@ export default function AlterarDescricaoPage() {
           />
 
           <SelectField
-            label="Por"
-            placeholder="Selecione..."
+            label={t('register.selectLabelFor')}
+            placeholder={t('common.select')}
             value={por}
             onChange={(e) => setPor(e.target.value)}
             options={POR_OPTIONS}
@@ -218,8 +221,8 @@ export default function AlterarDescricaoPage() {
           />
 
           <SelectField
-            label="Me considero uma pessoa"
-            placeholder="Selecione..."
+            label={t('register.selectLabelIConsider')}
+            placeholder={t('common.select')}
             value={meConsidero}
             onChange={(e) => setMeConsidero(e.target.value)}
             options={ME_CONSIDERO_OPTIONS}
@@ -227,8 +230,8 @@ export default function AlterarDescricaoPage() {
           />
 
           <SelectField
-            label="Que adora"
-            placeholder="Selecione..."
+            label={t('register.selectLabelWhoLoves')}
+            placeholder={t('common.select')}
             value={adoro}
             onChange={(e) => setAdoro(e.target.value)}
             options={ADORO_OPTIONS}
@@ -236,8 +239,8 @@ export default function AlterarDescricaoPage() {
           />
 
           <SelectField
-            label="Gosto de pessoas que"
-            placeholder="Selecione..."
+            label={t('profile.likePeopleWho')}
+            placeholder={t('common.select')}
             value={pessoasQue}
             onChange={(e) => setPessoasQue(e.target.value)}
             options={PESSOAS_QUE_OPTIONS}
@@ -251,7 +254,7 @@ export default function AlterarDescricaoPage() {
               disabled={isDisabled}
               onClick={handleConfirm}
             >
-              Confirmar
+              {t('common.confirm')}
             </Button>
           </div>
         </div>

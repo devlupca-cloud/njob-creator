@@ -12,6 +12,11 @@ import { signIn, signOut } from '@/lib/supabase/auth'
 import { checkCreatorPayoutStatus, getCreatorInfo } from '@/lib/supabase/creator'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore, useLogin } from '@/lib/store/app-store'
+import { useTranslation } from '@/lib/i18n'
+
+function setGuestCookie() {
+  document.cookie = 'njob-guest=true; path=/; max-age=86400; SameSite=Lax'
+}
 
 function setGuestCookie() {
   document.cookie = 'njob-guest=true; path=/; max-age=86400'
@@ -26,6 +31,7 @@ const UserIcon = () => (
 )
 
 export default function LoginPage() {
+  const { t } = useTranslation()
   const router = useRouter()
   const loginState = useLogin()
   const setLogin = useAppStore((s) => s.setLogin)
@@ -54,7 +60,7 @@ export default function LoginPage() {
         router.push(`/stripe-setup?url=${encodeURIComponent(url)}`)
       },
       isNotCreator: async () => {
-        toast.error('Você não tem acesso a esta plataforma.')
+        toast.error(t('auth.noAccess'))
         await signOut()
         setLoading(false)
       },
@@ -71,8 +77,8 @@ export default function LoginPage() {
     setEmailError('')
     setPasswordError('')
 
-    if (!email) { setEmailError('E-mail obrigatório'); return }
-    if (!password) { setPasswordError('Senha obrigatória'); return }
+    if (!email) { setEmailError(t('auth.emailRequired')); return }
+    if (!password) { setPasswordError(t('auth.passwordRequired')); return }
 
     setLoading(true)
 
@@ -85,15 +91,15 @@ export default function LoginPage() {
     await signIn(email, password, {
       onSuccess: runAuthGate,
       onWrongPassword: () => {
-        setPasswordError('Senha incorreta')
+        setPasswordError(t('auth.wrongPassword'))
         setLoading(false)
       },
       onUserNotFound: () => {
-        setEmailError('E-mail não encontrado')
+        setEmailError(t('auth.emailNotFound'))
         setLoading(false)
       },
       onInvalidEmail: () => {
-        setEmailError('E-mail inválido')
+        setEmailError(t('auth.invalidEmail'))
         setLoading(false)
       },
       onError: (msg) => {
@@ -124,19 +130,19 @@ export default function LoginPage() {
           />
         </div>
         <h1 className="text-2xl font-bold" style={{ color: 'var(--color-foreground)' }}>
-          Bem-vindo de volta
+          {t('auth.welcomeBack')}
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--color-muted)' }}>
-          Faça login na sua conta
+          {t('auth.loginSubtitle')}
         </p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
-          label="E-mail"
+          label={t('auth.email')}
           type="email"
-          placeholder="seu@email.com"
+          placeholder={t('auth.emailPlaceholder')}
           value={email}
           onChange={(e) => { setEmail(e.target.value); setEmailError('') }}
           error={emailError}
@@ -147,8 +153,8 @@ export default function LoginPage() {
 
         <div className="flex flex-col gap-1">
           <PasswordInput
-            label="Senha"
-            placeholder="••••••••"
+            label={t('auth.password')}
+            placeholder={t('auth.passwordPlaceholder')}
             value={password}
             onChange={(e) => { setPassword(e.target.value); setPasswordError('') }}
             error={passwordError}
@@ -160,7 +166,7 @@ export default function LoginPage() {
               className="text-xs transition-opacity hover:opacity-70"
               style={{ color: 'var(--color-primary)' }}
             >
-              Esqueci a senha
+              {t('auth.forgotPassword')}
             </Link>
           </div>
         </div>
@@ -174,7 +180,7 @@ export default function LoginPage() {
             className="w-4 h-4 rounded accent-primary"
           />
           <span className="text-sm" style={{ color: 'var(--color-muted)' }}>
-            Lembrar de mim
+            {t('auth.rememberMe')}
           </span>
         </label>
 
@@ -187,14 +193,14 @@ export default function LoginPage() {
           disabled={!email || !password}
           className="mt-2"
         >
-          Entrar
+          {t('auth.login')}
         </Button>
       </form>
 
       {/* Divider */}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px" style={{ background: 'var(--color-border)' }} />
-        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>ou</span>
+        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{t('common.or')}</span>
         <div className="flex-1 h-px" style={{ background: 'var(--color-border)' }} />
       </div>
 
@@ -208,17 +214,17 @@ export default function LoginPage() {
           onClick={handleGuestLogin}
           disabled={loading}
         >
-          Entrar como convidado
+          {t('auth.loginAsGuest')}
         </Button>
 
         <p className="text-center text-sm" style={{ color: 'var(--color-muted)' }}>
-          Não tem conta?{' '}
+          {t('auth.noAccount')}{' '}
           <Link
             href="/register"
             className="font-medium transition-opacity hover:opacity-70"
             style={{ color: 'var(--color-primary)' }}
           >
-            Cadastro
+            {t('auth.register')}
           </Link>
         </p>
       </div>

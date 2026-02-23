@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslation } from '@/lib/i18n'
 import PageHeader from '@/components/ui/PageHeader'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -14,6 +15,7 @@ function isValidEmail(email: string): boolean {
 
 export default function AlterarEmailPage() {
   const router = useRouter()
+  const { t } = useTranslation()
 
   const [currentEmail, setCurrentEmail] = useState('')
   const [newEmail, setNewEmail] = useState('')
@@ -30,15 +32,15 @@ export default function AlterarEmailPage() {
     setErrorNew(undefined)
 
     if (!isValidEmail(currentEmail)) {
-      setErrorCurrent('E-mail inválido')
+      setErrorCurrent(t('auth.invalidEmail'))
       return
     }
     if (!isValidEmail(newEmail)) {
-      setErrorNew('E-mail inválido')
+      setErrorNew(t('auth.invalidEmail'))
       return
     }
     if (currentEmail === newEmail) {
-      setErrorNew('O novo e-mail deve ser diferente do atual')
+      setErrorNew(t('profile.emailMustBeDifferent'))
       return
     }
 
@@ -48,10 +50,10 @@ export default function AlterarEmailPage() {
 
       // Verify current session email matches what user typed
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Sem sessão')
+      if (!session) throw new Error(t('profile.noSession'))
 
       if (session.user.email?.toLowerCase() !== currentEmail.toLowerCase()) {
-        setErrorCurrent('E-mail não corresponde ao e-mail atual da conta')
+        setErrorCurrent(t('profile.emailMismatch'))
         return
       }
 
@@ -59,11 +61,11 @@ export default function AlterarEmailPage() {
       const { error } = await supabase.auth.updateUser({ email: newEmail })
       if (error) throw error
 
-      toast.success('E-mail de confirmação enviado. Verifique sua caixa de entrada.')
+      toast.success(t('profile.emailConfirmSent'))
       router.back()
     } catch (err: unknown) {
       console.error(err)
-      const msg = err instanceof Error ? err.message : 'Erro ao alterar e-mail'
+      const msg = err instanceof Error ? err.message : t('profile.errorEditEmail')
       toast.error(msg)
     } finally {
       setLoading(false)
@@ -72,19 +74,19 @@ export default function AlterarEmailPage() {
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
-      <PageHeader title="Alterar e-mail" />
+      <PageHeader title={t('profile.editEmail')} />
 
       <div className="flex-1 flex flex-col px-4 py-6">
         <div className="space-y-4">
           <Input
-            label="E-mail atual"
+            label={t('profile.currentEmail')}
             type="email"
             value={currentEmail}
             onChange={(e) => {
               setCurrentEmail(e.target.value)
               setErrorCurrent(undefined)
             }}
-            placeholder="Insira seu atual endereço de e-mail"
+            placeholder={t('profile.currentEmailPlaceholder')}
             error={errorCurrent}
             required
             autoFocus
@@ -92,14 +94,14 @@ export default function AlterarEmailPage() {
           />
 
           <Input
-            label="Novo e-mail"
+            label={t('profile.newEmail')}
             type="email"
             value={newEmail}
             onChange={(e) => {
               setNewEmail(e.target.value)
               setErrorNew(undefined)
             }}
-            placeholder="Insira seu novo endereço de e-mail"
+            placeholder={t('profile.newEmailPlaceholder')}
             error={errorNew}
             required
             autoComplete="email"
@@ -107,7 +109,7 @@ export default function AlterarEmailPage() {
         </div>
 
         <p className="mt-3 text-xs" style={{ color: 'var(--color-muted)' }}>
-          Você receberá um e-mail de confirmação no novo endereço.
+          {t('profile.emailConfirmNotice')}
         </p>
 
         <div className="flex-1" />
@@ -119,7 +121,7 @@ export default function AlterarEmailPage() {
             disabled={isDisabled}
             onClick={handleConfirm}
           >
-            Confirmar
+            {t('common.confirm')}
           </Button>
         </div>
       </div>
