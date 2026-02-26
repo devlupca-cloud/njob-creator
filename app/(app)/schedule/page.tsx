@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
 import type { Database } from '@/lib/types/database'
@@ -68,16 +69,49 @@ const AddIcon = () => (
     <line x1="5" y1="12" x2="19" y2="12" />
   </svg>
 )
+const LiveIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="2" />
+    <path d="M16.24 7.76a6 6 0 0 1 0 8.49" />
+    <path d="M7.76 16.24a6 6 0 0 1 0-8.49" />
+  </svg>
+)
+const VideoIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="15" height="14" x="1" y="5" rx="2" ry="2" />
+    <path d="m16 12 6-4v8l-6-4z" />
+  </svg>
+)
+const CloseIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+)
+
+function isSlotPast(dateStr: string, slotTime: string): boolean {
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  if (dateStr !== todayStr) return false
+  const [hh, mm] = slotTime.split(':').map(Number)
+  const slotDate = new Date(now)
+  slotDate.setHours(hh, mm, 0, 0)
+  return now > slotDate
+}
 
 export default function SchedulePage() {
   const supabase = createClient()
   const creator = useCreator()
   const { t, locale } = useTranslation()
+  const router = useRouter()
 
   const [tabCalendarioSelect, setTabCalendarioSelect] = useState<TabCalendario>('month')
   const [dataSelect, setDataSelect] = useState<Date>(() => new Date())
   const [modalNovoOpen, setModalNovoOpen] = useState(false)
   const [detalhesEvento, setDetalhesEvento] = useState<VwCreatorEventRow | null>(null)
+  const [showFabMenu, setShowFabMenu] = useState(false)
+  const [filterType, setFilterType] = useState<'all' | 'live' | 'call'>('all')
+  const fabMenuRef = useRef<HTMLDivElement>(null)
 
   const {
     data: eventos = [],
@@ -138,11 +172,66 @@ export default function SchedulePage() {
     },
   })
 
+  // ── Query: availability slots do dia selecionado ──
+  const selectedDateStr = useMemo(() => {
+    const y = dataSelect.getFullYear()
+    const m = String(dataSelect.getMonth() + 1).padStart(2, '0')
+    const d = String(dataSelect.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }, [dataSelect])
+
+  const { data: availabilitySlots } = useQuery({
+    queryKey: ['availability_slots_count', selectedDateStr],
+    enabled: !!creator,
+    queryFn: async () => {
+      const { data: session } = await supabase.auth.getSession()
+      const userId = session.session?.user.id
+      if (!userId) return { total: 0, available: 0, purchased: 0, past: 0 }
+      const { data: avail } = await supabase
+        .from('creator_availability')
+        .select('id')
+        .eq('creator_id', userId)
+        .eq('availability_date', selectedDateStr)
+        .single()
+      if (!avail) return { total: 0, available: 0, purchased: 0, past: 0 }
+      const { data: slots } = await supabase
+        .from('creator_availability_slots')
+        .select('id, purchased, slot_time')
+        .eq('availability_id', avail.id)
+      if (!slots) return { total: 0, available: 0, purchased: 0, past: 0 }
+      const purchased = slots.filter((s) => s.purchased).length
+      const past = slots.filter((s) => !s.purchased && isSlotPast(selectedDateStr, s.slot_time)).length
+      return {
+        total: slots.length,
+        available: slots.length - purchased - past,
+        purchased,
+        past,
+      }
+    },
+  })
+
   // ── L3: Lazy status cleanup — mark past live_streams as 'finished' ──
   useLiveStreamCleanup(creator, refetchEventos)
 
+  // Fechar FAB menu ao clicar fora
+  useEffect(() => {
+    if (!showFabMenu) return
+    const handler = (e: MouseEvent) => {
+      if (fabMenuRef.current && !fabMenuRef.current.contains(e.target as Node)) {
+        setShowFabMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showFabMenu])
+
   const selectedKey = formatDMY(dataSelect)
-  const listaEventos = eventos.filter((e) => eventDateKey(e) === selectedKey)
+  const listaEventos = eventos.filter((e) => {
+    if (eventDateKey(e) !== selectedKey) return false
+    if (filterType === 'live') return e.event_type === 'live'
+    if (filterType === 'call') return e.event_type === 'call'
+    return true
+  })
 
   const handleRefresh = useCallback(() => {
     refetchEventos()
@@ -240,6 +329,89 @@ export default function SchedulePage() {
           </Link>
         </div>
 
+        {/* Filtro por tipo */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {([
+            { key: 'all' as const, label: t('schedule.filterAll'), bg: 'var(--color-surface-2)', activeBg: 'var(--color-primary)' },
+            { key: 'live' as const, label: t('schedule.filterLives'), bg: 'var(--color-surface-2)', activeBg: '#6E8BFF' },
+            { key: 'call' as const, label: t('schedule.filterCalls'), bg: 'var(--color-surface-2)', activeBg: '#FFDF6E' },
+          ]).map(({ key, label, activeBg }) => {
+            const active = filterType === key
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFilterType(key)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  border: 'none',
+                  background: active ? activeBg : 'var(--color-surface-2)',
+                  color: active ? (key === 'call' ? '#1a1a1a' : '#fff') : 'var(--color-muted)',
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  transition: 'all 150ms',
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Indicador de disponibilidade para videochamadas */}
+        {availabilitySlots && availabilitySlots.total > 0 && (filterType === 'all' || filterType === 'call') && (
+          <Link
+            href={`/schedule/availability?date=${selectedDateStr}`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 14px',
+              marginBottom: 16,
+              borderRadius: 12,
+              background: 'rgba(255, 223, 110, 0.08)',
+              border: '1px solid rgba(255, 223, 110, 0.2)',
+              textDecoration: 'none',
+              transition: 'background 150ms',
+            }}
+          >
+            <span style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'rgba(255, 223, 110, 0.15)',
+              color: '#FFDF6E',
+              flexShrink: 0,
+            }}>
+              <VideoIcon />
+            </span>
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-foreground)' }}>
+                {availabilitySlots.available} {t('schedule.slotsAvailable')}
+              </span>
+              {availabilitySlots.purchased > 0 && (
+                <span style={{ display: 'block', color: 'var(--color-muted)', fontSize: 11, marginTop: 2 }}>
+                  {availabilitySlots.purchased} {t('schedule.slotsPurchased')}
+                </span>
+              )}
+              {availabilitySlots.past > 0 && (
+                <span style={{ display: 'block', color: 'var(--color-muted)', fontSize: 11, marginTop: 2 }}>
+                  {availabilitySlots.past} {t('schedule.slotsExpired')}
+                </span>
+              )}
+              <span style={{ display: 'block', color: 'var(--color-muted)', fontSize: 11, marginTop: 2 }}>
+                {t('schedule.awaitingBookings')}
+              </span>
+            </div>
+            <EditIcon />
+          </Link>
+        )}
+
         {/* Lista de eventos do dia */}
         {eventosLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
@@ -248,9 +420,17 @@ export default function SchedulePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {listaEventos.length === 0 ? (
-              <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: 0, padding: '24px 0' }}>
-                {t('schedule.noEvents')}
-              </p>
+              <div style={{ padding: '24px 0' }}>
+                {filterType === 'call' && availabilitySlots && availabilitySlots.total > 0 ? (
+                  <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                    {t('schedule.noCallsYet')}
+                  </p>
+                ) : (
+                  <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: 0 }}>
+                    {t('schedule.noEvents')}
+                  </p>
+                )}
+              </div>
             ) : (
               listaEventos.map((ev) => {
                 const callInfo = ev.event_type === 'call' && ev.event_id ? callInfoMap.get(ev.event_id) : undefined
@@ -273,11 +453,88 @@ export default function SchedulePage() {
         )}
       </div>
 
-      {/* FAB */}
-      <div style={{ position: 'fixed', bottom: 24, right: 20, zIndex: 40 }}>
+      {/* FAB + Menu */}
+      <div ref={fabMenuRef} style={{ position: 'fixed', bottom: 88, right: 20, zIndex: 40 }}>
+        {/* Menu popover */}
+        {showFabMenu && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 64,
+              right: 0,
+              background: 'var(--color-surface)',
+              borderRadius: 14,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
+              padding: 8,
+              minWidth: 240,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              animation: 'detalhesModalIn 180ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowFabMenu(false)
+                setModalNovoOpen(true)
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--color-foreground)',
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: 'pointer',
+                width: '100%',
+                textAlign: 'left',
+                transition: 'background 150ms',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-surface-2)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <span style={{ display: 'flex', color: '#6E8BFF' }}><LiveIcon /></span>
+              {t('events.createLive')}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowFabMenu(false)
+                const dateStr = `${dataSelect.getFullYear()}-${String(dataSelect.getMonth() + 1).padStart(2, '0')}-${String(dataSelect.getDate()).padStart(2, '0')}`
+                router.push(`/schedule/availability?date=${dateStr}`)
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '12px 14px',
+                borderRadius: 10,
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--color-foreground)',
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: 'pointer',
+                width: '100%',
+                textAlign: 'left',
+                transition: 'background 150ms',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-surface-2)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <span style={{ display: 'flex', color: '#FFDF6E' }}><VideoIcon /></span>
+              {t('events.manageAvailability')}
+            </button>
+          </div>
+        )}
         <button
           type="button"
-          onClick={() => setModalNovoOpen(true)}
+          onClick={() => setShowFabMenu((v) => !v)}
           aria-label={t('events.newEvent')}
           style={{
             width: 56,
@@ -291,6 +548,8 @@ export default function SchedulePage() {
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            transition: 'transform 200ms',
+            transform: showFabMenu ? 'rotate(45deg)' : 'rotate(0deg)',
           }}
         >
           <AddIcon />
@@ -322,6 +581,8 @@ export default function SchedulePage() {
             eventId={detalhesEvento.event_id}
             status={deriveEventStatus(detalhesEvento)}
             callStatus={detCallInfo?.status}
+            scheduledStartTime={eventTimeISO(detalhesEvento) || undefined}
+            scheduledDurationMinutes={detalhesEvento.duration_min ?? undefined}
             onCancel={() => {
               setDetalhesEvento(null)
               refetchEventos()

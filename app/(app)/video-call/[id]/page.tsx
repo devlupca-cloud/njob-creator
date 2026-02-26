@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useCreator } from '@/lib/store/app-store'
 import { useTranslation } from '@/lib/i18n'
 
-type Status = 'loading' | 'error' | 'too-early' | 'joined'
+type Status = 'loading' | 'error' | 'joined'
 
 export default function VideoCallPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -19,7 +19,6 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
   const containerRef = useRef<HTMLDivElement>(null)
   const zegoRef = useRef<unknown>(null)
   const [status, setStatus] = useState<Status>('loading')
-  const [earlyTime, setEarlyTime] = useState('')
 
   useEffect(() => {
     if (!creator || !id || !containerRef.current) return
@@ -46,19 +45,11 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         return
       }
 
-      // Validação de janela de tempo: permitir 5 min antes
+      // Permitir entrada a qualquer momento antes do fim da chamada
       const startTime = new Date(call.scheduled_start_time).getTime()
       const now = Date.now()
-      const fiveMinBefore = startTime - 5 * 60 * 1000
       const durationMs = (call.scheduled_duration_minutes ?? 60) * 60 * 1000
       const endTime = startTime + durationMs
-
-      if (now < fiveMinBefore) {
-        const startDate = new Date(call.scheduled_start_time)
-        setEarlyTime(startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
-        setStatus('too-early')
-        return
-      }
 
       if (now > endTime) {
         setStatus('error')
@@ -109,24 +100,6 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
 
   return (
     <>
-      {/* Too early overlay */}
-      {status === 'too-early' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--color-background)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          </div>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14, textAlign: 'center', maxWidth: 300 }}>
-            {t('videoCall.tooEarly', { time: earlyTime })}
-          </p>
-          <button onClick={() => router.push('/home')} style={{ padding: '8px 24px', borderRadius: 12, background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-            {t('common.back')}
-          </button>
-        </div>
-      )}
-
       {/* Error overlay */}
       {status === 'error' && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--color-background)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>

@@ -240,6 +240,16 @@ const es: Translations = {
     month: 'Mes',
     callStatusRejected: 'Rechazado',
     callClient: 'Cliente',
+    joinVideoCall: 'Entrar a la videollamada',
+    callAvailableAt: 'Disponible a las {time}',
+    filterAll: 'Todos',
+    filterLives: 'Lives',
+    filterCalls: 'Videollamadas',
+    slotsAvailable: 'horarios disponibles para videollamada',
+    slotsPurchased: 'agendados',
+    slotsExpired: 'expirados',
+    awaitingBookings: 'Esperando reservas de clientes',
+    noCallsYet: 'Ninguna videollamada agendada todavía. Tus horarios están disponibles para que los clientes agenden.',
   },
 
   profile: {
@@ -431,6 +441,9 @@ const es: Translations = {
     timeConflictLive: 'Ya hay una live programada en este horario',
     timeConflictCall: 'Ya hay una videollamada programada en este horario',
     checkingAvailability: 'Verificando disponibilidad...',
+    chooseType: '¿Qué deseas crear?',
+    createLive: 'Crear Live',
+    manageAvailability: 'Disponibilidad Videollamada',
   },
 
   // ── Payments ────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import type { TipoEventoAgenda } from './CardEventoAgenda'
 import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
@@ -24,6 +25,10 @@ interface DetalhesAgendamentoModalProps {
   status?: 'upcoming' | 'available' | 'finished' | 'cancelled'
   /** Status real da call vindo de one_on_one_calls (requested, confirmed, etc.) */
   callStatus?: string
+  /** ISO datetime (UTC) do início agendado da call */
+  scheduledStartTime?: string
+  /** Duração em minutos da call */
+  scheduledDurationMinutes?: number
 }
 
 // ─── Ícones ───────────────────────────────────────────────────────
@@ -115,8 +120,11 @@ export default function DetalhesAgendamentoModal({
   onCancel,
   status,
   callStatus,
+  scheduledStartTime,
+  scheduledDurationMinutes,
 }: DetalhesAgendamentoModalProps) {
   const { t, locale } = useTranslation()
+  const router = useRouter()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cancelling, setCancelling] = useState(false)
 
@@ -140,6 +148,24 @@ export default function DetalhesAgendamentoModal({
       setCancelling(false)
     }
   }, [isOpen])
+
+  // Calcula se o creator pode entrar na videochamada (5 min antes até o fim)
+  const { canJoinCall, callStartTimeFormatted } = useMemo(() => {
+    if (typeEvent !== 'call' || callStatus !== 'confirmed' || !scheduledStartTime) {
+      return { canJoinCall: false, callStartTimeFormatted: '' }
+    }
+    const startMs = new Date(scheduledStartTime).getTime()
+    const durationMs = (scheduledDurationMinutes ?? 60) * 60 * 1000
+    const endMs = startMs + durationMs
+    const windowStartMs = startMs - 5 * 60 * 1000 // 5 min antes
+    const now = Date.now()
+    const canJoin = now >= windowStartMs && now <= endMs
+    const formatted = new Date(scheduledStartTime).toLocaleTimeString(getLocaleBcp47(locale), {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    return { canJoinCall: canJoin, callStartTimeFormatted: formatted }
+  }, [typeEvent, callStatus, scheduledStartTime, scheduledDurationMinutes, locale])
 
   if (!isOpen) return null
 
@@ -363,7 +389,41 @@ export default function DetalhesAgendamentoModal({
 
             {/* Botões */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
-              {/* Botão cancelar evento — oculto por enquanto */}
+              {/* Botão entrar na videochamada */}
+              {typeEvent === 'call' && callStatus === 'confirmed' && canJoinCall && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/video-call/${eventId}`)}
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    borderRadius: 10,
+                    border: 'none',
+                    background: 'var(--color-primary)',
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'opacity 150ms',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+                >
+                  {t('schedule.joinVideoCall')}
+                </button>
+              )}
+
+              {/* Texto informativo quando fora da janela de tempo */}
+              {typeEvent === 'call' && callStatus === 'confirmed' && !canJoinCall && callStartTimeFormatted && (
+                <p style={{
+                  fontSize: 13,
+                  color: 'var(--color-muted)',
+                  textAlign: 'center',
+                  margin: 0,
+                }}>
+                  {t('schedule.callAvailableAt').replace('{time}', callStartTimeFormatted)}
+                </p>
+              )}
 
               {/* Botão fechar */}
               {!confirmOpen && (

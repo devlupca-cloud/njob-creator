@@ -240,6 +240,16 @@ const en: Translations = {
     month: 'Month',
     callStatusRejected: 'Rejected',
     callClient: 'Client',
+    joinVideoCall: 'Join video call',
+    callAvailableAt: 'Available at {time}',
+    filterAll: 'All',
+    filterLives: 'Lives',
+    filterCalls: 'Video calls',
+    slotsAvailable: 'time slots available for video calls',
+    slotsPurchased: 'booked',
+    slotsExpired: 'expired',
+    awaitingBookings: 'Awaiting client bookings',
+    noCallsYet: 'No video calls booked yet. Your time slots are available for clients to schedule.',
   },
 
   profile: {
@@ -431,6 +441,9 @@ const en: Translations = {
     timeConflictLive: 'There is already a live scheduled at this time',
     timeConflictCall: 'There is already a video call scheduled at this time',
     checkingAvailability: 'Checking availability...',
+    chooseType: 'What do you want to create?',
+    createLive: 'Create Live',
+    manageAvailability: 'Video Call Availability',
   },
 
   payments: {

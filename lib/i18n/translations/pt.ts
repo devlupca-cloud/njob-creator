@@ -244,7 +244,7 @@ const pt = {
     cancelConfirm: 'Tem certeza que deseja cancelar este evento?',
     eventCancelled: 'Evento cancelado com sucesso!',
     errorCancel: 'Erro ao cancelar evento.',
-    details: 'Detalhes do agendamento',
+    details: 'Detalhes da videochamada',
     status: 'Status',
     confirmed: 'Confirmado',
     pending: 'Pendente',
@@ -264,6 +264,16 @@ const pt = {
     month: 'Mês',
     callStatusRejected: 'Rejeitado',
     callClient: 'Cliente',
+    joinVideoCall: 'Entrar na videochamada',
+    callAvailableAt: 'Disponível às {time}',
+    filterAll: 'Todos',
+    filterLives: 'Lives',
+    filterCalls: 'Videochamadas',
+    slotsAvailable: 'horários disponíveis para videochamada',
+    slotsPurchased: 'agendados',
+    slotsExpired: 'expirados',
+    awaitingBookings: 'Aguardando agendamento de clientes',
+    noCallsYet: 'Nenhuma videochamada agendada ainda. Seus horários estão disponíveis para os clientes agendarem.',
   },
 
   // ── Profile ──────────────────────────────────────────────────────────────
@@ -465,6 +475,9 @@ const pt = {
     timeConflictLive: 'Já existe uma live agendada neste horário',
     timeConflictCall: 'Já existe uma videochamada agendada neste horário',
     checkingAvailability: 'Verificando disponibilidade...',
+    chooseType: 'O que deseja criar?',
+    createLive: 'Criar Live',
+    manageAvailability: 'Disponibilidade Videochamada',
   },
 
   // ── Payments ────────────────────────────────────────────────────────────

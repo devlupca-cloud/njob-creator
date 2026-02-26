@@ -363,7 +363,7 @@ export default function ContentPage() {
           ))}
         </div>
       )}
-      <div style={{ position: 'fixed', bottom: 24, right: 20, zIndex: 40 }}>
+      <div style={{ position: 'fixed', bottom: 88, right: 20, zIndex: 40 }}>
         <button
           type="button"
           onClick={() => router.push('/content/create')}

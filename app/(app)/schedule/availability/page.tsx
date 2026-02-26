@@ -67,6 +67,16 @@ function getBlockedSlotTimes(startTimeISO: string, durationMin: number): string[
   return slots
 }
 
+function isSlotPast(dateStr: string, slotTime: string): boolean {
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  if (dateStr !== todayStr) return false
+  const [hh, mm] = slotTime.split(':').map(Number)
+  const slotDate = new Date(now)
+  slotDate.setHours(hh, mm, 0, 0)
+  return now > slotDate
+}
+
 function ExpandableSection({
   title,
   slots,
@@ -75,6 +85,7 @@ function ExpandableSection({
   liveBlockedSlots,
   purchasedLabel,
   liveBlockedLabel,
+  dateStr,
   onToggleSlot,
   onSelectAll,
   isAllSelected,
@@ -87,6 +98,7 @@ function ExpandableSection({
   liveBlockedSlots: Set<string>
   purchasedLabel: string
   liveBlockedLabel: string
+  dateStr: string
   onToggleSlot: (s: string) => void
   onSelectAll: (v: boolean) => void
   isAllSelected: boolean
@@ -127,7 +139,8 @@ function ExpandableSection({
             {slots.map((s) => {
               const isPurchased = purchasedSlots.has(s)
               const isLiveBlocked = liveBlockedSlots.has(s)
-              const isBlocked = isPurchased || isLiveBlocked
+              const isPast = isSlotPast(dateStr, s)
+              const isBlocked = isPurchased || isLiveBlocked || isPast
               const isSelected = selected.has(s)
 
               let bg: string
@@ -135,7 +148,11 @@ function ExpandableSection({
               let color: string
               let label = s
 
-              if (isPurchased) {
+              if (isPast) {
+                bg = 'var(--color-surface-2)'
+                border = 'var(--color-border)'
+                color = 'var(--color-foreground)'
+              } else if (isPurchased) {
                 bg = '#f59e0b'
                 border = '#d97706'
                 color = '#fff'
@@ -169,7 +186,8 @@ function ExpandableSection({
                     color,
                     fontSize: 12,
                     cursor: isBlocked ? 'not-allowed' : 'pointer',
-                    opacity: isBlocked ? 0.85 : 1,
+                    opacity: isPast ? 0.35 : isBlocked ? 0.85 : 1,
+                    textDecoration: isPast ? 'line-through' : 'none',
                   }}
                 >
                   {label}
@@ -365,6 +383,15 @@ function ScheduleAvailabilityContent() {
     try {
       const payload = buildAvailabilityPayload(userId, selectedDate, manha, tarde, noite, madrugada)
       await saveCreatorAvailability(payload, token)
+
+      // Auto-enable videochamada when creator has availability slots
+      const totalSlots = manha.length + tarde.length + noite.length + madrugada.length
+      if (totalSlots > 0) {
+        await supabase
+          .from('profile_settings')
+          .upsert({ profile_id: userId, sell_calls: true }, { onConflict: 'profile_id' })
+      }
+
       toast.success(t('schedule.availabilitySaved'))
       queryClient.invalidateQueries({ queryKey: ['get_creator_daily_slots'] })
     } catch (e) {
@@ -431,6 +458,7 @@ function ScheduleAvailabilityContent() {
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}
+              dateStr={dateStr}
               onToggleSlot={(s) => toggleSlot('Manhã', s)}
               onSelectAll={(v) => selectAll('Manhã', v)}
               isAllSelected={manha.length === slotsManha.length}
@@ -444,6 +472,7 @@ function ScheduleAvailabilityContent() {
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}
+              dateStr={dateStr}
               onToggleSlot={(s) => toggleSlot('Tarde', s)}
               onSelectAll={(v) => selectAll('Tarde', v)}
               isAllSelected={tarde.length === slotsTarde.length}
@@ -457,6 +486,7 @@ function ScheduleAvailabilityContent() {
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}
+              dateStr={dateStr}
               onToggleSlot={(s) => toggleSlot('Noite', s)}
               onSelectAll={(v) => selectAll('Noite', v)}
               isAllSelected={noite.length === slotsNoite.length}
@@ -470,6 +500,7 @@ function ScheduleAvailabilityContent() {
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}
+              dateStr={dateStr}
               onToggleSlot={(s) => toggleSlot('Madrugada', s)}
               onSelectAll={(v) => selectAll('Madrugada', v)}
               isAllSelected={madrugada.length === slotsMadrugada.length}
