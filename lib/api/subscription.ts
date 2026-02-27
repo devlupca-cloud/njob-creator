@@ -19,5 +19,5 @@ export async function createSubscriptionCheckout(
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) return { error: data?.message ?? data?.error ?? `HTTP ${res.status}` }
-  return { url: data?.url }
+  return { url: data?.url ?? data?.checkout_url }
 }

@@ -13,7 +13,7 @@ import StepProgress from '@/components/ui/StepProgress'
 import PageHeader from '@/components/ui/PageHeader'
 import DicasFotosModal from '@/components/ui/DicasFotosModal'
 import { signUp } from '@/lib/supabase/auth'
-import { getCreatorInfo } from '@/lib/supabase/creator'
+import { getCreatorInfo, createStripeAccount } from '@/lib/supabase/creator'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
 import { useTranslation, type TranslationKey } from '@/lib/i18n'
@@ -504,10 +504,17 @@ export default function RegisterPage() {
           document.cookie = 'njob-guest=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/'
           useAppStore.getState().setGuest(false)
 
-          // STRIPE_DISABLED: Skip Stripe payout check, go directly to home
           const info = await getCreatorInfo(supabase)
           if (info) setCreator(info)
-          router.push('/home')
+
+          // Create Stripe connected account and redirect to onboarding
+          const stripeResult = await createStripeAccount(supabase)
+          if ('url' in stripeResult) {
+            router.push(`/stripe-setup?url=${encodeURIComponent(stripeResult.url)}`)
+          } else {
+            toast.error(`Erro ao criar conta Stripe: ${stripeResult.error}`)
+            router.push('/stripe-setup')
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : t('auth.errorFinishRegister')
           toast.error(msg)

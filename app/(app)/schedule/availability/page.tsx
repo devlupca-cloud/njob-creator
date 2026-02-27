@@ -82,6 +82,7 @@ function ExpandableSection({
   slots,
   selected,
   purchasedSlots,
+  purchasedLabels,
   liveBlockedSlots,
   purchasedLabel,
   liveBlockedLabel,
@@ -95,6 +96,7 @@ function ExpandableSection({
   slots: string[]
   selected: Set<string>
   purchasedSlots: Set<string>
+  purchasedLabels?: Map<string, string>
   liveBlockedSlots: Set<string>
   purchasedLabel: string
   liveBlockedLabel: string
@@ -156,7 +158,8 @@ function ExpandableSection({
                 bg = '#f59e0b'
                 border = '#d97706'
                 color = '#fff'
-                label = `${s} - ${purchasedLabel}`
+                const range = purchasedLabels?.get(s)
+                label = range ? range : `${s} - ${purchasedLabel}`
               } else if (isLiveBlocked) {
                 bg = '#3b82f6'
                 border = '#2563eb'
@@ -306,17 +309,28 @@ function ScheduleAvailabilityContent() {
   })
 
   // ── Derive blocked slot sets ──
-  const purchasedSlots = useMemo(() => {
+  const { purchasedSlots, purchasedLabels } = useMemo(() => {
     const set = new Set<string>()
-    if (!conflictsData?.calls) return set
+    const labels = new Map<string, string>()
+    if (!conflictsData?.calls) return { purchasedSlots: set, purchasedLabels: labels }
     for (const call of conflictsData.calls) {
       if (!call.scheduled_start_time) continue
       const dur = call.scheduled_duration_minutes ?? 30
-      for (const slot of getBlockedSlotTimes(call.scheduled_start_time, dur)) {
+      const blockedSlots = getBlockedSlotTimes(call.scheduled_start_time, dur)
+      // Compute range label (e.g. "00:30 - 01:30")
+      const startTime = blockedSlots[0]
+      const lastSlot = blockedSlots[blockedSlots.length - 1]
+      const [lh, lm] = lastSlot.split(':').map(Number)
+      const endMin = lh * 60 + lm + 30
+      const endH = String(Math.floor(endMin / 60) % 24).padStart(2, '0')
+      const endM = String(endMin % 60).padStart(2, '0')
+      const rangeLabel = `${startTime} - ${endH}:${endM}`
+      for (const slot of blockedSlots) {
         set.add(slot)
+        labels.set(slot, rangeLabel)
       }
     }
-    return set
+    return { purchasedSlots: set, purchasedLabels: labels }
   }, [conflictsData?.calls])
 
   const liveBlockedSlots = useMemo(() => {
@@ -425,16 +439,7 @@ function ScheduleAvailabilityContent() {
         <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-foreground)' }}>
           {t('schedule.editAvailability')}
         </span>
-        <button
-          type="button"
-          aria-label={t('nav.notifications')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--color-foreground)' }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-        </button>
+        <div style={{ width: 32 }} />
       </div>
 
       {isLoading ? (
@@ -455,6 +460,7 @@ function ScheduleAvailabilityContent() {
               slots={slotsManha}
               selected={new Set(manha)}
               purchasedSlots={purchasedSlots}
+              purchasedLabels={purchasedLabels}
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}
@@ -469,6 +475,7 @@ function ScheduleAvailabilityContent() {
               slots={slotsTarde}
               selected={new Set(tarde)}
               purchasedSlots={purchasedSlots}
+              purchasedLabels={purchasedLabels}
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}
@@ -483,6 +490,7 @@ function ScheduleAvailabilityContent() {
               slots={slotsNoite}
               selected={new Set(noite)}
               purchasedSlots={purchasedSlots}
+              purchasedLabels={purchasedLabels}
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}
@@ -497,6 +505,7 @@ function ScheduleAvailabilityContent() {
               slots={slotsMadrugada}
               selected={new Set(madrugada)}
               purchasedSlots={purchasedSlots}
+              purchasedLabels={purchasedLabels}
               liveBlockedSlots={liveBlockedSlots}
               purchasedLabel={t('schedule.slotPurchased')}
               liveBlockedLabel={t('schedule.slotBlockedByLive')}

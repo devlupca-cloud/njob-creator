@@ -45,9 +45,41 @@ export async function checkCreatorPayoutStatus(
       return
     }
 
-    // STRIPE_DISABLED: Stripe integration temporarily disabled.
-    // Skip payout status check and treat all creators as completed.
-    callbacks.isCreatorAndCompleted()
+    // Check creator_payout_info for Stripe onboarding status
+    const { data: payoutInfo, error: payoutError } = await supabase
+      .from('creator_payout_info')
+      .select('status')
+      .eq('creator_id', user.id)
+      .maybeSingle()
+
+    if (payoutError) {
+      callbacks.onError(payoutError.message)
+      return
+    }
+
+    if (!payoutInfo) {
+      // No payout record — need to create Stripe account
+      const result = await createStripeAccount(supabase)
+      if ('error' in result) {
+        callbacks.onError(result.error)
+        return
+      }
+      callbacks.isCreatorAndPending(result.url)
+      return
+    }
+
+    if (payoutInfo.status === 'COMPLETED') {
+      callbacks.isCreatorAndCompleted()
+      return
+    }
+
+    // Status is PENDING — get onboarding link
+    const result = await createStripeAccount(supabase)
+    if ('error' in result) {
+      callbacks.onError(result.error)
+      return
+    }
+    callbacks.isCreatorAndPending(result.url)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro desconhecido'
     callbacks.onError(msg)
@@ -160,8 +192,35 @@ function normalizeCreatorData(raw: Record<string, unknown>): CreatorData {
   }
 }
 
-// STRIPE_DISABLED: createStripeAccount temporarily disabled.
-// Will be re-enabled when Stripe integration is added back.
-// export async function createStripeAccount(
-//   supabase: SupabaseClientType
-// ): Promise<{ url: string } | { error: string }> { ... }
+export async function createStripeAccount(
+  supabase: SupabaseClientType
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return { error: 'Sessão expirada' }
+
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/create-stripe-connected-account`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      }
+    )
+
+    const data = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      return { error: data?.message ?? data?.error ?? `HTTP ${res.status}` }
+    }
+
+    const url = data?.url ?? data?.onboarding_url ?? data?.account_link
+    if (!url) return { error: 'URL de onboarding não retornada' }
+
+    return { url }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erro ao criar conta Stripe' }
+  }
+}

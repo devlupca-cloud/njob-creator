@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
-import { createPackWithItems } from '@/lib/api/content'
+import { createPackWithItems, createStripePack } from '@/lib/api/content'
 import { uploadPackCover, uploadPackItem } from '@/lib/storage/packs'
 import { toast } from 'sonner'
 import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
@@ -112,7 +112,6 @@ export default function ContentCreatePage() {
         items.push({ url, type: 'video' })
       }
 
-      // STRIPE_DISABLED: Create pack in DB only (without Stripe product/price)
       const payload = {
         creator_id: uid,
         title: titleTrimmed,
@@ -126,6 +125,13 @@ export default function ContentCreatePage() {
         items,
       }
       await createPackWithItems(payload, token)
+
+      // Create Stripe product/price (soft fail — pack stays in DB even if Stripe fails)
+      try {
+        await createStripePack(payload, token)
+      } catch {
+        toast.warning('Pack salvo, mas houve um erro ao criar o produto no Stripe. Tente novamente mais tarde.')
+      }
 
       toast.success(tFn('content.contentSaved'))
       // Invalidar cache para a lista atualizar automaticamente

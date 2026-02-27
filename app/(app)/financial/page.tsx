@@ -21,11 +21,22 @@ async function getStatement(year: number, month: number, token: string): Promise
   return res.json()
 }
 
-// STRIPE_DISABLED: getPayoutLink temporarily disabled
-// async function getPayoutLink(token: string): Promise<{ url?: string }> {
-//   const res = await fetch(`${base()}/functions/v1/creator-payout-update-link`, { ... })
-//   return res.json()
-// }
+async function getPayoutLink(token: string): Promise<{ url?: string; error?: string }> {
+  const res = await fetch(`${base()}/functions/v1/creator-payout-update-link`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  const data = await res.json().catch(() => ({}))
+  // Status 400 with account_onboarding error still returns a usable URL
+  if (!res.ok && data?.error !== 'account_onboarding') {
+    return { error: data?.message ?? data?.error ?? `HTTP ${res.status}` }
+  }
+  const url = data?.url ?? data?.login_url ?? data?.onboarding_url
+  return url ? { url } : { error: 'Nenhum link retornado' }
+}
 
 export default function FinancialPage() {
   const router = useRouter()
@@ -79,9 +90,30 @@ export default function FinancialPage() {
     },
   })
 
-  // STRIPE_DISABLED: Payout link temporarily disabled
+  const [payoutLoading, setPayoutLoading] = useState(false)
+
   const openPayoutLink = async () => {
-    toast.info('Em breve')
+    setPayoutLoading(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) {
+        toast.error(t('profile.sessionExpired'))
+        return
+      }
+      const { url, error } = await getPayoutLink(token)
+      if (error) {
+        toast.error(error)
+        return
+      }
+      if (url) {
+        window.open(url, '_blank')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('common.error'))
+    } finally {
+      setPayoutLoading(false)
+    }
   }
 
   const tabs = [t('financial.totalEarnings'), t('financial.history'), t('financial.withdraw')]
@@ -201,6 +233,7 @@ export default function FinancialPage() {
           <button
             type="button"
             onClick={openPayoutLink}
+            disabled={payoutLoading}
             style={{
               padding: '12px 24px',
               borderRadius: 8,
@@ -208,11 +241,12 @@ export default function FinancialPage() {
               background: 'var(--color-primary)',
               color: '#fff',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: payoutLoading ? 'not-allowed' : 'pointer',
+              opacity: payoutLoading ? 0.6 : 1,
               fontSize: 14,
             }}
           >
-            {t('financial.withdraw')}
+            {payoutLoading ? t('common.loading') : t('financial.withdraw')}
           </button>
         </div>
       )}

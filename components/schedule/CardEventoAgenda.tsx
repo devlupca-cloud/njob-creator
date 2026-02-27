@@ -66,6 +66,19 @@ function useCallStatusBadge(callStatus?: string) {
   return map[callStatus] ?? null
 }
 
+/** Compute end time string from start time + duration minutes */
+function computeTimeRange(startTime: string, durationMin: string): string {
+  const min = parseInt(durationMin, 10)
+  if (!startTime || isNaN(min)) return startTime
+  // Parse HH:mm from startTime (could be "00:30" or "0:30")
+  const match = startTime.match(/(\d{1,2}):(\d{2})/)
+  if (!match) return startTime
+  const totalMin = parseInt(match[1], 10) * 60 + parseInt(match[2], 10) + min
+  const endH = String(Math.floor(totalMin / 60) % 24).padStart(2, '0')
+  const endM = String(totalMin % 60).padStart(2, '0')
+  return `${startTime} - ${endH}:${endM}`
+}
+
 export default function CardEventoAgenda({
   title,
   time,
@@ -78,6 +91,7 @@ export default function CardEventoAgenda({
 }: CardEventoAgendaProps) {
   const borderColor = borderColors[typeEvent] ?? '#FFDF6E'
   const badge = useCallStatusBadge(callStatus)
+  const timeRange = computeTimeRange(time, duration)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 30 }}>
@@ -157,7 +171,7 @@ export default function CardEventoAgenda({
               gap: 8,
             }}
           >
-            <span style={{ color: 'var(--color-foreground)', fontSize: 12 }}>{time}</span>
+            <span style={{ color: 'var(--color-foreground)', fontSize: 12 }}>{timeRange}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-foreground)' }}>
                 <ClockIcon />

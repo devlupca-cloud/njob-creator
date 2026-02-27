@@ -347,21 +347,33 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
         }
       }
 
-      // STRIPE_DISABLED: Create live stream directly in DB (without Stripe ticket product)
-      const { error } = await supabase
-        .from('live_streams')
-        .insert({
-          creator_id: userId,
+      // Create live stream via Stripe Edge Function (creates Product/Price + DB record)
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const res = await fetch(`${base}/functions/v1/create-stripe-live-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
           title: titulo.trim(),
           description: DURACAO_BACKEND_VALUE[duracao],
           scheduled_start_time: scheduledStartTime,
           ticket_price: valorNum,
           estimated_duration_minutes: DURACAO_MINUTOS[duracao],
-          status: 'scheduled',
-        })
+        }),
+      })
 
-      if (error) {
-        toast.error(error.message ?? t('events.errorCreating'))
+      const resData = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        const errMsg = resData?.message ?? resData?.error ?? t('events.errorCreating')
+        // Hint if Stripe account is not set up
+        if (errMsg.includes('stripe') || errMsg.includes('account')) {
+          toast.error('Configure sua conta Stripe antes de criar eventos pagos.')
+        } else {
+          toast.error(errMsg)
+        }
         return
       }
 

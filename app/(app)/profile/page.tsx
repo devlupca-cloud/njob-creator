@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCreator } from '@/lib/store/app-store'
@@ -104,9 +105,42 @@ export default function ProfilePage() {
   const creator = useCreator()
   const { t } = useTranslation()
 
-  // STRIPE_DISABLED: Stripe financial panel temporarily disabled
+  const [financeiroLoading, setFinanceiroLoading] = useState(false)
+
   const handleFinanceiro = async () => {
-    toast.info('Em breve')
+    setFinanceiroLoading(true)
+    try {
+      const supabase = createClient()
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) {
+        toast.error(t('profile.sessionExpired'))
+        return
+      }
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const res = await fetch(`${base}/functions/v1/creator-payout-update-link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok && data?.error !== 'account_onboarding') {
+        toast.error(data?.message ?? data?.error ?? `Erro HTTP ${res.status}`)
+        return
+      }
+      const url = data?.url ?? data?.login_url ?? data?.onboarding_url
+      if (url) {
+        window.open(url, '_blank')
+      } else {
+        toast.error('Nenhum link retornado pelo Stripe')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('common.error'))
+    } finally {
+      setFinanceiroLoading(false)
+    }
   }
 
   const handleInativarConta = () => {

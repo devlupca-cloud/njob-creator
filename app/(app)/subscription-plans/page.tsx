@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { createSubscriptionCheckout } from '@/lib/api/subscription'
 import { useCreator } from '@/lib/store/app-store'
 import { useTranslation } from '@/lib/i18n'
 import { toast } from 'sonner'
@@ -31,9 +32,32 @@ export default function SubscriptionPlansPage() {
     },
   })
 
-  // STRIPE_DISABLED: Subscription checkout temporarily disabled
-  const handleAssinar = async (_plan: PlanRow) => {
-    toast.info('Em breve')
+  const handleAssinar = async (plan: PlanRow) => {
+    if (!plan.stripe_price_id) {
+      toast.error(t('subscriptions.noPriceConfigured'))
+      return
+    }
+    setLoadingId(plan.id)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) {
+        toast.error(t('profile.sessionExpired'))
+        return
+      }
+      const { url, error } = await createSubscriptionCheckout(plan.stripe_price_id, token)
+      if (error) {
+        toast.error(error)
+        return
+      }
+      if (url) {
+        window.open(url, '_blank')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('common.error'))
+    } finally {
+      setLoadingId(null)
+    }
   }
 
   return (
