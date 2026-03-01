@@ -59,7 +59,7 @@ export default function LoginPage() {
           router.push(`/stripe-setup?url=${encodeURIComponent(onboardingUrl)}`)
         } else {
           toast.info(t('onboarding.registrationPending'))
-          router.push('/home')
+          router.push('/stripe-setup')
         }
       },
       isNotCreator: async () => {

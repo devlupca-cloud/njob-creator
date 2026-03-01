@@ -15,6 +15,44 @@ function StripeSetupContent() {
     searchParams.get('url')
   )
   const [loading, setLoading] = useState(!searchParams.get('url'))
+  const [checking, setChecking] = useState(false)
+
+  // Ao montar, verificar se o Stripe já foi completado (ex: creator voltou do onboarding)
+  useEffect(() => {
+    const checkIfAlreadyCompleted = async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Sincronizar status com Stripe
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/creator-payout-update-link`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        ).catch(() => {})
+      }
+
+      const { data: payoutInfo } = await supabase
+        .from('creator_payout_info')
+        .select('status')
+        .eq('creator_id', user.id)
+        .maybeSingle()
+
+      if (payoutInfo?.status === 'COMPLETED') {
+        toast.success('Conta Stripe configurada com sucesso!')
+        router.replace('/home')
+      }
+    }
+    checkIfAlreadyCompleted()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (onboardingUrl) return
@@ -32,6 +70,52 @@ function StripeSetupContent() {
     fetchUrl()
   }, [onboardingUrl])
 
+  const handleCheckStatus = async () => {
+    setChecking(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        toast.error('Sessão expirada. Faça login novamente.')
+        router.replace('/login')
+        return
+      }
+
+      // Chamar a Edge Function para sincronizar status do Stripe
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/creator-payout-update-link`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
+        ).catch(() => {})
+      }
+
+      // Verificar status atualizado
+      const { data: payoutInfo } = await supabase
+        .from('creator_payout_info')
+        .select('status')
+        .eq('creator_id', user.id)
+        .maybeSingle()
+
+      if (payoutInfo?.status === 'COMPLETED') {
+        toast.success('Conta Stripe configurada com sucesso!')
+        router.replace('/home')
+      } else {
+        toast.info('Cadastro ainda não foi concluído no Stripe. Complete todos os passos e tente novamente.')
+      }
+    } catch {
+      toast.error('Erro ao verificar status. Tente novamente.')
+    } finally {
+      setChecking(false)
+    }
+  }
+
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: 24, textAlign: 'center' }}>
       <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
@@ -46,24 +130,46 @@ function StripeSetupContent() {
           {t('common.loading')}
         </p>
       ) : onboardingUrl ? (
-        <button
-          type="button"
-          onClick={() => window.open(onboardingUrl, '_blank')}
-          style={{
-            padding: '14px 32px',
-            borderRadius: 10,
-            border: 'none',
-            background: 'var(--color-primary)',
-            color: '#fff',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontSize: 15,
-            width: '100%',
-            marginBottom: 12,
-          }}
-        >
-          Abrir cadastro no Stripe
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => window.open(onboardingUrl, '_blank')}
+            style={{
+              padding: '14px 32px',
+              borderRadius: 10,
+              border: 'none',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontSize: 15,
+              width: '100%',
+              marginBottom: 12,
+            }}
+          >
+            Abrir cadastro no Stripe
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCheckStatus}
+            disabled={checking}
+            style={{
+              padding: '14px 32px',
+              borderRadius: 10,
+              border: '1px solid var(--color-border)',
+              background: 'transparent',
+              color: 'var(--color-foreground)',
+              fontWeight: 600,
+              cursor: checking ? 'not-allowed' : 'pointer',
+              fontSize: 15,
+              width: '100%',
+              opacity: checking ? 0.6 : 1,
+            }}
+          >
+            {checking ? 'Verificando...' : 'Já completei o cadastro'}
+          </button>
+        </>
       ) : (
         <p style={{ color: 'var(--color-error)', fontSize: 14 }}>
           Não foi possível obter o link de cadastro. Tente novamente mais tarde.
