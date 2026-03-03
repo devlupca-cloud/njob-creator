@@ -41,7 +41,7 @@ function StripeSetupContent() {
               Authorization: `Bearer ${session.access_token}`,
             },
           }
-        ).catch(() => {})
+        ).catch(() => null)
       }
 
       const { data: payoutInfo } = await supabase
@@ -78,6 +78,11 @@ function StripeSetupContent() {
         router.replace('/home')
         return
       }
+      if ('verifying' in result) {
+        setVerifying(true)
+        setLoading(false)
+        return
+      }
       if ('error' in result) {
         toast.error(result.error)
         setLoading(false)
@@ -103,7 +108,7 @@ function StripeSetupContent() {
       // Chamar a Edge Function para sincronizar status do Stripe
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
-        await fetch(
+        const res = await fetch(
           `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/creator-payout-update-link`,
           {
             method: 'POST',
@@ -112,7 +117,28 @@ function StripeSetupContent() {
               Authorization: `Bearer ${session.access_token}`,
             },
           }
-        ).catch(() => {})
+        ).catch(() => null)
+
+        // Se a conta Stripe não existe, redirecionar para criação
+        if (res && !res.ok) {
+          const body = await res.json().catch(() => ({}))
+          if (body?.status === 'NOT_FOUND') {
+            toast.info('Conta Stripe não encontrada. Criando agora...')
+            const result = await createStripeAccount(supabase)
+            if ('completed' in result) {
+              toast.success('Conta Stripe configurada com sucesso!')
+              router.replace('/home')
+            } else if ('verifying' in result) {
+              setVerifying(true)
+            } else if ('url' in result) {
+              setOnboardingUrl(result.url)
+              setVerifying(false)
+            } else {
+              toast.error(result.error)
+            }
+            return
+          }
+        }
       }
 
       // Verificar status atualizado

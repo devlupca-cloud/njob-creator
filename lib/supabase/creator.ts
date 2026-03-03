@@ -64,6 +64,10 @@ export async function checkCreatorPayoutStatus(
         callbacks.isCreatorAndCompleted()
         return
       }
+      if ('verifying' in result) {
+        callbacks.isCreatorAndPending('')
+        return
+      }
       if ('error' in result) {
         callbacks.onError(result.error)
         return
@@ -87,6 +91,10 @@ export async function checkCreatorPayoutStatus(
     const result = await createStripeAccount(supabase)
     if ('completed' in result) {
       callbacks.isCreatorAndCompleted()
+      return
+    }
+    if ('verifying' in result) {
+      callbacks.isCreatorAndPending('')
       return
     }
     if ('error' in result) {
@@ -208,7 +216,7 @@ function normalizeCreatorData(raw: Record<string, unknown>): CreatorData {
 
 export async function createStripeAccount(
   supabase: SupabaseClientType
-): Promise<{ url: string } | { error: string } | { completed: true }> {
+): Promise<{ url: string } | { error: string } | { completed: true } | { verifying: true }> {
   try {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return { error: 'Sessão expirada' }
@@ -230,9 +238,14 @@ export async function createStripeAccount(
       return { error: data?.message ?? data?.error ?? `HTTP ${res.status}` }
     }
 
-    // Conta já completou onboarding — não precisa de URL
-    if (data?.completed) {
+    // Conta totalmente verificada (charges_enabled = true)
+    if (data?.completed === true) {
       return { completed: true }
+    }
+
+    // Onboarding concluido mas aguardando verificação do Stripe
+    if ('completed' in data && data.completed === false) {
+      return { verifying: true }
     }
 
     const url = data?.url ?? data?.onboarding_url ?? data?.account_link

@@ -509,12 +509,14 @@ export default function RegisterPage() {
 
           // Create Stripe connected account and redirect to onboarding
           const stripeResult = await createStripeAccount(supabase)
-          if ('url' in stripeResult) {
-            router.push(`/stripe-setup?url=${encodeURIComponent(stripeResult.url)}`)
-          } else if ('error' in stripeResult) {
-            toast.error(`Erro ao criar conta Stripe: ${stripeResult.error}`)
+          if ('completed' in stripeResult) {
+            router.push('/home')
+          } else if ('verifying' in stripeResult) {
             router.push('/stripe-setup')
+          } else if ('url' in stripeResult) {
+            router.push(`/stripe-setup?url=${encodeURIComponent(stripeResult.url)}`)
           } else {
+            toast.error(`Erro ao criar conta Stripe: ${stripeResult.error}`)
             router.push('/stripe-setup')
           }
         } catch (err) {
