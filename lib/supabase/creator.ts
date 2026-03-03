@@ -77,6 +77,12 @@ export async function checkCreatorPayoutStatus(
       return
     }
 
+    // Status is VERIFYING — onboarding concluido, Stripe verificando
+    if (payoutInfo.status === 'VERIFYING') {
+      callbacks.isCreatorAndPending('')
+      return
+    }
+
     // Status is PENDING — get onboarding link
     const result = await createStripeAccount(supabase)
     if ('completed' in result) {

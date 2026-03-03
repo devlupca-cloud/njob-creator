@@ -17,6 +17,7 @@ function StripeSetupContent() {
   const [loading, setLoading] = useState(!searchParams.get('url'))
   const [checking, setChecking] = useState(false)
   const [initialCheckDone, setInitialCheckDone] = useState(false)
+  const [verifying, setVerifying] = useState(false)
 
   // Ao montar, verificar se o Stripe já foi completado (ex: creator voltou do onboarding)
   useEffect(() => {
@@ -55,15 +56,20 @@ function StripeSetupContent() {
         return
       }
 
+      if (payoutInfo?.status === 'VERIFYING') {
+        setVerifying(true)
+        setLoading(false)
+      }
+
       setInitialCheckDone(true)
     }
     checkIfAlreadyCompleted()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Só buscar URL de onboarding após verificar que NÃO está completo
+  // Só buscar URL de onboarding após verificar que NÃO está completo e NÃO está em verificação
   useEffect(() => {
-    if (!initialCheckDone || onboardingUrl) return
+    if (!initialCheckDone || onboardingUrl || verifying) return
     const fetchUrl = async () => {
       const supabase = createClient()
       const result = await createStripeAccount(supabase)
@@ -81,7 +87,7 @@ function StripeSetupContent() {
       setLoading(false)
     }
     fetchUrl()
-  }, [initialCheckDone, onboardingUrl, router])
+  }, [initialCheckDone, onboardingUrl, verifying, router])
 
   const handleCheckStatus = async () => {
     setChecking(true)
@@ -119,6 +125,9 @@ function StripeSetupContent() {
       if (payoutInfo?.status === 'COMPLETED') {
         toast.success('Conta Stripe configurada com sucesso!')
         router.replace('/home')
+      } else if (payoutInfo?.status === 'VERIFYING') {
+        setVerifying(true)
+        toast.info('Sua conta está em verificação pelo Stripe. Isso pode levar alguns minutos. Tente novamente em breve.')
       } else {
         toast.info('Cadastro ainda não foi concluído no Stripe. Complete todos os passos e tente novamente.')
       }
@@ -142,6 +151,33 @@ function StripeSetupContent() {
         <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
           {t('common.loading')}
         </p>
+      ) : verifying ? (
+        <>
+          <p style={{ color: 'var(--color-muted)', fontSize: 14, marginBottom: 24 }}>
+            Seu cadastro foi enviado com sucesso! O Stripe está verificando suas informações.
+            Isso pode levar alguns minutos.
+          </p>
+
+          <button
+            type="button"
+            onClick={handleCheckStatus}
+            disabled={checking}
+            style={{
+              padding: '14px 32px',
+              borderRadius: 10,
+              border: 'none',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontWeight: 600,
+              cursor: checking ? 'not-allowed' : 'pointer',
+              fontSize: 15,
+              width: '100%',
+              opacity: checking ? 0.6 : 1,
+            }}
+          >
+            {checking ? 'Verificando...' : 'Verificar novamente'}
+          </button>
+        </>
       ) : onboardingUrl ? (
         <>
           <button
