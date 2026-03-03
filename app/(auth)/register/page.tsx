@@ -511,8 +511,10 @@ export default function RegisterPage() {
           const stripeResult = await createStripeAccount(supabase)
           if ('url' in stripeResult) {
             router.push(`/stripe-setup?url=${encodeURIComponent(stripeResult.url)}`)
-          } else {
+          } else if ('error' in stripeResult) {
             toast.error(`Erro ao criar conta Stripe: ${stripeResult.error}`)
+            router.push('/stripe-setup')
+          } else {
             router.push('/stripe-setup')
           }
         } catch (err) {
