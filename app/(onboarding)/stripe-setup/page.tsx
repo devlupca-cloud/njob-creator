@@ -16,13 +16,17 @@ function StripeSetupContent() {
   )
   const [loading, setLoading] = useState(!searchParams.get('url'))
   const [checking, setChecking] = useState(false)
+  const [initialCheckDone, setInitialCheckDone] = useState(false)
 
   // Ao montar, verificar se o Stripe já foi completado (ex: creator voltou do onboarding)
   useEffect(() => {
     const checkIfAlreadyCompleted = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setInitialCheckDone(true)
+        return
+      }
 
       // Sincronizar status com Stripe
       const { data: { session } } = await supabase.auth.getSession()
@@ -48,17 +52,26 @@ function StripeSetupContent() {
       if (payoutInfo?.status === 'COMPLETED') {
         toast.success('Conta Stripe configurada com sucesso!')
         router.replace('/home')
+        return
       }
+
+      setInitialCheckDone(true)
     }
     checkIfAlreadyCompleted()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Só buscar URL de onboarding após verificar que NÃO está completo
   useEffect(() => {
-    if (onboardingUrl) return
+    if (!initialCheckDone || onboardingUrl) return
     const fetchUrl = async () => {
       const supabase = createClient()
       const result = await createStripeAccount(supabase)
+      if ('completed' in result) {
+        toast.success('Conta Stripe configurada com sucesso!')
+        router.replace('/home')
+        return
+      }
       if ('error' in result) {
         toast.error(result.error)
         setLoading(false)
@@ -68,7 +81,7 @@ function StripeSetupContent() {
       setLoading(false)
     }
     fetchUrl()
-  }, [onboardingUrl])
+  }, [initialCheckDone, onboardingUrl, router])
 
   const handleCheckStatus = async () => {
     setChecking(true)
