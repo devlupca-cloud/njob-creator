@@ -40,6 +40,7 @@ const es: Translations = {
     viewAll: 'Ver todos',
     online: 'En línea',
     offline: 'Fuera de línea',
+    notifications: 'Notificaciones',
   },
 
   modals: {
@@ -181,6 +182,14 @@ const es: Translations = {
     docCPF: 'CPF',
     docID: 'Identidad',
     docPassport: 'Pasaporte',
+    selfiePhoto: 'Foto de perfil (selfie)',
+    selfiePhotoDesc: 'Toma una foto clara de tu rostro para verificación de identidad.',
+    selfieRequired: 'Foto de perfil es obligatoria',
+    docPhotoFront: 'Documento — Frente',
+    docPhotoBack: 'Documento — Reverso',
+    docPhotosDesc: 'Sube fotos de tu documento (frente y reverso) para validación.',
+    docFrontRequired: 'Foto del frente del documento es obligatoria',
+    docBackRequired: 'Foto del reverso del documento es obligatoria',
   },
 
   home: {
@@ -299,6 +308,10 @@ const es: Translations = {
     stripeError: 'No fue posible abrir el panel financiero. Verifica tu cuenta de Stripe.',
     financialError: 'Error al acceder al financiero. Inténtalo de nuevo.',
     sessionExpired: 'Sesión expirada. Por favor inicia sesión de nuevo.',
+    loadingStripe: 'Abriendo financiero...',
+    stripeVerifying: 'Tu cuenta está siendo verificada por Stripe. Esto puede tardar unos minutos.',
+    stripeNoLink: 'No se pudo generar el enlace de Stripe. Inténtalo de nuevo.',
+    stripeTimeout: 'La solicitud tardó demasiado. Verifica tu conexión e inténtalo de nuevo.',
     interactionsSaved: 'Interacciones actualizadas con éxito',
     interactionsError: 'Error al guardar. Inténtalo de nuevo.',
     videocallPer30min: 'Precio por 30 minutos de videollamada',
@@ -433,6 +446,8 @@ const es: Translations = {
     duration30min: '30 minutos',
     duration1hour: '1 hora',
     eventTitlePlaceholder: 'Escribe un título para tu evento',
+    eventDescription: 'Descripción de la live',
+    eventDescriptionPlaceholder: 'Describe lo que sucederá en tu live...',
     fieldRequired: 'Campo obligatorio*',
     minPriceHint: 'Valor mínimo de {value}*',
     selectDate: 'Seleccionar fecha',

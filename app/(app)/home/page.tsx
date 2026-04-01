@@ -210,6 +210,25 @@ export default function HomePage() {
     },
   })
 
+  // ─── Query: notificações não lidas ──────────────────────────────
+
+  const { data: unreadCount = 0 } = useQuery<number>({
+    queryKey: ['notifications-unread-count', creator?.profile.username],
+    enabled: !!creator,
+    refetchInterval: 30_000, // polling a cada 30s para atualizar badge
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.id) return 0
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+      if (error) return 0
+      return count ?? 0
+    },
+  })
+
   // ─── Query: métricas ───────────────────────────────────────────
 
   const {
@@ -400,7 +419,46 @@ export default function HomePage() {
               />
             </div>
 
-            {/* Notificações — oculto por enquanto */}
+            {/* Notificações */}
+            <button
+              onClick={() => router.push('/notifications')}
+              style={{
+                position: 'relative',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--color-muted)',
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              aria-label={t('common.notifications')}
+            >
+              <BellIcon />
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    minWidth: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    background: 'var(--color-primary)',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                  }}
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 

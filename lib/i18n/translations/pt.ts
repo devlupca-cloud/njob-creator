@@ -43,6 +43,7 @@ const pt = {
     viewAll: 'Ver todos',
     online: 'Online',
     offline: 'Offline',
+    notifications: 'Notificações',
   },
 
   // ── Modais ───────────────────────────────────────────────────────────────
@@ -202,6 +203,14 @@ const pt = {
     docCPF: 'CPF',
     docID: 'Identidade',
     docPassport: 'Passaporte',
+    selfiePhoto: 'Foto de perfil (selfie)',
+    selfiePhotoDesc: 'Tire uma foto nítida do seu rosto para verificação de identidade.',
+    selfieRequired: 'Foto de perfil é obrigatória',
+    docPhotoFront: 'Documento — Frente',
+    docPhotoBack: 'Documento — Verso',
+    docPhotosDesc: 'Envie fotos do seu documento (frente e verso) para validação.',
+    docFrontRequired: 'Foto da frente do documento é obrigatória',
+    docBackRequired: 'Foto do verso do documento é obrigatória',
   },
 
   // ── Home ─────────────────────────────────────────────────────────────────
@@ -329,6 +338,10 @@ const pt = {
     stripeError: 'Não foi possível abrir o painel financeiro. Verifique sua conta Stripe.',
     financialError: 'Erro ao acessar o financeiro. Tente novamente.',
     sessionExpired: 'Sessão expirada. Faça login novamente.',
+    loadingStripe: 'Abrindo financeiro...',
+    stripeVerifying: 'Sua conta está em verificação pelo Stripe. Isso pode levar alguns minutos.',
+    stripeNoLink: 'Não foi possível gerar o link do Stripe. Tente novamente.',
+    stripeTimeout: 'A solicitação demorou muito. Verifique sua conexão e tente novamente.',
     // Interactions page
     interactionsSaved: 'Interações alteradas com sucesso',
     interactionsError: 'Erro ao salvar. Tente novamente.',
@@ -467,6 +480,8 @@ const pt = {
     duration30min: '30 minutos',
     duration1hour: '1 hora',
     eventTitlePlaceholder: 'Escreva um título para o seu evento',
+    eventDescription: 'Descrição da live',
+    eventDescriptionPlaceholder: 'Descreva o que vai acontecer na sua live...',
     fieldRequired: 'Campo obrigatório*',
     minPriceHint: 'Valor mínimo de {value}*',
     selectDate: 'Selecionar data',

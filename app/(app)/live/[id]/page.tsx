@@ -8,17 +8,76 @@ import { useTranslation } from '@/lib/i18n'
 
 type Status = 'loading' | 'error' | 'not-owner' | 'joined'
 
+/** Mapa de traduções dos textos do ZegoCloud UIKit por idioma */
+const ZEGO_TRANSLATIONS: Record<string, Record<string, string>> = {
+  pt: {
+    'Go Live': 'Iniciar Live',
+    'End': 'Encerrar',
+    'Leave': 'Sair',
+    'Leave Room': 'Sair da Sala',
+    'Cancel': 'Cancelar',
+    'OK': 'OK',
+    'Settings': 'Configurações',
+    'Camera': 'Câmera',
+    'Microphone': 'Microfone',
+    'The host has left the room': 'O apresentador saiu da sala',
+    'You are the host': 'Você é o apresentador',
+    'No one else is here': 'Ninguém mais está aqui',
+  },
+  es: {
+    'Go Live': 'Iniciar Live',
+    'End': 'Finalizar',
+    'Leave': 'Salir',
+    'Leave Room': 'Salir de la Sala',
+    'Cancel': 'Cancelar',
+    'OK': 'OK',
+    'Settings': 'Configuración',
+    'Camera': 'Cámara',
+    'Microphone': 'Micrófono',
+    'The host has left the room': 'El presentador ha salido de la sala',
+    'You are the host': 'Eres el presentador',
+    'No one else is here': 'No hay nadie más aquí',
+  },
+}
+
 export default function LiveHostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
   const supabase = createClient()
   const creator = useCreator()
 
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const zegoRef = useRef<unknown>(null)
   const [status, setStatus] = useState<Status>('loading')
+
+  // Traduz textos do ZegoCloud UIKit (SDK só suporta en/zh)
+  useEffect(() => {
+    if (!containerRef.current || locale === 'en') return
+    const dict = ZEGO_TRANSLATIONS[locale]
+    if (!dict) return
+
+    const translateNode = () => {
+      const els = containerRef.current?.querySelectorAll('button, [role="button"], div, span, p')
+      els?.forEach((el) => {
+        // Só traduz nós-folha (sem filhos com texto)
+        if (el.children.length > 0) return
+        const text = el.textContent?.trim()
+        if (text && dict[text]) {
+          el.textContent = dict[text]
+        }
+      })
+    }
+
+    const observer = new MutationObserver(translateNode)
+    observer.observe(containerRef.current, { childList: true, subtree: true, characterData: true })
+
+    // Traduz o que já estiver renderizado
+    translateNode()
+
+    return () => observer.disconnect()
+  }, [locale])
 
   useEffect(() => {
     if (!creator || !id || !containerRef.current) return

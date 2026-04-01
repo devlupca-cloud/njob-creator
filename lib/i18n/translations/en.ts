@@ -40,6 +40,7 @@ const en: Translations = {
     viewAll: 'View all',
     online: 'Online',
     offline: 'Offline',
+    notifications: 'Notifications',
   },
 
   modals: {
@@ -181,6 +182,14 @@ const en: Translations = {
     docCPF: 'CPF',
     docID: 'ID card',
     docPassport: 'Passport',
+    selfiePhoto: 'Profile photo (selfie)',
+    selfiePhotoDesc: 'Take a clear photo of your face for identity verification.',
+    selfieRequired: 'Profile photo is required',
+    docPhotoFront: 'Document — Front',
+    docPhotoBack: 'Document — Back',
+    docPhotosDesc: 'Upload photos of your document (front and back) for validation.',
+    docFrontRequired: 'Document front photo is required',
+    docBackRequired: 'Document back photo is required',
   },
 
   home: {
@@ -299,6 +308,10 @@ const en: Translations = {
     stripeError: 'Could not open the financial panel. Check your Stripe account.',
     financialError: 'Error accessing financial panel. Try again.',
     sessionExpired: 'Session expired. Please log in again.',
+    loadingStripe: 'Opening financial...',
+    stripeVerifying: 'Your account is being verified by Stripe. This may take a few minutes.',
+    stripeNoLink: 'Could not generate the Stripe link. Please try again.',
+    stripeTimeout: 'The request took too long. Check your connection and try again.',
     interactionsSaved: 'Interactions updated successfully',
     interactionsError: 'Error saving. Please try again.',
     videocallPer30min: 'Price for 30-minute video call',
@@ -433,6 +446,8 @@ const en: Translations = {
     duration30min: '30 minutes',
     duration1hour: '1 hour',
     eventTitlePlaceholder: 'Write a title for your event',
+    eventDescription: 'Live description',
+    eventDescriptionPlaceholder: 'Describe what will happen in your live...',
     fieldRequired: 'Required field*',
     minPriceHint: 'Minimum value of {value}*',
     selectDate: 'Select date',

@@ -156,6 +156,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
   const bcp47 = getLocaleBcp47(locale)
 
   const [titulo, setTitulo] = useState('')
+  const [descricao, setDescricao] = useState('')
   const [duracao, setDuracao] = useState<DuracaoOption>('1hora')
   const [valorRaw, setValorRaw] = useState('')
   const [dataSelecionada, setDataSelecionada] = useState<Date | null>(initialDate ?? null)
@@ -196,6 +197,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
   useEffect(() => {
     if (!isOpen) {
       setTitulo('')
+      setDescricao('')
       setDuracao('1hora')
       setValorRaw('')
       setDataSelecionada(initialDate ?? null)
@@ -357,7 +359,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
         },
         body: JSON.stringify({
           title: titulo.trim(),
-          description: DURACAO_BACKEND_VALUE[duracao],
+          description: descricao.trim() || null,
           scheduled_start_time: scheduledStartTime,
           ticket_price: valorNum,
           estimated_duration_minutes: DURACAO_MINUTOS[duracao],
@@ -502,6 +504,35 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                   {t('events.fieldRequired')}
                 </span>
               )}
+            </div>
+
+            {/* Descrição */}
+            <div>
+              <label htmlFor="novo-evento-descricao" style={labelStyle}>
+                {t('events.eventDescription')}
+              </label>
+              <textarea
+                id="novo-evento-descricao"
+                placeholder={t('events.eventDescriptionPlaceholder')}
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-primary)'
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(174, 50, 195, 0.15)'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-border)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+                rows={3}
+                maxLength={500}
+                style={{
+                  ...inputBase,
+                  resize: 'vertical',
+                  minHeight: 72,
+                  fontFamily: 'inherit',
+                }}
+              />
             </div>
 
             {/* Duração */}

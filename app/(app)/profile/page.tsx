@@ -62,26 +62,32 @@ interface MenuItemProps {
   href?: string
   onClick?: () => void
   danger?: boolean
+  loading?: boolean
 }
 
-function MenuItem({ icon, label, href, onClick, danger = false }: MenuItemProps) {
+function MenuItem({ icon, label, href, onClick, danger = false, loading = false }: MenuItemProps) {
   const color = danger ? 'var(--color-error)' : 'var(--color-primary)'
   const textColor = danger ? 'var(--color-error)' : 'var(--color-foreground)'
 
   const content = (
     <div
       className="flex items-center gap-3 py-3 px-1 transition-colors cursor-pointer hover:bg-surface rounded-lg"
-      style={{ minHeight: '44px' }}
+      style={{ minHeight: '44px', opacity: loading ? 0.6 : 1, pointerEvents: loading ? 'none' : 'auto' }}
     >
       <span style={{ color }}>{icon}</span>
       <span className="flex-1 text-sm" style={{ color: textColor }}>
         {label}
       </span>
-      {!danger && (
+      {loading ? (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M12 2a10 10 0 0 1 10 10" style={{ animation: 'novoEventoSpin 0.7s linear infinite', transformOrigin: 'center' }} />
+          <style>{`@keyframes novoEventoSpin { to { transform: rotate(360deg); } }`}</style>
+        </svg>
+      ) : !danger ? (
         <span style={{ color: 'var(--color-muted)' }}>
           <ChevronRightIcon />
         </span>
-      )}
+      ) : null}
     </div>
   )
 
@@ -118,14 +124,27 @@ export default function ProfilePage() {
         return
       }
       const base = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15000)
+
       const res = await fetch(`${base}/functions/v1/creator-payout-update-link`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
+
       const data = await res.json().catch(() => ({}))
+
+      // Conta em verificação pelo Stripe — informar o usuário
+      if (data?.status === 'VERIFYING') {
+        toast.info(data?.message ?? t('profile.stripeVerifying'))
+        return
+      }
+
       if (!res.ok && data?.error !== 'account_onboarding') {
         toast.error(data?.message ?? data?.error ?? `Erro HTTP ${res.status}`)
         return
@@ -134,10 +153,14 @@ export default function ProfilePage() {
       if (url) {
         window.open(url, '_blank')
       } else {
-        toast.error('Nenhum link retornado pelo Stripe')
+        toast.error(t('profile.stripeNoLink'))
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('common.error'))
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        toast.error(t('profile.stripeTimeout'))
+      } else {
+        toast.error(err instanceof Error ? err.message : t('common.error'))
+      }
     } finally {
       setFinanceiroLoading(false)
     }
@@ -217,8 +240,9 @@ export default function ProfilePage() {
         <Divider />
         <MenuItem
           icon={<DollarIcon />}
-          label={t('nav.financial')}
+          label={financeiroLoading ? t('profile.loadingStripe') : t('nav.financial')}
           onClick={handleFinanceiro}
+          loading={financeiroLoading}
         />
         <Divider />
         <MenuItem

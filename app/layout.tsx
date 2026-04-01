@@ -11,7 +11,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'njob creator',
+  title: 'NJOb Creator',
   description: 'Creator marketplace platform',
 }
 

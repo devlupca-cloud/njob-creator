@@ -227,15 +227,24 @@ export default function RegisterPage() {
     useRef<HTMLInputElement>(null),
   ]
   const bannerImgRef = useRef<HTMLInputElement>(null)
+  const selfieImgRef = useRef<HTMLInputElement>(null)
+  const docFrontImgRef = useRef<HTMLInputElement>(null)
+  const docBackImgRef = useRef<HTMLInputElement>(null)
 
   // File state — armazena os arquivos selecionados para que sobrevivam à troca de step
   const [profileFile, setProfileFile] = useState<File | null>(null)
   const [additionalFiles, setAdditionalFiles] = useState<(File | null)[]>([null, null, null])
   const [bannerFile, setBannerFile] = useState<File | null>(null)
+  const [selfieFile, setSelfieFile] = useState<File | null>(null)
+  const [docFrontFile, setDocFrontFile] = useState<File | null>(null)
+  const [docBackFile, setDocBackFile] = useState<File | null>(null)
 
   const [profilePreview, setProfilePreview] = useState<string | null>(null)
   const [additionalPreviews, setAdditionalPreviews] = useState<(string | null)[]>([null, null, null])
   const [bannerPreview, setBannerPreview] = useState<string | null>(null)
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null)
+  const [docFrontPreview, setDocFrontPreview] = useState<string | null>(null)
+  const [docBackPreview, setDocBackPreview] = useState<string | null>(null)
   const [dicasModalOpen, setDicasModalOpen] = useState(false)
 
   const update = (field: keyof FormData, value: string | boolean) => {
@@ -277,6 +286,27 @@ export default function RegisterPage() {
     setBannerPreview(URL.createObjectURL(file))
   }
 
+  const handleSelfieImg = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setSelfieFile(file)
+    setSelfiePreview(URL.createObjectURL(file))
+  }
+
+  const handleDocFrontImg = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setDocFrontFile(file)
+    setDocFrontPreview(URL.createObjectURL(file))
+  }
+
+  const handleDocBackImg = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setDocBackFile(file)
+    setDocBackPreview(URL.createObjectURL(file))
+  }
+
   // ─── Step validation ──────────────────────────────────────────
 
   const validateStep = (): boolean => {
@@ -312,6 +342,18 @@ export default function RegisterPage() {
 
     if (step === 4) {
       if (!formData.documentoNumero) newErrors.documentoNumero = t('register.documentRequired')
+      if (!selfieFile) {
+        toast.error(t('register.selfieRequired'))
+        return false
+      }
+      if (!docFrontFile) {
+        toast.error(t('register.docFrontRequired'))
+        return false
+      }
+      if (!docBackFile) {
+        toast.error(t('register.docBackRequired'))
+        return false
+      }
     }
 
     setErrors(newErrors)
@@ -472,6 +514,24 @@ export default function RegisterPage() {
       const path = `${prefix}/${userId}/${ts}-banner-${bannerFile.name}`
       await supabase.storage.from(bucket).upload(path, bannerFile, { upsert: true })
     }
+
+    // Selfie de verificação
+    if (selfieFile) {
+      const path = `documents/${userId}/${ts}-selfie-${selfieFile.name}`
+      await supabase.storage.from(bucket).upload(path, selfieFile, { upsert: true })
+    }
+
+    // Documento — Frente
+    if (docFrontFile) {
+      const path = `documents/${userId}/${ts}-doc-front-${docFrontFile.name}`
+      await supabase.storage.from(bucket).upload(path, docFrontFile, { upsert: true })
+    }
+
+    // Documento — Verso
+    if (docBackFile) {
+      const path = `documents/${userId}/${ts}-doc-back-${docBackFile.name}`
+      await supabase.storage.from(bucket).upload(path, docBackFile, { upsert: true })
+    }
   }
 
   // ─── Final submission ──────────────────────────────────────────
@@ -570,7 +630,23 @@ export default function RegisterPage() {
           />
         )
       case 4:
-        return <Step4 formData={formData} errors={errors} update={update} t={t} />
+        return (
+          <Step4
+            formData={formData}
+            errors={errors}
+            update={update}
+            selfiePreview={selfiePreview}
+            docFrontPreview={docFrontPreview}
+            docBackPreview={docBackPreview}
+            selfieImgRef={selfieImgRef}
+            docFrontImgRef={docFrontImgRef}
+            docBackImgRef={docBackImgRef}
+            onSelfieImg={handleSelfieImg}
+            onDocFrontImg={handleDocFrontImg}
+            onDocBackImg={handleDocBackImg}
+            t={t}
+          />
+        )
       default:
         return null
     }
@@ -1090,11 +1166,23 @@ function ImageUploadBox({
 // ─── Step 4 — Documento ───────────────────────────────────────
 
 function Step4({
-  formData, errors, update, t,
+  formData, errors, update,
+  selfiePreview, docFrontPreview, docBackPreview,
+  selfieImgRef, docFrontImgRef, docBackImgRef,
+  onSelfieImg, onDocFrontImg, onDocBackImg, t,
 }: {
   formData: FormData
   errors: Partial<Record<keyof FormData, string>>
   update: (field: keyof FormData, value: string | boolean) => void
+  selfiePreview: string | null
+  docFrontPreview: string | null
+  docBackPreview: string | null
+  selfieImgRef: React.RefObject<HTMLInputElement | null>
+  docFrontImgRef: React.RefObject<HTMLInputElement | null>
+  docBackImgRef: React.RefObject<HTMLInputElement | null>
+  onSelfieImg: (e: ChangeEvent<HTMLInputElement>) => void
+  onDocFrontImg: (e: ChangeEvent<HTMLInputElement>) => void
+  onDocBackImg: (e: ChangeEvent<HTMLInputElement>) => void
   t: TFn
 }) {
   const placeholder = formData.documentoTipo === 'Passaporte' ? 'AA1234567' : '000.000.000-00'
@@ -1126,6 +1214,76 @@ function Step4({
         error={errors.documentoNumero}
         required
       />
+
+      {/* Foto de perfil (selfie) */}
+      <div className="flex flex-col gap-2 mt-4">
+        <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+          {t('register.selfiePhoto')} <span style={{ color: 'var(--color-primary)' }}>*</span>
+        </label>
+        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          {t('register.selfiePhotoDesc')}
+        </p>
+        <ImageUploadBox
+          preview={selfiePreview}
+          onClick={() => selfieImgRef.current?.click()}
+          label={t('register.selfiePhoto')}
+        />
+        <input
+          ref={selfieImgRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={onSelfieImg}
+        />
+      </div>
+
+      {/* Fotos do documento (frente e verso) */}
+      <div className="flex flex-col gap-2 mt-4">
+        <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+          {t('register.docPhotoFront')} / {t('register.docPhotoBack')} <span style={{ color: 'var(--color-primary)' }}>*</span>
+        </label>
+        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+          {t('register.docPhotosDesc')}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+              {t('register.docPhotoFront')}
+            </span>
+            <ImageUploadBox
+              preview={docFrontPreview}
+              onClick={() => docFrontImgRef.current?.click()}
+              label={t('register.docPhotoFront')}
+              compact
+            />
+            <input
+              ref={docFrontImgRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onDocFrontImg}
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+              {t('register.docPhotoBack')}
+            </span>
+            <ImageUploadBox
+              preview={docBackPreview}
+              onClick={() => docBackImgRef.current?.click()}
+              label={t('register.docPhotoBack')}
+              compact
+            />
+            <input
+              ref={docBackImgRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onDocBackImg}
+            />
+          </div>
+        </div>
+      </div>
     </>
   )
 }
