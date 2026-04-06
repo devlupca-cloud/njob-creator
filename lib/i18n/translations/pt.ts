@@ -80,7 +80,7 @@ const pt = {
     wrongPassword: 'Senha incorreta',
     emailNotFound: 'E-mail não encontrado',
     invalidEmail: 'E-mail inválido',
-    noAccess: 'Você não tem acesso a esta plataforma.',
+    noAccess: 'Esta conta não é de criador. Use o app de clientes para fazer login.',
     emailAlreadyRegistered: 'Este e-mail já está cadastrado',
     emailAlreadyRegisteredLogin: 'Este e-mail já está cadastrado. Tente fazer login.',
     weakPassword: 'Senha muito fraca.',

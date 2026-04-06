@@ -74,7 +74,7 @@ const es: Translations = {
     wrongPassword: 'Contraseña incorrecta',
     emailNotFound: 'Correo no encontrado',
     invalidEmail: 'Correo inválido',
-    noAccess: 'No tienes acceso a esta plataforma.',
+    noAccess: 'Esta cuenta no es de creador. Usa la app de clientes para iniciar sesión.',
     emailAlreadyRegistered: 'Este correo ya está registrado',
     emailAlreadyRegisteredLogin: 'Este correo ya está registrado. Intenta iniciar sesión.',
     weakPassword: 'Contraseña muy débil.',

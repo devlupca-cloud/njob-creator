@@ -74,7 +74,7 @@ const en: Translations = {
     wrongPassword: 'Incorrect password',
     emailNotFound: 'Email not found',
     invalidEmail: 'Invalid email',
-    noAccess: 'You do not have access to this platform.',
+    noAccess: 'This account is not a creator. Use the client app to log in.',
     emailAlreadyRegistered: 'This email is already registered',
     emailAlreadyRegisteredLogin: 'This email is already registered. Try signing in.',
     weakPassword: 'Password is too weak.',
