@@ -415,8 +415,9 @@ export default function RegisterPage() {
   // ─── Criar perfil e dados no banco após signUp ─────────────────
 
   const createProfileData = async (supabase: ReturnType<typeof createClient>, userId: string) => {
-    // 1) Inserir na tabela profiles
-    const { error: profileError } = await supabase.from('profiles').insert({
+    // 1) Inserir/atualizar na tabela profiles (upsert para evitar conflito
+    //    caso um trigger já tenha criado o registro automaticamente)
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: userId,
       full_name: formData.nome,
       username: formData.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
@@ -424,7 +425,7 @@ export default function RegisterPage() {
       is_active: true,
       date_birth: formData.dataNascimento || null,
       whatsapp: formData.whatsapp || null,
-    })
+    }, { onConflict: 'id' })
 
     if (profileError) {
       console.error('Erro ao criar perfil:', profileError)
