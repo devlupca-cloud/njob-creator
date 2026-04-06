@@ -224,8 +224,7 @@ export default function NotificationsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <p
-                      className="text-[13px] leading-snug"
-                      className={n.is_read ? 'font-normal text-[var(--color-muted)]' : 'font-semibold text-[var(--color-foreground)]'}
+                      className={`text-[13px] leading-snug ${n.is_read ? 'font-normal text-[var(--color-muted)]' : 'font-semibold text-[var(--color-foreground)]'}`}
                     >
                       {n.title || n.message}
                     </p>

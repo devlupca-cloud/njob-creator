@@ -204,17 +204,21 @@ export default function AlterarInteracoesPage() {
       if (settingsError) throw settingsError
 
       // Update whatsapp in profiles
-      if (whatsapp !== creator.profile.whatsapp) {
+      // Normalizar para apenas dígitos antes de comparar e salvar
+      const whatsappDigits = whatsapp.replace(/\D/g, '')
+      const storedDigits = (creator.profile.whatsapp ?? '').replace(/\D/g, '')
+
+      if (whatsappDigits !== storedDigits) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ whatsapp })
+          .update({ whatsapp: whatsappDigits || null })
           .eq('id', user.id)
 
         if (profileError) throw profileError
 
         setCreator({
           ...creator,
-          profile: { ...creator.profile, whatsapp },
+          profile: { ...creator.profile, whatsapp: whatsappDigits || '' },
         })
       }
 
