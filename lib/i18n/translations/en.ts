@@ -81,6 +81,12 @@ const en: Translations = {
     emailInUse: 'Email already in use.',
     errorAfterRegister: 'Error getting user after registration.',
     errorFinishRegister: 'Error finishing registration',
+    emailExistsModal: {
+      title: 'Email already registered',
+      message: 'This email already has an account. Would you like to go to the login page?',
+      goToLogin: 'Go to login',
+      tryOtherEmail: 'Try another email',
+    },
   },
 
   register: {

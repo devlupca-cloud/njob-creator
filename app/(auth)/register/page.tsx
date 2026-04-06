@@ -218,6 +218,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [cepLoading, setCepLoading] = useState(false)
+  // Controla exibição do modal de e-mail já cadastrado
+  const [showEmailExistsModal, setShowEmailExistsModal] = useState(false)
 
   // Image refs
   const profileImgRef = useRef<HTMLInputElement>(null)
@@ -378,7 +380,8 @@ export default function RegisterPage() {
           // Se a função RPC não existir, avança sem verificar
         } else if (data === true) {
           setErrors((prev) => ({ ...prev, email: t('auth.emailAlreadyRegistered') }))
-          toast.error(t('auth.emailAlreadyRegisteredLogin'))
+          // Exibe o modal amigável além do erro inline
+          setShowEmailExistsModal(true)
           setLoading(false)
           return
         }
@@ -611,9 +614,10 @@ export default function RegisterPage() {
         }
       },
       onEmailAlreadyInUse: () => {
-        toast.error(t('auth.emailInUse'))
         setStep(0)
         setErrors((prev) => ({ ...prev, email: t('auth.emailAlreadyRegistered') }))
+        // Exibe o modal amigável além do erro inline
+        setShowEmailExistsModal(true)
         setLoading(false)
       },
       onWeakPassword: () => {
@@ -741,6 +745,96 @@ export default function RegisterPage() {
       </form>
     </div>
     {dicasModalOpen && <DicasFotosModal onClose={() => setDicasModalOpen(false)} />}
+
+    {/* Modal: e-mail já cadastrado */}
+    {showEmailExistsModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="creator-email-exists-title"
+      >
+        <div
+          className="w-full max-w-sm rounded-2xl p-6 flex flex-col items-center gap-4"
+          style={{
+            background: 'var(--color-background)',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
+          }}
+        >
+          {/* Ícone de alerta de e-mail */}
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)' }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ color: 'var(--color-primary)' }}
+              aria-hidden="true"
+            >
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+            </svg>
+          </div>
+
+          {/* Título */}
+          <h2
+            id="creator-email-exists-title"
+            className="text-lg font-bold text-center leading-tight"
+            style={{ color: 'var(--color-foreground)' }}
+          >
+            {t('auth.emailExistsModal.title')}
+          </h2>
+
+          {/* Mensagem */}
+          <p
+            className="text-sm text-center leading-relaxed"
+            style={{ color: 'var(--color-muted)' }}
+          >
+            {t('auth.emailExistsModal.message')}
+          </p>
+
+          {/* Ações */}
+          <div className="flex flex-col gap-3 w-full mt-1">
+            {/* Botão primário: ir para login */}
+            <button
+              type="button"
+              onClick={() => router.push('/login')}
+              className="w-full h-11 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-[0.98]"
+              style={{
+                background: 'var(--color-primary)',
+                color: '#fff',
+                boxShadow: '0 0 20px color-mix(in srgb, var(--color-primary) 35%, transparent)',
+              }}
+            >
+              {t('auth.emailExistsModal.goToLogin')}
+            </button>
+
+            {/* Botão secundário: fechar e tentar outro e-mail */}
+            <button
+              type="button"
+              onClick={() => setShowEmailExistsModal(false)}
+              className="w-full h-11 rounded-xl font-semibold text-sm transition-all duration-200 active:scale-[0.98]"
+              style={{
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-foreground)',
+                background: 'transparent',
+              }}
+            >
+              {t('auth.emailExistsModal.tryOtherEmail')}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }

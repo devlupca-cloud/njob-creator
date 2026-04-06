@@ -87,6 +87,12 @@ const pt = {
     emailInUse: 'E-mail já cadastrado.',
     errorAfterRegister: 'Erro ao obter usuário após cadastro.',
     errorFinishRegister: 'Erro ao finalizar cadastro',
+    emailExistsModal: {
+      title: 'E-mail já cadastrado',
+      message: 'Este e-mail já possui uma conta. Deseja ir para a tela de login?',
+      goToLogin: 'Ir para login',
+      tryOtherEmail: 'Tentar outro e-mail',
+    },
   },
 
   // ── Register ─────────────────────────────────────────────────────────────

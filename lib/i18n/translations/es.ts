@@ -81,6 +81,12 @@ const es: Translations = {
     emailInUse: 'Correo ya registrado.',
     errorAfterRegister: 'Error al obtener usuario después del registro.',
     errorFinishRegister: 'Error al finalizar el registro',
+    emailExistsModal: {
+      title: 'Correo ya registrado',
+      message: 'Este correo ya tiene una cuenta. ¿Deseas ir a la pantalla de inicio de sesión?',
+      goToLogin: 'Ir al inicio de sesión',
+      tryOtherEmail: 'Intentar con otro correo',
+    },
   },
 
   register: {
