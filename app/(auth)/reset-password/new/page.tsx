@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import Button from '@/components/ui/Button'
 import PasswordInput from '@/components/ui/PasswordInput'
 import PageHeader from '@/components/ui/PageHeader'
-import { updatePassword, signOut } from '@/lib/supabase/auth'
+import { updatePassword } from '@/lib/supabase/auth'
 import { useTranslation } from '@/lib/i18n'
 
 function NewPasswordContent() {
@@ -39,9 +39,8 @@ function NewPasswordContent() {
     setLoading(true)
 
     await updatePassword(newPassword, {
-      onSuccess: async () => {
+      onSuccess: () => {
         toast.success(t('resetPassword.passwordChanged'))
-        await signOut()
         router.push('/home')
       },
       onError: (msg) => {

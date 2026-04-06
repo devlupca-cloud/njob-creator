@@ -232,7 +232,7 @@ function StripeSetupContent() {
           await supabase.auth.signOut()
           router.replace('/login')
         }}
-        className="mt-8 px-6 py-2.5 rounded-[10px] border-none bg-transparent text-[var(--color-error,#ef4444)] font-medium cursor-pointer text-sm"
+        className="mt-8 px-6 py-3 rounded-[10px] border border-[var(--color-error,#ef4444)] bg-transparent text-[var(--color-error,#ef4444)] font-semibold cursor-pointer text-[15px] w-full"
       >
         Sair da conta
       </button>

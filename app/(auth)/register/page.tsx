@@ -522,16 +522,40 @@ export default function RegisterPage() {
       await supabase.storage.from(bucket).upload(path, selfieFile, { upsert: true })
     }
 
-    // Documento — Frente
+    // Documento — Frente e Verso + salvar na tabela profile_documents
+    let docFrontUrl = ''
+    let docBackUrl = ''
+
     if (docFrontFile) {
       const path = `documents/${userId}/${ts}-doc-front-${docFrontFile.name}`
-      await supabase.storage.from(bucket).upload(path, docFrontFile, { upsert: true })
+      const { error } = await supabase.storage.from(bucket).upload(path, docFrontFile, { upsert: true })
+      if (!error) {
+        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path)
+        docFrontUrl = urlData.publicUrl
+      }
     }
 
-    // Documento — Verso
     if (docBackFile) {
       const path = `documents/${userId}/${ts}-doc-back-${docBackFile.name}`
-      await supabase.storage.from(bucket).upload(path, docBackFile, { upsert: true })
+      const { error } = await supabase.storage.from(bucket).upload(path, docBackFile, { upsert: true })
+      if (!error) {
+        const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path)
+        docBackUrl = urlData.publicUrl
+      }
+    }
+
+    // Salvar registro do documento (CPF/RG) na tabela profile_documents
+    if (docFrontUrl && docBackUrl) {
+      const { error: docError } = await supabase.from('profile_documents').insert({
+        profile_id: userId,
+        type: formData.documentoTipo,
+        number: formData.documentoNumero || null,
+        front_image_url: docFrontUrl,
+        back_image_url: docBackUrl,
+      })
+      if (docError) {
+        console.error('Erro ao salvar documento:', docError)
+      }
     }
   }
 
