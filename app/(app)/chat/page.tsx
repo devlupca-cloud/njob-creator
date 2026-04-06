@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
@@ -41,8 +41,8 @@ export default function ChatListPage() {
     queryKey: ['vw_creator_conversations', creator?.profile?.username],
     enabled: !!creator,
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const uid = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const uid = user?.id
       if (!uid) return []
       const { data, error } = await supabase
         .from('vw_creator_conversations')
@@ -74,101 +74,63 @@ export default function ChatListPage() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{t('chat.title')}</h1>
-      <div style={{ marginBottom: 12 }}>
+    <div className="max-w-[720px] mx-auto">
+      <h1 className="text-xl font-semibold mb-4">{t('chat.title')}</h1>
+      <div className="mb-3">
         <input
           type="text"
           placeholder={t('common.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: '1px solid var(--color-border)',
-            background: 'var(--color-surface-2)',
-            color: 'var(--color-foreground)',
-            fontSize: 14,
-          }}
+          className="w-full px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-foreground)] text-sm"
         />
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+        <div className="flex gap-2 mt-2">
+          <label className="flex items-center gap-1.5 cursor-pointer text-sm">
             <input type="checkbox" checked={filterUnread} onChange={(e) => setFilterUnread(e.target.checked)} />
             {t('chat.unread')}
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+          <label className="flex items-center gap-1.5 cursor-pointer text-sm">
             <input type="checkbox" checked={sortNewest} onChange={(e) => setSortNewest(e.target.checked)} />
             {t('chat.recent')}
           </label>
         </div>
       </div>
       {loading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
+        <div className="p-8 text-center text-[var(--color-muted)]">{t('common.loading')}</div>
       ) : filtered.length === 0 ? (
         <EmptyState title={t('chat.noConversations')} description={t('chat.emptyMessage')} icon="💬" />
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        <ul className="list-none p-0 m-0">
           {filtered.map((c) => (
             <li key={c.conversation_id ?? c.peer_id ?? ''}>
               <button
                 type="button"
                 onClick={() => openChat(c)}
+                className="w-full flex items-center gap-3 p-3 border-none border-b border-[var(--color-border)] cursor-pointer text-left"
                 style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: 12,
-                  border: 'none',
-                  borderBottom: '1px solid var(--color-border)',
-                  background: (c.unread_count ?? 0) > 0 ? 'var(--color-primary-muted, rgba(101,22,147,0.08))' : 'transparent',
-                  cursor: 'pointer',
-                  textAlign: 'left',
+                  background: (c.unread_count ?? 0) > 0 ? 'var(--color-primary-muted, rgba(101,22,147,0.08))' : 'transparent', /* dynamic value - cannot be Tailwind */
                 }}
               >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    background: 'var(--color-surface-2)',
-                    flexShrink: 0,
-                  }}
-                >
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--color-surface-2)] shrink-0">
                   {c.peer_avatar_url ? (
-                    <img src={c.peer_avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={c.peer_avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 600, color: 'var(--color-primary)' }}>
+                    <div className="w-full h-full flex items-center justify-center text-lg font-semibold text-[var(--color-primary)]">
                       {(c.peer_name ?? '?').charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--color-foreground)' }}>{c.peer_name ?? t('chat.noName')}</span>
-                    <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{formatMessageTime(c.last_message_created_at)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="font-semibold text-sm text-[var(--color-foreground)]">{c.peer_name ?? t('chat.noName')}</span>
+                    <span className="text-xs text-[var(--color-muted)]">{formatMessageTime(c.last_message_created_at)}</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: 13, color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p className="m-0 text-[13px] text-[var(--color-muted)] overflow-hidden text-ellipsis whitespace-nowrap">
                     {c.last_message ?? '—'}
                   </p>
                 </div>
                 {(c.unread_count ?? 0) > 0 && (
-                  <span
-                    style={{
-                      minWidth: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      background: 'var(--color-primary)',
-                      color: '#fff',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <span className="min-w-5 h-5 rounded-[10px] bg-[var(--color-primary)] text-white text-[11px] font-bold flex items-center justify-center px-1">
                     {c.unread_count}
                   </span>
                 )}

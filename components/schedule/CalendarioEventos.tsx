@@ -70,13 +70,6 @@ function sameDay(a: Date, b: Date): boolean {
  * CalendarioEventos — replica do custom widget CalendarioEventos Flutter (TableCalendar).
  * Exibe semana ou mês e permite selecionar data.
  */
-const EVENT_DOT_STYLE: React.CSSProperties = {
-  width: 6,
-  height: 6,
-  borderRadius: '50%',
-  background: 'var(--color-primary)',
-  flexShrink: 0,
-}
 
 export default function CalendarioEventos({
   typeCalendario,
@@ -101,8 +94,11 @@ export default function CalendarioEventos({
   if (typeCalendario === 'Semana') {
     const weekDates = getWeekDates(selectedDate)
     return (
-      <div style={{ height, background: 'var(--color-surface)', borderRadius: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.1)', padding: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', height: '100%' }}>
+      <div
+        className="bg-[var(--color-surface)] rounded-[4px] shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-2"
+        style={{ height }} /* dynamic value - cannot be Tailwind */
+      >
+        <div className="flex justify-around items-center h-full">
           {weekDates.map((d) => {
             const isSelected = sameDay(d, selectedDate)
             const hasEvent = eventSet.has(dateToKey(d))
@@ -111,23 +107,15 @@ export default function CalendarioEventos({
                 key={d.toISOString()}
                 type="button"
                 onClick={() => onDateSelected(d)}
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-[4px] border-none cursor-pointer text-xs"
                 style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '8px 12px',
-                  borderRadius: 4,
-                  border: 'none',
-                  background: isSelected ? 'var(--color-primary)' : 'transparent',
-                  color: isSelected ? '#fff' : 'var(--color-foreground)',
-                  cursor: 'pointer',
-                  fontSize: 12,
+                  background: isSelected ? 'var(--color-primary)' : 'transparent', /* dynamic value - cannot be Tailwind */
+                  color: isSelected ? '#fff' : 'var(--color-foreground)', /* dynamic value - cannot be Tailwind */
                 }}
               >
-                <span style={{ opacity: 0.8 }}>{weekdays[d.getDay()]}</span>
-                <span style={{ fontWeight: 700, fontSize: 18 }}>{d.getDate()}</span>
-                {hasEvent && <span style={EVENT_DOT_STYLE} />}
+                <span className="opacity-80">{weekdays[d.getDay()]}</span>
+                <span className="font-bold text-lg">{d.getDate()}</span>
+                {hasEvent && <span className="size-1.5 rounded-full bg-[var(--color-primary)] shrink-0" />}
               </button>
             )
           })}
@@ -141,26 +129,29 @@ export default function CalendarioEventos({
   const nextMonth = () => setViewMonth((m) => (m.month === 11 ? { year: m.year + 1, month: 0 } : { year: m.year, month: m.month + 1 }))
 
   return (
-    <div style={{ height, background: 'var(--color-surface)', borderRadius: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.1)', padding: 12, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <button type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 18 }} aria-label={t('ui.previousMonth')}>
+    <div
+      className="bg-[var(--color-surface)] rounded-[4px] shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-3 flex flex-col"
+      style={{ height }} /* dynamic value - cannot be Tailwind */
+    >
+      <div className="flex justify-between items-center mb-2">
+        <button type="button" onClick={prevMonth} className="bg-transparent border-none cursor-pointer p-1 text-lg" aria-label={t('ui.previousMonth')}>
           ‹
         </button>
-        <span style={{ fontWeight: 600, color: 'var(--color-foreground)', fontSize: 14 }}>
+        <span className="font-semibold text-[var(--color-foreground)] text-sm">
           {getMonthName(bcp47, viewMonth.year, viewMonth.month)} {viewMonth.year}
         </span>
-        <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 18 }} aria-label={t('ui.nextMonth')}>
+        <button type="button" onClick={nextMonth} className="bg-transparent border-none cursor-pointer p-1 text-lg" aria-label={t('ui.nextMonth')}>
           ›
         </button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, flex: 1 }}>
+      <div className="grid grid-cols-7 gap-1 flex-1">
         {weekdays.map((w) => (
-          <div key={w} style={{ textAlign: 'center', fontSize: 11, color: 'var(--color-muted)', fontWeight: 600 }}>
+          <div key={w} className="text-center text-[11px] text-[var(--color-muted)] font-semibold">
             {w}
           </div>
         ))}
         {days.map((d, i) => {
-          if (d === null) return <div key={`empty-${i}`} /> 
+          if (d === null) return <div key={`empty-${i}`} />
           const date = new Date(viewMonth.year, viewMonth.month, d)
           const isSelected = sameDay(date, selectedDate)
           const hasEvent = eventSet.has(dateToKey(date))
@@ -169,23 +160,14 @@ export default function CalendarioEventos({
               key={date.toISOString()}
               type="button"
               onClick={() => onDateSelected(date)}
+              className="flex flex-col items-center justify-center gap-0.5 p-1 border-none rounded-[4px] cursor-pointer text-[13px]"
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 2,
-                padding: 4,
-                border: 'none',
-                borderRadius: 4,
-                background: isSelected ? 'var(--color-primary)' : 'transparent',
-                color: isSelected ? '#fff' : 'var(--color-foreground)',
-                cursor: 'pointer',
-                fontSize: 13,
+                background: isSelected ? 'var(--color-primary)' : 'transparent', /* dynamic value - cannot be Tailwind */
+                color: isSelected ? '#fff' : 'var(--color-foreground)', /* dynamic value - cannot be Tailwind */
               }}
             >
               <span>{d}</span>
-              {hasEvent && <span style={EVENT_DOT_STYLE} />}
+              {hasEvent && <span className="size-1.5 rounded-full bg-[var(--color-primary)] shrink-0" />}
             </button>
           )
         })}

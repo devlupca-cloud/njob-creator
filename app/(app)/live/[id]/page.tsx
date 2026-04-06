@@ -85,8 +85,8 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
     let cancelled = false
 
     async function initLive() {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
       if (!userId) {
         setStatus('error')
         return
@@ -107,17 +107,21 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
       if (cancelled) return
 
       // Import dinâmico para evitar SSR
-      const { generateKitToken, ZegoUIKitPrebuilt } = await import('@/lib/zegocloud')
+      const { ZegoUIKitPrebuilt } = await import('@zegocloud/zego-uikit-prebuilt')
 
       const userName = creator!.profile.full_name || 'Host'
-      console.log('[LIVE] Generating kit token for room:', id, 'user:', userId)
-      const kitToken = generateKitToken(id, userId, userName)
-      console.log('[LIVE] Kit token generated, length:', kitToken.length)
 
-      console.log('[LIVE] Creating ZegoUIKitPrebuilt instance...')
+      // Gerar token via API route (server-side, sem expor secrets)
+      const tokenRes = await fetch('/api/zego-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomID: id, userID: userId, userName }),
+      })
+      if (!tokenRes.ok) { setStatus('error'); return }
+      const { token: kitToken } = await tokenRes.json()
+
       const zp = ZegoUIKitPrebuilt.create(kitToken)
       zegoRef.current = zp
-      console.log('[LIVE] Instance created, joining room...')
 
       zp.joinRoom({
         container: containerRef.current!,
@@ -137,7 +141,6 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
         },
       })
 
-      console.log('[LIVE] joinRoom called successfully')
       setStatus('joined')
     }
 
@@ -159,22 +162,13 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
     <>
       {/* Error / not-owner overlay */}
       {(status === 'error' || status === 'not-owner') && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--color-background)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
+        <div className="fixed inset-0 z-[60] bg-[var(--color-background)] flex flex-col items-center justify-center gap-4">
+          <p className="text-[var(--color-muted)] text-sm">
             {status === 'not-owner' ? t('live.notOwner') : t('live.errorLoad')}
           </p>
           <button
             onClick={() => router.push('/home')}
-            style={{
-              padding: '8px 24px',
-              borderRadius: 12,
-              background: 'var(--color-primary)',
-              color: '#fff',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-            }}
+            className="px-6 py-2 rounded-xl bg-[var(--color-primary)] text-white border-none cursor-pointer text-sm font-semibold"
           >
             {t('common.back')}
           </button>
@@ -183,30 +177,20 @@ export default function LiveHostPage({ params }: { params: Promise<{ id: string 
 
       {/* Loading overlay */}
       {status === 'loading' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--color-background)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              background: 'rgba(239,68,68,0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+        <div className="fixed inset-0 z-[60] bg-[var(--color-background)] flex flex-col items-center justify-center gap-4">
+          <div className="size-12 rounded-full bg-red-500/10 flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="2" />
               <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" />
             </svg>
           </div>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>{t('live.connecting')}</p>
+          <p className="text-[var(--color-muted)] text-sm">{t('live.connecting')}</p>
         </div>
       )}
 
       {/* Container persistente do ZegoCloud — nunca é desmontado */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: '#000' }}>
-        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div className="fixed inset-0 z-50 bg-black">
+        <div ref={containerRef} className="w-full h-full" />
       </div>
     </>
   )

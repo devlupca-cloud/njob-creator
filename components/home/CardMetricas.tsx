@@ -49,67 +49,28 @@ export default function CardMetricas({
 
   return (
     <div
-      style={{
-        height: 124,
-        borderRadius: 12,
-        background: fillColor,
-        padding: '24px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        flex: 1,
-        minWidth: 0,
-      }}
+      className="h-[124px] rounded-xl py-6 px-3 flex flex-col justify-between flex-1 min-w-0"
+      style={{ background: fillColor }} /* dynamic value - cannot be Tailwind */
     >
       {/* Linha superior: ícone + valor */}
       <div
-        style={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: valueMoeda ? 'center' : 'space-between',
-        }}
+        className="flex flex-row items-center"
+        style={{ justifyContent: valueMoeda ? 'center' : 'space-between' }} /* dynamic value - cannot be Tailwind */
       >
         {!valueMoeda && showIcon && (
-          <span style={{ color: '#222222', display: 'flex' }}>{icon}</span>
+          <span className="text-[#222222] flex">{icon}</span>
         )}
-        <span
-          style={{
-            color: '#222222',
-            fontSize: 24,
-            fontWeight: 700,
-            lineHeight: 1,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        <span className="text-[#222222] text-2xl font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
           {displayValue}
         </span>
       </div>
 
       {/* Linha inferior: título + subtítulo */}
-      <div style={{ textAlign: 'center' }}>
-        <p
-          style={{
-            color: '#222222',
-            fontSize: 14,
-            fontWeight: 600,
-            margin: 0,
-            lineHeight: 1.2,
-          }}
-        >
+      <div className="text-center">
+        <p className="text-[#222222] text-sm font-semibold m-0 leading-[1.2]">
           {title}
         </p>
-        <p
-          style={{
-            color: '#616161',
-            fontSize: 12,
-            margin: 0,
-            marginTop: 2,
-            lineHeight: 1.2,
-          }}
-        >
+        <p className="text-[#616161] text-xs m-0 mt-0.5 leading-[1.2]">
           {subTitle}
         </p>
       </div>

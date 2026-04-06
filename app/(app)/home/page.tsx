@@ -11,11 +11,6 @@ import type { Database } from '@/lib/types/database'
 import { useGuestGuard } from '@/lib/hooks/useGuestGuard'
 import { useTranslation } from '@/lib/i18n'
 import GuestAuthModal from '@/components/ui/GuestAuthModal'
-import Spinner from '@/components/ui/Spinner'
-
-import ToggleOnline from '@/components/home/ToggleOnline'
-import CardEvento, { type TipoEvento } from '@/components/home/CardEvento'
-import CardMetricas from '@/components/home/CardMetricas'
 import NovoEventoModal from '@/components/home/NovoEventoModal'
 import {
   getTodayLocalYYYYMMDD,
@@ -23,6 +18,10 @@ import {
   eventStartDateLocal,
 } from '@/lib/utils/datetime'
 import { useLiveStreamCleanup } from '@/lib/hooks/useLiveStreamCleanup'
+
+import { HomeHeader } from './_components/HomeHeader'
+import { TodayEvents } from './_components/TodayEvents'
+import { MetricsCards } from './_components/MetricsCards'
 
 // ─── Tipos vindos do schema ────────────────────────────────────────
 type VwCreatorEventRow = Database['public']['Views']['vw_creator_events']['Row']
@@ -33,54 +32,7 @@ interface CreatorMetrics {
   faturamento_30d: number
 }
 
-// ─── Ícones inline ────────────────────────────────────────────────
-
-const BellIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-  </svg>
-)
-
-const EyeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-)
-
-const HeartIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-  </svg>
-)
-
-const DollarIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#222222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="1" x2="12" y2="23" />
-    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-  </svg>
-)
-
-const AddIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-)
-
-const ArrowRightIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="9 18 15 12 9 6" />
-  </svg>
-)
-
 // ─── Helpers ──────────────────────────────────────────────────────
-
-/** Mantido por compatibilidade; preferir getTodayLocalYYYYMMDD de @/lib/utils/datetime */
-function getTodayISO(): string {
-  return getTodayLocalYYYYMMDD()
-}
 
 /** Retorna o timestamp (ms) UTC do evento a partir de start_date + time da view. */
 function eventTimestamp(row: VwCreatorEventRow): number {
@@ -98,9 +50,7 @@ function isEventFinished(row: VwCreatorEventRow): boolean {
   return Date.now() > eventEnd
 }
 
-/**
- * Retorna a rota interna do creator web para o evento.
- */
+/** Retorna a rota interna do creator web para o evento. */
 function buildEventRoute(event: VwCreatorEventRow): string {
   if (event.event_type === 'live') {
     return `/live/${event.event_id}`
@@ -125,7 +75,7 @@ export default function HomePage() {
 
   // ─── Query: eventos do dia ──────────────────────────────────────
 
-  const todayISO = getTodayISO()
+  const todayISO = getTodayLocalYYYYMMDD()
   const tomorrowISO = getTomorrowLocalYYYYMMDD()
 
   const {
@@ -295,7 +245,7 @@ export default function HomePage() {
     }
 
     router.push(buildEventRoute(event))
-  }, [creator, router])
+  }, [creator, router, requireAuth, t])
 
   const handleRefreshAfterCreate = useCallback(() => {
     refetchEventos()
@@ -306,8 +256,8 @@ export default function HomePage() {
     async (isActive: boolean) => {
       if (!requireAuth()) return
       if (!creator) return
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
       if (!userId) return
       setOnlineUpdating(true)
       try {
@@ -323,8 +273,13 @@ export default function HomePage() {
         setOnlineUpdating(false)
       }
     },
-    [creator, supabase, setCreator]
+    [creator, supabase, setCreator, requireAuth, t]
   )
+
+  const handleCreateEvent = useCallback(() => {
+    if (!requireAuth()) return
+    setModalOpen(true)
+  }, [requireAuth])
 
   // ─── Render ────────────────────────────────────────────────────
 
@@ -338,365 +293,31 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Conteúdo da Home */}
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <div className="max-w-[720px] mx-auto">
 
-        {/* ─── Header: avatar + nome + toggle ───────────────────────── */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 6,
-          }}
-        >
-          {/* Esquerda: avatar + nome */}
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {/* Avatar circular */}
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                background: 'var(--color-surface-2)',
-                flexShrink: 0,
-              }}
-            >
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl}
-                  alt={userName || 'Avatar'}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 20,
-                    fontWeight: 700,
-                    color: 'var(--color-primary)',
-                  }}
-                >
-                  {(userName || 'U').charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
+        <HomeHeader
+          greeting={greeting}
+          avatarUrl={avatarUrl}
+          userName={userName}
+          isOnline={creator?.profile?.is_active ?? true}
+          onlineUpdating={onlineUpdating}
+          unreadCount={unreadCount}
+          onOnlineChange={handleOnlineChange}
+          onNotificationsClick={() => router.push('/notifications')}
+          onViewProfileClick={() => router.push('/profile')}
+        />
 
-            <span
-              style={{
-                color: 'var(--color-foreground)',
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              {greeting}
-            </span>
-          </div>
+        <TodayEvents
+          eventos={eventos}
+          isLoading={eventosLoading}
+          homeCallInfoMap={homeCallInfoMap}
+          onOpenEvent={handleOpenEvent}
+          onCreateEvent={handleCreateEvent}
+          onViewAll={() => router.push('/schedule')}
+        />
 
-          {/* Direita: label "Online" + toggle + sino */}
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <span
-                style={{
-                  color: 'var(--color-foreground)',
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
-              >
-                {t('common.online')}
-              </span>
-              <ToggleOnline
-                value={creator?.profile?.is_active ?? true}
-                onChange={handleOnlineChange}
-                disabled={onlineUpdating}
-              />
-            </div>
-
-            {/* Notificações */}
-            <button
-              onClick={() => router.push('/notifications')}
-              style={{
-                position: 'relative',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-muted)',
-                padding: 4,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              aria-label={t('common.notifications')}
-            >
-              <BellIcon />
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    minWidth: 18,
-                    height: 18,
-                    borderRadius: 9,
-                    background: 'var(--color-primary)',
-                    color: '#fff',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 4px',
-                  }}
-                >
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Link "Ver perfil" */}
-        <button
-          onClick={() => router.push('/profile')}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--color-primary)',
-            fontSize: 12,
-            fontWeight: 600,
-            padding: 0,
-            marginBottom: 20,
-            display: 'block',
-          }}
-        >
-          {t('home.viewProfile')}
-        </button>
-
-        {/* ─── Seção: Eventos do Dia ─────────────────────────────────── */}
-        <section style={{ marginBottom: 24 }}>
-
-          {/* Cabeçalho da seção */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              marginBottom: 12,
-              gap: 12,
-            }}
-          >
-            {/* Badge com contagem */}
-            <div
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: 'var(--color-primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <span
-                style={{
-                  color: '#ffffff',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  lineHeight: 1,
-                }}
-              >
-                {eventos.length}
-              </span>
-            </div>
-
-            <span
-              style={{
-                color: 'var(--color-foreground)',
-                fontSize: 16,
-                fontWeight: 600,
-              }}
-            >
-              {t('home.todayEvents')}
-            </span>
-          </div>
-
-          {/* Lista de eventos */}
-          {eventosLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-              <Spinner size="lg" />
-            </div>
-          ) : eventos.length === 0 ? (
-            /* Estado vazio */
-            <div
-              style={{
-                height: 100,
-                display: 'flex',
-                alignItems: 'flex-end',
-                justifyContent: 'center',
-                paddingBottom: 12,
-              }}
-            >
-              <p
-                style={{
-                  color: 'var(--color-muted)',
-                  fontSize: 14,
-                  textAlign: 'center',
-                  margin: 0,
-                }}
-              >
-                {t('home.noEventsToday')}
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {eventos.slice(0, 3).map((evento) => {
-                const textBTN = evento.event_type === 'live'
-                  ? t('home.joinLive')
-                  : t('home.joinVideoCall')
-
-                // Monta ISO (UTC) a partir de start_date + time da view; data/hora exibidas no fuso local
-                const timeISO =
-                  evento.start_date && evento.time
-                    ? `${evento.start_date}T${evento.time.slice(0, 5)}:00.000Z`
-                    : new Date().toISOString()
-
-                // Enriquece título da call com nome do cliente
-                const callInfo = evento.event_type === 'call' && evento.event_id
-                  ? homeCallInfoMap.get(evento.event_id)
-                  : undefined
-                const displayTitle = callInfo?.clientName
-                  ? `${evento.title ?? evento.event_name ?? 'Evento'} — ${callInfo.clientName}`
-                  : (evento.title ?? evento.event_name ?? 'Evento')
-
-                return (
-                  <CardEvento
-                    key={evento.event_id ?? evento.event_name}
-                    typeEvento={(evento.event_type ?? 'call') as TipoEvento}
-                    title={displayTitle}
-                    time={timeISO}
-                    duration={`${evento.duration_min ?? '-'}m`}
-                    textBTN={textBTN}
-                    users={evento.attendee_count ?? 0}
-                    eventId={evento.event_id ?? ''}
-                    date={timeISO}
-                    ticketPrice={evento.ticket_price}
-                    onTapBTN={() => handleOpenEvent(evento)}
-                  />
-                )
-              })}
-            </div>
-          )}
-
-          {/* Link "Ver todos" — aparece quando há 3 ou mais eventos */}
-          {eventos.length >= 3 && (
-            <button
-              onClick={() => router.push('/schedule')}
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-foreground)',
-                fontSize: 12,
-                marginTop: 8,
-                marginLeft: 'auto',
-                padding: 0,
-              }}
-            >
-              {t('common.viewAll')}
-              <ArrowRightIcon />
-            </button>
-          )}
-
-          {/* Botão "Criar evento" — gradient igual ao Flutter */}
-          <button
-            onClick={() => { if (!requireAuth()) return; setModalOpen(true) }}
-            style={{
-              width: '100%',
-              height: 44,
-              borderRadius: 24,
-              background: 'linear-gradient(to right, #651693 0%, #AE32C3 100%)',
-              color: '#ffffff',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              fontSize: 14,
-              fontWeight: 600,
-              marginTop: 12,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-              transition: 'opacity 150ms',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.88')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-          >
-            <AddIcon />
-            {t('home.createEvent')}
-          </button>
-        </section>
-
-        {/* ─── Seção: Métricas ───────────────────────────────────────── */}
         <section>
-          {metricasLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-              <Spinner size="lg" />
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                gap: 8,
-              }}
-            >
-              {/* Card 1 — Visitas */}
-              <CardMetricas
-                fillColor="#F1E2FF"
-                icon={<EyeIcon />}
-                value={metricas?.visitas_30d ?? 0}
-                title={t('home.visits')}
-                subTitle={t('home.last30days')}
-                showIcon={true}
-                valueMoeda={false}
-              />
-
-              {/* Card 2 — Curtidas */}
-              <CardMetricas
-                fillColor="#E8CDFF"
-                icon={<HeartIcon />}
-                value={metricas?.curtidas_30d ?? 0}
-                title={t('home.likes')}
-                subTitle={t('home.last30days')}
-                showIcon={true}
-                valueMoeda={false}
-              />
-
-              {/* Card 3 — Faturamento */}
-              <CardMetricas
-                fillColor="#DEB8FF"
-                icon={<DollarIcon />}
-                value={Math.round(metricas?.faturamento_30d ?? 0)}
-                title={t('home.revenue')}
-                subTitle={t('home.last30days')}
-                showIcon={false}
-                valueMoeda={true}
-              />
-            </div>
-          )}
+          <MetricsCards metricas={metricas} isLoading={metricasLoading} />
         </section>
 
       </div>

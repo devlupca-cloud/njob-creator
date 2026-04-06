@@ -84,9 +84,10 @@ export default function ContentCreatePage() {
       toast.error(`${tFn('content.price')} mín. R$ ${MIN_PRICE},00`)
       return
     }
-    const { data: session } = await supabase.auth.getSession()
-    const uid = session.session?.user.id
-    const token = session.session?.access_token
+    const { data: { user } } = await supabase.auth.getUser()
+    const uid = user?.id
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
     if (!uid || !token) {
       toast.error(tFn('profile.sessionExpired'))
       return
@@ -144,122 +145,99 @@ export default function ContentCreatePage() {
     }
   }
 
-  const inputStyle = {
-    display: 'block' as const,
-    width: '100%',
-    marginTop: 4,
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid var(--color-border)',
-    background: 'var(--color-surface-2)',
-    fontSize: 14,
-  }
-  const slotStyle = {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    objectFit: 'cover' as const,
-    background: 'var(--color-surface-2)',
-    border: '1px dashed var(--color-border)',
-  }
+  const inputCls = 'block w-full mt-1 px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] text-sm'
+  const slotCls = 'size-20 rounded-lg bg-[var(--color-surface-2)] border border-dashed border-[var(--color-border)] flex items-center justify-center cursor-pointer text-[var(--color-muted)] text-xs overflow-hidden'
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{tFn('content.create')}</h1>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>
+    <div className="max-w-[480px] mx-auto">
+      <h1 className="text-xl font-semibold mb-4">{tFn('content.create')}</h1>
+      <div className="flex flex-col gap-4">
+        <label className="text-sm font-semibold">
           {tFn('content.coverImage')}
-          <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="mt-1 flex items-center gap-2">
             <input ref={coverInputRef} type="file" accept="image/*" onChange={onCoverChange} className="sr-only" id="cover-upload" />
             <button
               type="button"
               onClick={() => coverInputRef.current?.click()}
-              style={{ ...slotStyle, cursor: 'pointer', padding: 0 }}
+              className={slotCls}
             >
               {coverPreview ? (
-                <img src={coverPreview} alt={tFn('content.coverImage')} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
+                <img src={coverPreview} alt={tFn('content.coverImage')} className="w-full h-full rounded-lg object-cover" />
               ) : (
-                <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>+ {tFn('content.coverImage')}</span>
+                <span>+ {tFn('content.coverImage')}</span>
               )}
             </button>
             {coverFile && (
-              <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>{coverFile.name}</span>
+              <span className="text-xs text-[var(--color-muted)]">{coverFile.name}</span>
             )}
           </div>
         </label>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>
+
+        <label className="text-sm font-semibold">
           {tFn('register.additionalPhotos').split(' ')[0]}
-          <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <div className="mt-1 flex flex-wrap gap-2 items-center">
             <input ref={photoInputRef} type="file" accept="image/*" multiple onChange={onPhotosChange} className="sr-only" id="photos-upload" />
-            <button type="button" onClick={() => photoInputRef.current?.click()} style={{ ...slotStyle, cursor: 'pointer', fontSize: 12, color: 'var(--color-muted)' }}>
+            <button type="button" onClick={() => photoInputRef.current?.click()} className={slotCls}>
               +
             </button>
             {photoFiles.map((f, i) => (
-              <div key={i} style={{ position: 'relative', width: 80, height: 80 }}>
+              <div key={i} className="relative size-20">
                 <img
                   src={URL.createObjectURL(f)}
                   alt={f.name}
-                  style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }}
+                  className="w-full h-full rounded-lg object-cover"
                 />
                 <button
                   type="button"
                   onClick={() => removePhoto(i)}
                   aria-label={tFn('common.delete')}
-                  style={{
-                    position: 'absolute', top: -6, right: -6,
-                    width: 20, height: 20, borderRadius: '50%',
-                    background: 'var(--color-error, #e53e3e)', color: '#fff',
-                    border: 'none', cursor: 'pointer', fontSize: 12,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
+                  className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-[var(--color-error,#e53e3e)] text-white border-none cursor-pointer text-xs flex items-center justify-center"
                 >×</button>
               </div>
             ))}
           </div>
         </label>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>
+
+        <label className="text-sm font-semibold">
           {tFn('content.uploadMedia')}
-          <div style={{ marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <div className="mt-1 flex flex-wrap gap-2 items-center">
             <input ref={videoInputRef} type="file" accept="video/*" multiple onChange={onVideosChange} className="sr-only" id="videos-upload" />
-            <button type="button" onClick={() => videoInputRef.current?.click()} style={{ ...slotStyle, cursor: 'pointer', fontSize: 12, color: 'var(--color-muted)' }}>
+            <button type="button" onClick={() => videoInputRef.current?.click()} className={slotCls}>
               +
             </button>
             {videoFiles.map((f, i) => (
-              <div key={i} style={{ position: 'relative', width: 80, height: 80 }}>
+              <div key={i} className="relative size-20">
                 <video
                   src={URL.createObjectURL(f)}
-                  style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }}
+                  className="w-full h-full rounded-lg object-cover"
                 />
                 <button
                   type="button"
                   onClick={() => removeVideo(i)}
                   aria-label={tFn('common.delete')}
-                  style={{
-                    position: 'absolute', top: -6, right: -6,
-                    width: 20, height: 20, borderRadius: '50%',
-                    background: 'var(--color-error, #e53e3e)', color: '#fff',
-                    border: 'none', cursor: 'pointer', fontSize: 12,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
+                  className="absolute -top-1.5 -right-1.5 size-5 rounded-full bg-[var(--color-error,#e53e3e)] text-white border-none cursor-pointer text-xs flex items-center justify-center"
                 >×</button>
               </div>
             ))}
           </div>
         </label>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>
+
+        <label className="text-sm font-semibold">
           {tFn('content.contentTitle')}
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            style={inputStyle}
+            className={inputCls}
           />
         </label>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>
+
+        <label className="text-sm font-semibold">
           {tFn('content.contentDescription')} ({tFn('common.optional')})
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={inputStyle} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} className={inputCls} />
         </label>
-        <label style={{ fontSize: 14, fontWeight: 600 }}>
+
+        <label className="text-sm font-semibold">
           {tFn('content.price')} (R$)
           <input
             type="text"
@@ -268,26 +246,20 @@ export default function ContentCreatePage() {
             onChange={(e) => { setPrice(formatCurrencyBRL(e.target.value, bcp47)); setPriceError(false) }}
             onBlur={() => { if (price && parseCurrencyBRL(price) < MIN_PRICE) setPriceError(true) }}
             placeholder={new Intl.NumberFormat(bcp47, { style: 'currency', currency: 'BRL' }).format(0)}
-            style={{ ...inputStyle, borderColor: priceError ? 'var(--color-error)' : undefined }}
+            className={[inputCls, priceError ? 'border-[var(--color-error)]' : ''].join(' ')}
           />
           {priceError && (
-            <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+            <span className="text-[var(--color-error)] text-xs mt-1 block">
               {tFn('register.minValue')}
             </span>
           )}
         </label>
-        <div style={{ display: 'flex', gap: 8 }}>
+
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={() => router.back()}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 8,
-              border: '1px solid var(--color-border)',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontSize: 14,
-            }}
+            className="px-5 py-2.5 rounded-lg border border-[var(--color-border)] bg-transparent cursor-pointer text-sm"
           >
             {tFn('common.back')}
           </button>
@@ -295,16 +267,10 @@ export default function ContentCreatePage() {
             type="button"
             onClick={submit}
             disabled={loading}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 8,
-              border: 'none',
-              background: 'var(--color-primary)',
-              color: '#fff',
-              fontWeight: 600,
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: 14,
-            }}
+            className={[
+              'px-5 py-2.5 rounded-lg border-none bg-[var(--color-primary)] text-white font-semibold text-sm',
+              loading ? 'cursor-not-allowed' : 'cursor-pointer',
+            ].join(' ')}
           >
             {loading ? tFn('events.creating') : tFn('content.publish')}
           </button>

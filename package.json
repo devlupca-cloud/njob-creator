@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.47.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.96.0",
     "@tanstack/react-query": "^5.90.21",
     "@zegocloud/zego-uikit-prebuilt": "^2.17.2",
+    "lucide-react": "^1.7.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

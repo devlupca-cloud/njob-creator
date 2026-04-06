@@ -95,14 +95,11 @@ function DescricaoPreview({ idade, cidade, euSou, por, meConsidero, adoro, pesso
   if (!parts.length) return null
 
   return (
-    <div
-      className="rounded-xl p-4"
-      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-    >
-      <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-muted)' }}>
+    <div className="rounded-xl p-4 bg-[var(--color-surface)] border border-[var(--color-border)]">
+      <p className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--color-muted)]">
         {t('profile.preview')}
       </p>
-      <p className="text-sm leading-relaxed" style={{ color: 'var(--color-foreground)' }}>
+      <p className="text-sm leading-relaxed text-[var(--color-foreground)]">
         {parts.join('. ')}.
       </p>
     </div>
@@ -134,8 +131,8 @@ export default function AlterarDescricaoPage() {
     setLoading(true)
     try {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Sem sessão')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Sem sessão')
 
       const { error } = await supabase
         .from('creator_description')
@@ -147,7 +144,7 @@ export default function AlterarDescricaoPage() {
           pessoas_que: pessoasQue,
           updated_at: new Date().toISOString(),
         })
-        .eq('profile_id', session.user.id)
+        .eq('profile_id', user.id)
 
       if (error) throw error
 
@@ -182,13 +179,13 @@ export default function AlterarDescricaoPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
+    <div className="flex flex-col min-h-full bg-[var(--color-background)]">
       <PageHeader title={t('profile.editDescription')} />
 
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 py-6 space-y-4">
 
-          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-sm text-[var(--color-muted)]">
             {t('profile.editDescSubtitle')}
           </p>
 

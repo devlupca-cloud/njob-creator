@@ -63,7 +63,7 @@ export default function AlterarSenhaPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
+    <div className="flex flex-col min-h-full bg-[var(--color-background)]">
       <PageHeader title={t('profile.editPassword')} />
 
       <div className="flex-1 flex flex-col px-4 py-6">
@@ -82,7 +82,7 @@ export default function AlterarSenhaPage() {
               autoFocus
             />
             {!errorNew && (
-              <p className="text-xs italic" style={{ color: 'var(--color-muted)' }}>
+              <p className="text-xs italic text-[var(--color-muted)]">
                 {t('profile.passwordHint')}
               </p>
             )}

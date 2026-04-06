@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/types/database'
 import { useTranslation } from '@/lib/i18n'
+import { ArrowLeft } from 'lucide-react'
 
 type MessageRow = Database['public']['Views']['vw_messages']['Row']
 type ConversationRow = Database['public']['Views']['vw_creator_conversations']['Row']
@@ -41,8 +42,8 @@ export default function ChatConversationPage() {
     if (!id) return
     let cancelled = false
     ;(async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const uid = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const uid = user?.id
       if (!uid) return
       if (!cancelled) setUserId(uid)
       const { data: conv } = await supabase
@@ -114,51 +115,38 @@ export default function ChatConversationPage() {
   if (!id) return null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)', maxWidth: 720, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--color-border)' }}>
+    <div className="flex flex-col max-w-[720px] mx-auto h-[calc(100vh-120px)]">
+      <div className="flex items-center gap-3 py-3 border-b border-[var(--color-border)]">
         <button
           type="button"
           onClick={() => router.back()}
           aria-label={t('common.back')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+          className="bg-transparent border-none cursor-pointer p-1"
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
+          <ArrowLeft size={24} strokeWidth={2} />
         </button>
-        <span style={{ fontWeight: 600, fontSize: 16 }}>{peerName}</span>
+        <span className="font-semibold text-base">{peerName}</span>
       </div>
       <div
         ref={listRef}
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: 16,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
-        }}
+        className="flex-1 overflow-auto p-4 flex flex-col gap-2"
       >
         {loading ? (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
+          <div className="p-6 text-center text-[var(--color-muted)]">{t('common.loading')}</div>
         ) : messages.length === 0 ? (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('chat.noMessages')}</div>
+          <div className="p-6 text-center text-[var(--color-muted)]">{t('chat.noMessages')}</div>
         ) : (
           messages.map((m) => {
             const isMe = m.sender_id === userId
             return (
               <div
                 key={m.message_id ?? m.created_at ?? ''}
-                style={{
-                  alignSelf: isMe ? 'flex-end' : 'flex-start',
-                  maxWidth: '80%',
-                  padding: '8px 12px',
-                  borderRadius: 12,
-                  background: isMe ? 'var(--color-primary)' : 'var(--color-surface-2)',
-                  color: isMe ? '#fff' : 'var(--color-foreground)',
-                  fontSize: 14,
-                }}
+                className={[
+                  'max-w-[80%] px-3 py-2 rounded-xl text-sm',
+                  isMe
+                    ? 'self-end bg-[var(--color-primary)] text-white'
+                    : 'self-start bg-[var(--color-surface-2)] text-[var(--color-foreground)]',
+                ].join(' ')}
               >
                 {m.content}
               </div>
@@ -166,37 +154,23 @@ export default function ChatConversationPage() {
           })
         )}
       </div>
-      <div style={{ padding: 12, borderTop: '1px solid var(--color-border)', display: 'flex', gap: 8 }}>
+      <div className="p-3 border-t border-[var(--color-border)] flex gap-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
           placeholder={t('chat.messagePlaceholder')}
-          style={{
-            flex: 1,
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: '1px solid var(--color-border)',
-            background: 'var(--color-surface-2)',
-            color: 'var(--color-foreground)',
-            fontSize: 14,
-          }}
+          className="flex-1 px-3 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-foreground)] text-sm"
         />
         <button
           type="button"
           onClick={send}
           disabled={!input.trim()}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 8,
-            border: 'none',
-            background: 'var(--color-primary)',
-            color: '#fff',
-            fontWeight: 600,
-            cursor: input.trim() ? 'pointer' : 'not-allowed',
-            opacity: input.trim() ? 1 : 0.5,
-          }}
+          className={[
+            'px-5 py-2.5 rounded-lg border-none bg-[var(--color-primary)] text-white font-semibold',
+            input.trim() ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-50',
+          ].join(' ')}
         >
           {t('chat.send')}
         </button>

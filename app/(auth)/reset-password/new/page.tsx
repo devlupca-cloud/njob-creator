@@ -42,7 +42,7 @@ function NewPasswordContent() {
       onSuccess: async () => {
         toast.success(t('resetPassword.passwordChanged'))
         await signOut()
-        router.push('/login')
+        router.push('/home')
       },
       onError: (msg) => {
         toast.error(msg)
@@ -55,7 +55,7 @@ function NewPasswordContent() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t('resetPassword.newPassword')} />
 
-      <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-sm text-[var(--color-muted)]">
         {t('resetPassword.newPasswordSubtitle')}
       </p>
 
@@ -99,7 +99,7 @@ function NewPasswordContent() {
 export default function ResetPasswordNewPage() {
   const { t } = useTranslation()
   return (
-    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">{t('common.loading')}</div>}>
+    <Suspense fallback={<div className="text-center py-8 text-[var(--color-muted)]">{t('common.loading')}</div>}>
       <NewPasswordContent />
     </Suspense>
   )

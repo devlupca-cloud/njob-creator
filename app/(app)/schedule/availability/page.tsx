@@ -259,10 +259,12 @@ function ScheduleAvailabilityContent() {
     queryKey: ['get_creator_daily_slots', creator?.profile.username, dateStr],
     enabled: !!creator,
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
-      const token = session.session?.access_token
-      if (!userId || !token) throw new Error('Não autenticado')
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
+      if (!userId) throw new Error('Não autenticado')
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('Não autenticado')
       return getCreatorDailySlots(userId, dateStr, token)
     },
   })
@@ -272,8 +274,8 @@ function ScheduleAvailabilityContent() {
     queryKey: ['availability_conflicts', creator?.profile.username, dateStr],
     enabled: !!creator,
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
       if (!userId) throw new Error('Não autenticado')
 
       // Day boundaries in UTC based on local date
@@ -386,9 +388,10 @@ function ScheduleAvailabilityContent() {
   }, [slotsManha, slotsTarde, slotsNoite, slotsMadrugada, purchasedSlots, liveBlockedSlots])
 
   const handleSave = useCallback(async () => {
-    const { data: session } = await supabase.auth.getSession()
-    const userId = session.session?.user.id
-    const token = session.session?.access_token
+    const { data: { user } } = await supabase.auth.getUser()
+    const userId = user?.id
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
     if (!userId || !token) {
       toast.error(t('profile.sessionExpired'))
       return

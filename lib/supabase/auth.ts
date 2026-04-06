@@ -17,13 +17,8 @@ interface SignUpCallbacks extends AuthCallbacks {
   onWeakPassword?: () => void
 }
 
-interface OtpCallbacks extends AuthCallbacks {
+interface ResetEmailCallbacks extends AuthCallbacks {
   onInvalidEmail?: () => void
-}
-
-interface VerifyOtpCallbacks extends AuthCallbacks {
-  onInvalidOtp?: () => void
-  onExpiredOtp?: () => void
 }
 
 /**
@@ -97,18 +92,17 @@ export async function signUp(
 }
 
 /**
- * Send OTP to email for password reset.
- * Translated from: supabase_send_password_reset_otp.dart
+ * Send password reset email with a recovery link.
  */
-export async function sendPasswordResetOtp(
+export async function sendPasswordResetEmail(
   email: string,
-  callbacks: OtpCallbacks = {}
+  callbacks: ResetEmailCallbacks = {}
 ): Promise<void> {
   const supabase = createClient()
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: false },
+  const redirectTo = `${window.location.origin}/reset-password/new`
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
   })
 
   if (!error) {
@@ -120,41 +114,6 @@ export async function sendPasswordResetOtp(
 
   if (msg.includes('invalid email')) {
     callbacks.onInvalidEmail?.()
-    callbacks.onError?.(error.message)
-  } else {
-    callbacks.onError?.(error.message)
-  }
-}
-
-/**
- * Verify OTP code entered by user for password reset.
- * Translated from: supabase_verify_password_reset_otp.dart
- */
-export async function verifyPasswordResetOtp(
-  email: string,
-  code: string,
-  callbacks: VerifyOtpCallbacks = {}
-): Promise<void> {
-  const supabase = createClient()
-
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token: code,
-    type: 'recovery',
-  })
-
-  if (!error) {
-    callbacks.onSuccess?.()
-    return
-  }
-
-  const msg = error.message.toLowerCase()
-
-  if (msg.includes('expired')) {
-    callbacks.onExpiredOtp?.()
-    callbacks.onError?.(error.message)
-  } else if (msg.includes('invalid') || msg.includes('incorrect')) {
-    callbacks.onInvalidOtp?.()
     callbacks.onError?.(error.message)
   } else {
     callbacks.onError?.(error.message)

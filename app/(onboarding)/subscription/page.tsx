@@ -61,35 +61,30 @@ export default function OnboardingSubscriptionPage() {
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', padding: 24 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>{t('onboarding.choosePlan')}</h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 14, marginBottom: 24 }}>
+    <div className="max-w-[480px] mx-auto p-6">
+      <h1 className="text-[22px] font-semibold mb-2">{t('onboarding.choosePlan')}</h1>
+      <p className="text-[var(--color-muted)] text-sm mb-6">
         {t('onboarding.firstAccessSubscription')}
       </p>
       {plans.length === 0 ? (
-        <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('subscriptions.noPlans')}</div>
+        <div className="p-6 text-center text-[var(--color-muted)]">{t('subscriptions.noPlans')}</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="flex flex-col gap-3">
           {(plans as PlanRow[]).map((p) => (
-            <div key={p.id} style={{ padding: 20, background: 'var(--color-surface-2)', borderRadius: 12 }}>
-              <div style={{ fontWeight: 600, marginBottom: 4 }}>{p.name}</div>
-              {p.description && <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--color-muted)' }}>{p.description}</p>}
-              <div style={{ fontSize: 14, marginBottom: 12 }}>R$ {Number(p.price_monthly).toFixed(2)}/mês</div>
+            <div key={p.id} className="p-5 bg-[var(--color-surface-2)] rounded-xl">
+              <div className="font-semibold mb-1">{p.name}</div>
+              {p.description && (
+                <p className="m-0 mb-2 text-[13px] text-[var(--color-muted)]">{p.description}</p>
+              )}
+              <div className="text-sm mb-3">R$ {Number(p.price_monthly).toFixed(2)}/mês</div>
               <button
                 type="button"
                 disabled={!p.stripe_price_id || loadingId === p.id}
                 onClick={() => handleAssinar(p)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: 8,
-                  border: 'none',
-                  background: 'var(--color-primary)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  cursor: p.stripe_price_id && loadingId !== p.id ? 'pointer' : 'not-allowed',
-                  opacity: p.stripe_price_id && loadingId !== p.id ? 1 : 0.6,
-                  fontSize: 14,
-                }}
+                className={[
+                  'px-5 py-2.5 rounded-lg border-none bg-[var(--color-primary)] text-white font-semibold text-sm',
+                  p.stripe_price_id && loadingId !== p.id ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-60',
+                ].join(' ')}
               >
                 {loadingId === p.id ? t('subscriptions.openingCheckout') : t('subscriptions.subscribe')}
               </button>
@@ -97,8 +92,8 @@ export default function OnboardingSubscriptionPage() {
           ))}
         </div>
       )}
-      <div style={{ marginTop: 24 }}>
-        <Link href="/home" style={{ fontSize: 14, color: 'var(--color-primary)', fontWeight: 600 }}>
+      <div className="mt-6">
+        <Link href="/home" className="text-sm text-[var(--color-primary)] font-semibold">
           {t('onboarding.skipToApp')}
         </Link>
       </div>

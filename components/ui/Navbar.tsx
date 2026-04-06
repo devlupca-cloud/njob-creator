@@ -75,11 +75,7 @@ export default function Navbar() {
   return (
     <>
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around h-16 px-2"
-        style={{
-          background: 'var(--color-surface)',
-          borderTop: '1px solid var(--color-border)',
-        }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around h-16 px-2 bg-[var(--color-surface)] border-t border-[var(--color-border)]"
       >
         {mobileNav.map((item) => {
           const isActive = pathname === item.href
@@ -91,16 +87,15 @@ export default function Navbar() {
                 key={item.href}
                 type="button"
                 onClick={() => setGuestModalOpen(true)}
-                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
-                style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-muted)' }}
+                className={[
+                  'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors',
+                  isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-muted)]',
+                ].join(' ')}
               >
                 {item.icon}
                 <span className="text-xs font-medium">{item.label}</span>
                 {isActive && (
-                  <div
-                    className="absolute bottom-0 h-0.5 w-8 rounded-full"
-                    style={{ background: 'var(--color-primary)' }}
-                  />
+                  <div className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--color-primary)]" />
                 )}
               </button>
             )
@@ -112,8 +107,7 @@ export default function Navbar() {
                 key={item.href}
                 type="button"
                 onClick={() => handleComingSoon(item.label)}
-                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
-                style={{ color: 'var(--color-muted)' }}
+                className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors text-[var(--color-muted)]"
               >
                 {item.icon}
                 <span className="text-xs font-medium">{item.label}</span>
@@ -125,16 +119,15 @@ export default function Navbar() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
-              style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-muted)' }}
+              className={[
+                'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-colors',
+                isActive ? 'text-[var(--color-primary)]' : 'text-[var(--color-muted)]',
+              ].join(' ')}
             >
               {item.icon}
               <span className="text-xs font-medium">{item.label}</span>
               {isActive && (
-                <div
-                  className="absolute bottom-0 h-0.5 w-8 rounded-full"
-                  style={{ background: 'var(--color-primary)' }}
-                />
+                <div className="absolute bottom-0 h-0.5 w-8 rounded-full bg-[var(--color-primary)]" />
               )}
             </Link>
           )

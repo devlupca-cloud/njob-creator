@@ -49,10 +49,10 @@ export default function AlterarEmailPage() {
       const supabase = createClient()
 
       // Verify current session email matches what user typed
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error(t('profile.noSession'))
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error(t('profile.noSession'))
 
-      if (session.user.email?.toLowerCase() !== currentEmail.toLowerCase()) {
+      if (user.email?.toLowerCase() !== currentEmail.toLowerCase()) {
         setErrorCurrent(t('profile.emailMismatch'))
         return
       }
@@ -73,7 +73,7 @@ export default function AlterarEmailPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
+    <div className="flex flex-col min-h-full bg-[var(--color-background)]">
       <PageHeader title={t('profile.editEmail')} />
 
       <div className="flex-1 flex flex-col px-4 py-6">
@@ -108,7 +108,7 @@ export default function AlterarEmailPage() {
           />
         </div>
 
-        <p className="mt-3 text-xs" style={{ color: 'var(--color-muted)' }}>
+        <p className="mt-3 text-xs text-[var(--color-muted)]">
           {t('profile.emailConfirmNotice')}
         </p>
 

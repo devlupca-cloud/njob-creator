@@ -26,8 +26,8 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     let cancelled = false
 
     async function initCall() {
-      const { data: session } = await supabase.auth.getSession()
-      const userId = session.session?.user.id
+      const { data: { user } } = await supabase.auth.getUser()
+      const userId = user?.id
       if (!userId) {
         setStatus('error')
         return
@@ -59,10 +59,18 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
       if (cancelled) return
 
       // Import dinâmico para evitar SSR
-      const { generateKitToken, ZegoUIKitPrebuilt } = await import('@/lib/zegocloud')
+      const { ZegoUIKitPrebuilt } = await import('@zegocloud/zego-uikit-prebuilt')
 
       const userName = creator!.profile.full_name || 'Creator'
-      const kitToken = generateKitToken(id, userId, userName)
+
+      // Gerar token via API route (server-side, sem expor secrets)
+      const tokenRes = await fetch('/api/zego-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomID: id, userID: userId, userName }),
+      })
+      if (!tokenRes.ok) { setStatus('error'); return }
+      const { token: kitToken } = await tokenRes.json()
 
       const zp = ZegoUIKitPrebuilt.create(kitToken)
       zegoRef.current = zp
@@ -102,9 +110,12 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
     <>
       {/* Error overlay */}
       {status === 'error' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--color-background)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>{t('videoCall.errorLoad')}</p>
-          <button onClick={() => router.push('/home')} style={{ padding: '8px 24px', borderRadius: 12, background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+        <div className="fixed inset-0 z-[60] bg-[var(--color-background)] flex flex-col items-center justify-center gap-4">
+          <p className="text-[var(--color-muted)] text-sm">{t('videoCall.errorLoad')}</p>
+          <button
+            onClick={() => router.push('/home')}
+            className="px-6 py-2 rounded-xl bg-[var(--color-primary)] text-white border-none cursor-pointer text-sm font-semibold"
+          >
             {t('common.back')}
           </button>
         </div>
@@ -112,20 +123,20 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
 
       {/* Loading overlay */}
       {status === 'loading' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'var(--color-background)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(101,22,147,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="fixed inset-0 z-[60] bg-[var(--color-background)] flex flex-col items-center justify-center gap-4">
+          <div className="size-12 rounded-full bg-[rgba(101,22,147,0.1)] flex items-center justify-center">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#651693" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="23 7 16 12 23 17 23 7" />
               <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
           </div>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>{t('videoCall.connecting')}</p>
+          <p className="text-[var(--color-muted)] text-sm">{t('videoCall.connecting')}</p>
         </div>
       )}
 
       {/* Container persistente do ZegoCloud */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: '#000' }}>
-        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <div className="fixed inset-0 z-50 bg-black">
+        <div ref={containerRef} className="w-full h-full" />
       </div>
     </>
   )

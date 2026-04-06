@@ -8,30 +8,8 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        background: 'var(--color-background)',
-        padding: '0 24px',
-        textAlign: 'center',
-        gap: 24,
-      }}
-    >
-      <div
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: '50%',
-          background: 'rgba(239,68,68,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--color-background)] px-6 text-center gap-6">
+      <div className="size-20 rounded-full bg-red-500/10 flex items-center justify-center">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="12" />
@@ -39,27 +17,18 @@ export default function GlobalError({
         </svg>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--color-foreground)', margin: 0 }}>
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg font-semibold text-[var(--color-foreground)] m-0">
           Algo deu errado
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: 0, maxWidth: 320 }}>
+        <p className="text-sm text-[var(--color-muted)] m-0 max-w-[320px]">
           Ocorreu um erro inesperado. Tente novamente.
         </p>
       </div>
 
       <button
         onClick={reset}
-        style={{
-          padding: '10px 24px',
-          borderRadius: 12,
-          background: 'var(--color-primary)',
-          color: '#fff',
-          fontSize: 14,
-          fontWeight: 600,
-          border: 'none',
-          cursor: 'pointer',
-        }}
+        className="px-6 py-2.5 rounded-xl bg-[var(--color-primary)] text-white text-sm font-semibold border-none cursor-pointer"
       >
         Tentar novamente
       </button>

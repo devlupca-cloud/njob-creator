@@ -1,62 +1,62 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useCreator } from '@/lib/store/app-store'
+import { useQuery } from '@tanstack/react-query'
+import { useCreator, useAppStore } from '@/lib/store/app-store'
+import { createClient } from '@/lib/supabase/client'
+import { getCreatorInfo } from '@/lib/supabase/creator'
 import { useTranslation } from '@/lib/i18n'
 
 export default function PaymentsPage() {
   const router = useRouter()
   const creator = useCreator()
+  const setCreator = useAppStore((s) => s.setCreator)
   const { t } = useTranslation()
+
+  // Refetch creator data to keep account_details fresh
+  useQuery({
+    queryKey: ['creator-profile'],
+    queryFn: async () => {
+      const supabase = createClient()
+      const info = await getCreatorInfo(supabase)
+      if (info) setCreator(info)
+      return info
+    },
+    enabled: !!creator,
+  })
+
   const accountDetails = creator?.account_details
   const bank = accountDetails?.bank_account
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{t('payments.title')}</h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 14, marginBottom: 24 }}>
+    <div className="max-w-[720px] mx-auto">
+      <h1 className="text-xl font-semibold mb-4">{t('payments.title')}</h1>
+      <p className="text-[var(--color-muted)] text-sm mb-6">
         {t('payments.subtitle')}
       </p>
       {bank ? (
-        <div style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8, marginBottom: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('payments.bankAccount')}</div>
-          <div style={{ fontSize: 14, color: 'var(--color-muted)' }}>
+        <div className="p-4 bg-[var(--color-surface-2)] rounded-lg mb-4">
+          <div className="font-semibold mb-1">{t('payments.bankAccount')}</div>
+          <div className="text-sm text-[var(--color-muted)]">
             ****{bank.last4} · {bank.bank_name}
           </div>
           <button
             type="button"
             onClick={() => router.push('/payments/add')}
-            style={{
-              marginTop: 12,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: '1px solid var(--color-border)',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontSize: 14,
-            }}
+            className="mt-3 px-4 py-2 rounded-lg border border-[var(--color-border)] bg-transparent cursor-pointer text-sm"
           >
             {t('payments.updateData')}
           </button>
         </div>
       ) : (
-        <div style={{ padding: 24, background: 'var(--color-surface-2)', borderRadius: 8, marginBottom: 16, textAlign: 'center', color: 'var(--color-muted)' }}>
+        <div className="p-6 bg-[var(--color-surface-2)] rounded-lg mb-4 text-center text-[var(--color-muted)]">
           {t('payments.noAccount')}
         </div>
       )}
       <button
         type="button"
         onClick={() => router.push('/payments/add')}
-        style={{
-          padding: '12px 24px',
-          borderRadius: 8,
-          border: 'none',
-          background: 'var(--color-primary)',
-          color: '#fff',
-          fontWeight: 600,
-          cursor: 'pointer',
-          fontSize: 14,
-        }}
+        className="px-6 py-3 rounded-lg border-none bg-[var(--color-primary)] text-white font-semibold cursor-pointer text-sm"
       >
         {bank ? t('payments.changeAccount') : t('payments.addCard')}
       </button>

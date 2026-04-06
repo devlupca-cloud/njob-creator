@@ -45,25 +45,22 @@ export default function AlterarIdiomaPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
+    <div className="flex flex-col min-h-full bg-[var(--color-background)]">
       <PageHeader title={t('profile.language')} />
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <p className="text-sm mb-4" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-sm mb-4 text-[var(--color-muted)]">
           {t('profile.selectLanguage')}
         </p>
 
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-        >
+        <div className="rounded-xl overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]">
           {LANGUAGES.map((lang, index) => {
             const translatedLabel = t(lang.translatedKey)
             const showSubtitle = translatedLabel !== lang.nativeLabel
             return (
               <div key={lang.code}>
                 {index > 0 && (
-                  <div style={{ height: '1px', background: 'var(--color-border)' }} />
+                  <div className="h-px bg-[var(--color-border)]" />
                 )}
                 <button
                   className="w-full flex items-center justify-between px-4 py-4 transition-colors hover:bg-surface-2"
@@ -71,17 +68,17 @@ export default function AlterarIdiomaPage() {
                   aria-label={lang.nativeLabel}
                 >
                   <div className="text-left">
-                    <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+                    <p className="text-sm font-medium text-[var(--color-foreground)]">
                       {lang.nativeLabel}
                     </p>
                     {showSubtitle && (
-                      <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                      <p className="text-xs text-[var(--color-muted)]">
                         {translatedLabel}
                       </p>
                     )}
                   </div>
                   {locale === lang.code && (
-                    <span style={{ color: 'var(--color-primary)' }}>
+                    <span className="text-[var(--color-primary)]">
                       <CheckIcon />
                     </span>
                   )}

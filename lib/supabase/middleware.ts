@@ -75,7 +75,8 @@ export async function updateSession(request: NextRequest) {
   // But clear guest cookie if they successfully log in (handled client-side)
 
   // Redirect authenticated users away from auth routes
-  if (user && isAuthRoute) {
+  // Exception: /reset-password/new is accessed via recovery link (user has recovery session)
+  if (user && isAuthRoute && pathname !== '/reset-password/new') {
     const redirectUrl = request.nextUrl.clone()
     redirectUrl.pathname = '/home'
     return NextResponse.redirect(redirectUrl)

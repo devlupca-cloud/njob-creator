@@ -10,7 +10,7 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--color-background)' }}>
+    <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
       <CreatorLoader />
       {/* Desktop sidebar */}
       <Sidebar />

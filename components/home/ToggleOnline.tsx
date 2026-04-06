@@ -42,30 +42,17 @@ export default function ToggleOnline({ initialValue = true, value, onChange, dis
       aria-label={isOnline ? 'Online' : 'Offline'}
       onClick={handleToggle}
       disabled={disabled}
-      className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      className="relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 w-10 h-5 rounded-[20px] shrink-0 transition-colors duration-200 ease-in-out"
       style={{
-        width: 40,
-        height: 20,
-        borderRadius: 20,
-        background: isOnline ? 'var(--color-primary)' : '#3a3a3a',
-        transition: 'background 200ms ease-in-out',
-        flexShrink: 0,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.7 : 1,
+        background: isOnline ? 'var(--color-primary)' : '#3a3a3a', /* dynamic value - cannot be Tailwind */
+        cursor: disabled ? 'not-allowed' : 'pointer', /* dynamic value - cannot be Tailwind */
+        opacity: disabled ? 0.7 : 1, /* dynamic value - cannot be Tailwind */
       }}
     >
       {/* Thumb */}
       <span
-        style={{
-          position: 'absolute',
-          top: 2,
-          width: 16,
-          height: 16,
-          borderRadius: '50%',
-          background: '#ffffff',
-          left: isOnline ? 'calc(100% - 18px)' : 2,
-          transition: 'left 200ms ease-in-out',
-        }}
+        className="absolute top-0.5 size-4 rounded-full bg-white transition-[left] duration-200 ease-in-out"
+        style={{ left: isOnline ? 'calc(100% - 18px)' : 2 }} /* dynamic value - cannot be Tailwind */
       />
     </button>
   )

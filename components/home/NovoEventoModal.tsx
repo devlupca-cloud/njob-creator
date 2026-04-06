@@ -119,28 +119,6 @@ const modalKeyframes = `
 }
 `
 
-// ─── Estilos ──────────────────────────────────────────────────────
-
-const inputBase: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--color-surface-2)',
-  border: '1px solid var(--color-border)',
-  borderRadius: 10,
-  padding: '11px 14px',
-  color: 'var(--color-foreground)',
-  fontSize: 14,
-  outline: 'none',
-  transition: 'border-color 150ms, box-shadow 150ms',
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 600,
-  color: 'var(--color-foreground)',
-  marginBottom: 6,
-  display: 'block',
-}
-
 // ─── Componente ───────────────────────────────────────────────────
 
 interface NovoEventoModalProps {
@@ -247,10 +225,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
     dateInputRef.current?.click()
   }
 
-  const getInputStyle = (hasError: boolean): React.CSSProperties => ({
-    ...inputBase,
-    borderColor: hasError ? 'var(--color-error)' : 'var(--color-border)',
-  })
+  const getInputBorderColor = (hasError: boolean) => hasError ? 'var(--color-error)' : 'var(--color-border)'
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
     e.currentTarget.style.borderColor = 'var(--color-primary)'
@@ -261,6 +236,8 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
     e.currentTarget.style.borderColor = hasError ? 'var(--color-error)' : 'var(--color-border)'
     e.currentTarget.style.boxShadow = 'none'
   }
+
+  const sharedInputClass = 'w-full bg-[var(--color-surface-2)] rounded-[10px] px-3.5 py-[11px] text-[var(--color-foreground)] text-sm outline-none transition-[border-color,box-shadow] duration-150'
 
   // ─── Submit ─────────────────────────────────────────────────────
 
@@ -297,6 +274,8 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
     setLoading(true)
 
     try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Sessão expirada')
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Sessão expirada')
 
@@ -310,7 +289,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
       const dayEnd = new Date(localDate)
       dayEnd.setHours(23, 59, 59, 999)
 
-      const userId = session.user.id
+      const userId = user.id
 
       const [{ data: lives }, { data: calls }] = await Promise.all([
         supabase
@@ -402,91 +381,37 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
         role="dialog"
         aria-modal="true"
         onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 9999,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(3px)',
-          WebkitBackdropFilter: 'blur(3px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          animation: 'novoEventoOverlayIn 180ms ease forwards',
-        }}
+        className="fixed inset-0 z-[9999] bg-black/[0.65] backdrop-blur-[3px] flex items-center justify-center p-6 [animation:novoEventoOverlayIn_180ms_ease_forwards]"
       >
         <div
           onClick={(e) => e.stopPropagation()}
           aria-labelledby="novo-evento-titulo"
-          style={{
-            background: 'var(--color-surface)',
-            borderRadius: 20,
-            maxHeight: '85vh',
-            overflowY: 'auto',
-            width: '100%',
-            maxWidth: 460,
-            animation: 'novoEventoModalIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
-          }}
+          className="bg-[var(--color-surface)] rounded-[20px] max-h-[85vh] overflow-y-auto w-full max-w-[460px] [animation:novoEventoModalIn_220ms_cubic-bezier(0.22,1,0.36,1)_forwards]"
         >
           {/* Header com gradiente sutil */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, rgba(174, 50, 195, 0.1) 0%, rgba(101, 22, 147, 0.06) 100%)',
-              borderRadius: '20px 20px 0 0',
-              padding: '20px 24px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ width: 32 }} />
+          <div className="bg-[linear-gradient(135deg,rgba(174,50,195,0.1)_0%,rgba(101,22,147,0.06)_100%)] rounded-t-[20px] px-6 pt-5 pb-4 flex items-center justify-between">
+            <div className="w-8" />
             <h2
               id="novo-evento-titulo"
-              style={{
-                textAlign: 'center',
-                fontSize: 18,
-                fontWeight: 600,
-                color: 'var(--color-foreground)',
-                margin: 0,
-              }}
+              className="text-center text-lg font-semibold text-[var(--color-foreground)] m-0"
             >
               {t('events.newEvent')}
             </h2>
             <button
               onClick={onClose}
               aria-label={t('common.close')}
-              style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-muted)',
-                padding: 6,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'color 150ms, background 150ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--color-foreground)'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--color-muted)'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              }}
+              className="bg-white/[0.06] border-none cursor-pointer text-[var(--color-muted)] p-1.5 rounded-lg flex items-center justify-center transition-colors hover:text-[var(--color-foreground)] hover:bg-white/10"
             >
               <CloseIcon />
             </button>
           </div>
 
           {/* Campos do formulário */}
-          <div style={{ padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div className="px-6 pt-5 pb-6 flex flex-col gap-[18px]">
 
             {/* Título do evento */}
             <div style={shakeStyle}>
-              <label htmlFor="novo-evento-titulo-input" style={labelStyle}>
+              <label htmlFor="novo-evento-titulo-input" className="text-[13px] font-semibold text-[var(--color-foreground)] mb-1.5 block">
                 {t('events.eventName')}
               </label>
               <input
@@ -497,10 +422,11 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                 onChange={(e) => { setTitulo(e.target.value); setErroTitulo(false) }}
                 onFocus={handleFocus}
                 onBlur={(e) => handleBlurStyle(e, erroTitulo)}
-                style={getInputStyle(erroTitulo)}
+                className={sharedInputClass}
+                style={{ border: `1px solid ${getInputBorderColor(erroTitulo)}` }}
               />
               {erroTitulo && (
-                <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                <span className="text-[var(--color-error)] text-xs mt-1 block">
                   {t('events.fieldRequired')}
                 </span>
               )}
@@ -508,7 +434,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
 
             {/* Descrição */}
             <div>
-              <label htmlFor="novo-evento-descricao" style={labelStyle}>
+              <label htmlFor="novo-evento-descricao" className="text-[13px] font-semibold text-[var(--color-foreground)] mb-1.5 block">
                 {t('events.eventDescription')}
               </label>
               <textarea
@@ -526,18 +452,14 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                 }}
                 rows={3}
                 maxLength={500}
-                style={{
-                  ...inputBase,
-                  resize: 'vertical',
-                  minHeight: 72,
-                  fontFamily: 'inherit',
-                }}
+                className={`${sharedInputClass} resize-y min-h-[72px] font-[inherit]`}
+                style={{ border: `1px solid var(--color-border)` }}
               />
             </div>
 
             {/* Duração */}
             <div style={shakeStyle}>
-              <label htmlFor="novo-evento-duracao" style={labelStyle}>
+              <label htmlFor="novo-evento-duracao" className="text-[13px] font-semibold text-[var(--color-foreground)] mb-1.5 block">
                 {t('events.eventDuration')}
               </label>
               <select
@@ -546,21 +468,19 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                 onChange={(e) => { setDuracao(e.target.value as DuracaoOption); setErroDuracao(false) }}
                 onFocus={handleFocus as unknown as React.FocusEventHandler<HTMLSelectElement>}
                 onBlur={(e) => handleBlurStyle(e, erroDuracao)}
+                className={`${sharedInputClass} cursor-pointer appearance-none pr-9`}
                 style={{
-                  ...getInputStyle(erroDuracao),
-                  cursor: 'pointer',
-                  appearance: 'none',
+                  border: `1px solid ${getInputBorderColor(erroDuracao)}`,
                   backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9a9a' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'right 14px center',
-                  paddingRight: 36,
                 }}
               >
                 <option value="1hora">{t('events.duration1hour')}</option>
                 <option value="30min">{t('events.duration30min')}</option>
               </select>
               {erroDuracao && (
-                <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                <span className="text-[var(--color-error)] text-xs mt-1 block">
                   {t('events.fieldRequired')}
                 </span>
               )}
@@ -568,7 +488,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
 
             {/* Valor do ingresso */}
             <div style={shakeStyle}>
-              <label htmlFor="novo-evento-valor" style={labelStyle}>
+              <label htmlFor="novo-evento-valor" className="text-[13px] font-semibold text-[var(--color-foreground)] mb-1.5 block">
                 {t('events.eventPrice')}
               </label>
               <input
@@ -580,21 +500,22 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                 onChange={handleValorChange}
                 onBlur={(e) => { handleValorBlur(); handleBlurStyle(e, erroValor) }}
                 onFocus={handleFocus}
-                style={getInputStyle(erroValor)}
+                className={sharedInputClass}
+                style={{ border: `1px solid ${getInputBorderColor(erroValor)}` }}
               />
               {erroValor && (
-                <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                <span className="text-[var(--color-error)] text-xs mt-1 block">
                   {t('events.minPriceHint', { value: formatMinCurrency(bcp47) })}
                 </span>
               )}
             </div>
 
             {/* Dia do Evento + Horário */}
-            <div style={{ display: 'flex', gap: 12, ...shakeStyle }}>
+            <div className="flex gap-3" style={shakeStyle}>
 
               {/* Dia do Evento */}
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>{t('events.eventDate')}</label>
+              <div className="flex-1">
+                <label className="text-[13px] font-semibold text-[var(--color-foreground)] mb-1.5 block">{t('events.eventDate')}</label>
 
                 {/* Input nativo oculto */}
                 <input
@@ -602,7 +523,7 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                   type="date"
                   min={getTodayLocalYYYYMMDD()}
                   onChange={handleDateChange}
-                  style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+                  className="absolute opacity-0 pointer-events-none w-0 h-0"
                   aria-hidden="true"
                   tabIndex={-1}
                 />
@@ -610,62 +531,33 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                 <button
                   type="button"
                   onClick={openDatePicker}
+                  className="flex items-center gap-2 w-full bg-[var(--color-surface-2)] rounded-[10px] px-3.5 py-[11px] cursor-pointer text-sm transition-[border-color,box-shadow] duration-150 hover:border-[var(--color-primary)] hover:shadow-[0_0_0_3px_rgba(174,50,195,0.15)]"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    width: '100%',
-                    background: 'var(--color-surface-2)',
-                    border: `1px solid ${erroData ? 'var(--color-error)' : 'var(--color-border)'}`,
-                    borderRadius: 10,
-                    padding: '11px 14px',
-                    cursor: 'pointer',
-                    color: dataSelecionada ? 'var(--color-foreground)' : 'var(--color-muted)',
-                    fontSize: 14,
-                    transition: 'border-color 150ms, box-shadow 150ms',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!erroData) {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)'
-                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(174, 50, 195, 0.15)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = erroData ? 'var(--color-error)' : 'var(--color-border)'
-                    e.currentTarget.style.boxShadow = 'none'
+                    border: `1px solid ${getInputBorderColor(erroData)}`,
+                    color: dataSelecionada ? 'var(--color-foreground)' : 'var(--color-muted)', /* dynamic value - cannot be Tailwind */
                   }}
                   aria-label={t('events.selectDate')}
                 >
-                  <span style={{ color: 'var(--color-muted)', display: 'flex', flexShrink: 0 }}>
+                  <span className="text-[var(--color-muted)] flex shrink-0">
                     <CalendarIcon />
                   </span>
                   <span>{formatDateDisplay(dataSelecionada, t('events.selectDate'))}</span>
                 </button>
 
                 {erroData && (
-                  <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                  <span className="text-[var(--color-error)] text-xs mt-1 block">
                     {t('events.fieldRequired')}
                   </span>
                 )}
               </div>
 
               {/* Horário */}
-              <div style={{ flex: 1 }}>
-                <label htmlFor="novo-evento-horario" style={labelStyle}>
+              <div className="flex-1">
+                <label htmlFor="novo-evento-horario" className="text-[13px] font-semibold text-[var(--color-foreground)] mb-1.5 block">
                   {t('events.eventTime')}
                 </label>
-                <div style={{ position: 'relative' }}>
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: 14,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--color-muted)',
-                      display: 'flex',
-                      pointerEvents: 'none',
-                    }}
-                  >
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)] flex pointer-events-none">
                     <ClockIcon />
                   </span>
                   <input
@@ -678,53 +570,35 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
                     onFocus={handleFocus}
                     onBlur={(e) => handleBlurStyle(e, erroHorario)}
                     maxLength={5}
-                    style={{
-                      ...getInputStyle(erroHorario),
-                      paddingLeft: 40,
-                    }}
+                    className={`${sharedInputClass} pl-10`}
+                    style={{ border: `1px solid ${getInputBorderColor(erroHorario)}` }}
                   />
                 </div>
                 {erroHorario && (
-                  <span style={{ color: 'var(--color-error)', fontSize: 12, marginTop: 4, display: 'block' }}>
+                  <span className="text-[var(--color-error)] text-xs mt-1 block">
                     {t('events.invalidTime')}
                   </span>
                 )}
               </div>
             </div>
 
-            <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: 0 }}>
+            <p className="text-xs text-[var(--color-muted)] m-0">
               {t('events.localTimezoneHint')}
             </p>
 
             {/* Separador */}
-            <div style={{ height: 1, background: 'var(--color-border)', margin: '4px 0' }} />
+            <div className="h-px bg-[var(--color-border)] my-1" />
 
             {/* Botão Confirmar */}
             <button
               onClick={handleSubmit}
               disabled={loading}
+              className="w-full h-12 rounded-xl text-white border-none text-[15px] font-semibold flex items-center justify-center gap-2 transition-[opacity,transform] duration-150 active:scale-[0.98]"
               style={{
-                width: '100%',
-                height: 48,
-                borderRadius: 12,
-                background: loading
-                  ? 'var(--color-primary-dark)'
-                  : 'linear-gradient(135deg, #AE32C3, #651693)',
-                color: '#ffffff',
-                border: 'none',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontSize: 15,
-                fontWeight: 600,
-                opacity: loading ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                transition: 'opacity 150ms, transform 100ms',
+                background: loading ? 'var(--color-primary-dark)' : 'linear-gradient(135deg, #AE32C3, #651693)', /* dynamic value - cannot be Tailwind */
+                cursor: loading ? 'not-allowed' : 'pointer', /* dynamic value - cannot be Tailwind */
+                opacity: loading ? 0.7 : 1, /* dynamic value - cannot be Tailwind */
               }}
-              onMouseDown={(e) => { if (!loading) e.currentTarget.style.transform = 'scale(0.98)' }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
             >
               {loading && <SpinnerIcon />}
               {loading ? t('events.creating') : t('common.confirm')}

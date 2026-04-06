@@ -132,10 +132,10 @@ export default function LoginPage() {
             priority
           />
         </div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--color-foreground)' }}>
+        <h1 className="text-2xl font-bold text-[var(--color-foreground)]">
           {t('auth.welcomeBack')}
         </h1>
-        <p className="mt-1 text-sm" style={{ color: 'var(--color-muted)' }}>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">
           {t('auth.loginSubtitle')}
         </p>
       </div>
@@ -166,8 +166,7 @@ export default function LoginPage() {
           <div className="flex justify-end">
             <Link
               href={`/reset-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
-              className="text-xs transition-opacity hover:opacity-70"
-              style={{ color: 'var(--color-primary)' }}
+              className="text-xs transition-opacity hover:opacity-70 text-[var(--color-primary)]"
             >
               {t('auth.forgotPassword')}
             </Link>
@@ -182,7 +181,7 @@ export default function LoginPage() {
             onChange={(e) => setRemember(e.target.checked)}
             className="w-4 h-4 rounded accent-primary"
           />
-          <span className="text-sm" style={{ color: 'var(--color-muted)' }}>
+          <span className="text-sm text-[var(--color-muted)]">
             {t('auth.rememberMe')}
           </span>
         </label>
@@ -202,9 +201,9 @@ export default function LoginPage() {
 
       {/* Divider */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-px" style={{ background: 'var(--color-border)' }} />
-        <span className="text-xs" style={{ color: 'var(--color-muted)' }}>{t('common.or')}</span>
-        <div className="flex-1 h-px" style={{ background: 'var(--color-border)' }} />
+        <div className="flex-1 h-px bg-[var(--color-border)]" />
+        <span className="text-xs text-[var(--color-muted)]">{t('common.or')}</span>
+        <div className="flex-1 h-px bg-[var(--color-border)]" />
       </div>
 
       {/* Secondary actions */}
@@ -220,12 +219,11 @@ export default function LoginPage() {
           {t('auth.loginAsGuest')}
         </Button>
 
-        <p className="text-center text-sm" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-center text-sm text-[var(--color-muted)]">
           {t('auth.noAccount')}{' '}
           <Link
             href="/register"
-            className="font-medium transition-opacity hover:opacity-70"
-            style={{ color: 'var(--color-primary)' }}
+            className="font-medium transition-opacity hover:opacity-70 text-[var(--color-primary)]"
           >
             {t('auth.register')}
           </Link>

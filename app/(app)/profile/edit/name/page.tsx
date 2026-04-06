@@ -35,13 +35,13 @@ export default function AlterarNomePage() {
     setLoading(true)
     try {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Sem sessão')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Sem sessão')
 
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ full_name: trimmed })
-        .eq('id', session.user.id)
+        .eq('id', user.id)
 
       if (updateError) throw updateError
 
@@ -61,7 +61,7 @@ export default function AlterarNomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
+    <div className="flex flex-col min-h-full bg-[var(--color-background)]">
       <PageHeader title={t('profile.editName')} />
 
       <div className="flex-1 flex flex-col px-4 py-6">

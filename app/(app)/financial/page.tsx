@@ -60,9 +60,10 @@ export default function FinancialPage() {
     queryKey: ['get_creator_metrics', creator?.profile?.username],
     enabled: !!creator,
     queryFn: async () => {
-      const { data: session } = await supabase.auth.getSession()
-      const uid = session.session?.user.id
-      const token = session.session?.access_token
+      const { data: { user } } = await supabase.auth.getUser()
+      const uid = user?.id
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
       if (!uid || !token) return null
       const res = await fetch(`${base()}/rest/v1/rpc/get_creator_metrics`, {
         method: 'POST',
@@ -118,57 +119,55 @@ export default function FinancialPage() {
 
   const tabs = [t('financial.totalEarnings'), t('financial.history'), t('financial.withdraw')]
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600 }}>{t('financial.title')}</h1>
-        <button type="button" onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+    <div className="max-w-[720px] mx-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold">{t('financial.title')}</h1>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="bg-transparent border-none cursor-pointer p-1"
+        >
           ← {t('common.back')}
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {tabs.map((t, i) => (
+      <div className="flex gap-2 mb-6">
+        {tabs.map((tabLabel, i) => (
           <button
-            key={t}
+            key={tabLabel}
             type="button"
             onClick={() => setTab(i)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 'none',
-              background: tab === i ? 'var(--color-primary)' : 'var(--color-surface-2)',
-              color: tab === i ? '#fff' : 'var(--color-foreground)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontSize: 14,
-            }}
+            className={[
+              'px-4 py-2 rounded-lg border-none font-semibold cursor-pointer text-sm',
+              tab === i ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-surface-2)] text-[var(--color-foreground)]',
+            ].join(' ')}
           >
-            {t}
+            {tabLabel}
           </button>
         ))}
       </div>
       {tab === 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{t('home.visits')} ({t('home.last30days')})</div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>{metrics?.visitas_30d ?? 0}</div>
+        <div className="flex flex-col gap-3">
+          <div className="p-4 bg-[var(--color-surface-2)] rounded-lg">
+            <div className="text-xs text-[var(--color-muted)] mb-1">{t('home.visits')} ({t('home.last30days')})</div>
+            <div className="text-xl font-bold">{metrics?.visitas_30d ?? 0}</div>
           </div>
-          <div style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{t('home.likes')} ({t('home.last30days')})</div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>{metrics?.curtidas_30d ?? 0}</div>
+          <div className="p-4 bg-[var(--color-surface-2)] rounded-lg">
+            <div className="text-xs text-[var(--color-muted)] mb-1">{t('home.likes')} ({t('home.last30days')})</div>
+            <div className="text-xl font-bold">{metrics?.curtidas_30d ?? 0}</div>
           </div>
-          <div style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{t('home.revenue')} ({t('home.last30days')})</div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>R$ {Number(metrics?.faturamento_30d ?? 0).toFixed(2)}</div>
+          <div className="p-4 bg-[var(--color-surface-2)] rounded-lg">
+            <div className="text-xs text-[var(--color-muted)] mb-1">{t('home.revenue')} ({t('home.last30days')})</div>
+            <div className="text-xl font-bold">R$ {Number(metrics?.faturamento_30d ?? 0).toFixed(2)}</div>
           </div>
         </div>
       )}
       {tab === 1 && (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: 'var(--color-muted)', fontWeight: 600 }}>{t('financial.period')}</div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>{t('schedule.date')}</span>
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="text-xs text-[var(--color-muted)] font-semibold">{t('financial.period')}</div>
+            <div className="flex gap-2 items-center flex-wrap">
+              <label className="flex items-center gap-1.5">
+                <span className="text-sm text-[var(--color-muted)]">{t('schedule.date')}</span>
                 <input
                   type="date"
                   value={startDate}
@@ -181,43 +180,43 @@ export default function FinancialPage() {
                       setMonth(m)
                     }
                   }}
-                  style={{ padding: 8, borderRadius: 8, border: '1px solid var(--color-border)' }}
+                  className="p-2 rounded-lg border border-[var(--color-border)]"
                 />
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 14, color: 'var(--color-muted)' }}>{t('schedule.time')}</span>
+              <label className="flex items-center gap-1.5">
+                <span className="text-sm text-[var(--color-muted)]">{t('schedule.time')}</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  style={{ padding: 8, borderRadius: 8, border: '1px solid var(--color-border)' }}
+                  className="p-2 rounded-lg border border-[var(--color-border)]"
                 />
               </label>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="flex gap-2">
               <input
                 type="number"
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value) || 1)}
                 min={1}
                 max={12}
-                style={{ width: 60, padding: 8, borderRadius: 8, border: '1px solid var(--color-border)' }}
+                className="w-[60px] p-2 rounded-lg border border-[var(--color-border)]"
                 title={t('schedule.minutes')}
               />
               <input
                 type="number"
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())}
-                style={{ width: 80, padding: 8, borderRadius: 8, border: '1px solid var(--color-border)' }}
+                className="w-20 p-2 rounded-lg border border-[var(--color-border)]"
                 title={t('financial.period')}
               />
-              <span style={{ fontSize: 12, color: 'var(--color-muted)', alignSelf: 'center' }}>{t('schedule.minutes')}/{t('financial.period')}</span>
+              <span className="text-xs text-[var(--color-muted)] self-center">{t('schedule.minutes')}/{t('financial.period')}</span>
             </div>
           </div>
           {statementLoading ? (
-            <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
+            <div className="p-6 text-center text-[var(--color-muted)]">{t('common.loading')}</div>
           ) : statement ? (
-            <pre style={{ padding: 16, background: 'var(--color-surface-2)', borderRadius: 8, overflow: 'auto', fontSize: 12 }}>
+            <pre className="p-4 bg-[var(--color-surface-2)] rounded-lg overflow-auto text-xs">
               {JSON.stringify(statement, null, 2)}
             </pre>
           ) : (
@@ -227,24 +226,17 @@ export default function FinancialPage() {
       )}
       {tab === 2 && (
         <div>
-          <p style={{ marginBottom: 16, color: 'var(--color-muted)', fontSize: 14 }}>
+          <p className="mb-4 text-[var(--color-muted)] text-sm">
             {t('financial.withdraw')}
           </p>
           <button
             type="button"
             onClick={openPayoutLink}
             disabled={payoutLoading}
-            style={{
-              padding: '12px 24px',
-              borderRadius: 8,
-              border: 'none',
-              background: 'var(--color-primary)',
-              color: '#fff',
-              fontWeight: 600,
-              cursor: payoutLoading ? 'not-allowed' : 'pointer',
-              opacity: payoutLoading ? 0.6 : 1,
-              fontSize: 14,
-            }}
+            className={[
+              'px-6 py-3 rounded-lg border-none bg-[var(--color-primary)] text-white font-semibold text-sm',
+              payoutLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100',
+            ].join(' ')}
           >
             {payoutLoading ? t('common.loading') : t('financial.withdraw')}
           </button>

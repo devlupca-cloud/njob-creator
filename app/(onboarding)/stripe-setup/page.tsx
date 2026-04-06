@@ -165,21 +165,21 @@ function StripeSetupContent() {
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto', padding: 24, textAlign: 'center' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+    <div className="max-w-[480px] mx-auto p-6 text-center">
+      <h1 className="text-[22px] font-semibold mb-2">
         Configurar pagamentos
       </h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 14, marginBottom: 32 }}>
+      <p className="text-[var(--color-muted)] text-sm mb-8">
         Para receber pagamentos, você precisa completar o cadastro no Stripe.
       </p>
 
       {loading ? (
-        <p style={{ color: 'var(--color-muted)', fontSize: 14 }}>
+        <p className="text-[var(--color-muted)] text-sm">
           {t('common.loading')}
         </p>
       ) : verifying ? (
         <>
-          <p style={{ color: 'var(--color-muted)', fontSize: 14, marginBottom: 24 }}>
+          <p className="text-[var(--color-muted)] text-sm mb-6">
             Seu cadastro foi enviado com sucesso! O Stripe está verificando suas informações.
             Isso pode levar alguns minutos.
           </p>
@@ -188,18 +188,10 @@ function StripeSetupContent() {
             type="button"
             onClick={handleCheckStatus}
             disabled={checking}
-            style={{
-              padding: '14px 32px',
-              borderRadius: 10,
-              border: 'none',
-              background: 'var(--color-primary)',
-              color: '#fff',
-              fontWeight: 600,
-              cursor: checking ? 'not-allowed' : 'pointer',
-              fontSize: 15,
-              width: '100%',
-              opacity: checking ? 0.6 : 1,
-            }}
+            className={[
+              'px-8 py-3.5 rounded-[10px] border-none bg-[var(--color-primary)] text-white font-semibold text-[15px] w-full',
+              checking ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100',
+            ].join(' ')}
           >
             {checking ? 'Verificando...' : 'Verificar novamente'}
           </button>
@@ -209,18 +201,7 @@ function StripeSetupContent() {
           <button
             type="button"
             onClick={() => window.open(onboardingUrl, '_blank')}
-            style={{
-              padding: '14px 32px',
-              borderRadius: 10,
-              border: 'none',
-              background: 'var(--color-primary)',
-              color: '#fff',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontSize: 15,
-              width: '100%',
-              marginBottom: 12,
-            }}
+            className="px-8 py-3.5 rounded-[10px] border-none bg-[var(--color-primary)] text-white font-semibold text-[15px] w-full mb-3 cursor-pointer"
           >
             Abrir cadastro no Stripe
           </button>
@@ -229,28 +210,32 @@ function StripeSetupContent() {
             type="button"
             onClick={handleCheckStatus}
             disabled={checking}
-            style={{
-              padding: '14px 32px',
-              borderRadius: 10,
-              border: '1px solid var(--color-border)',
-              background: 'transparent',
-              color: 'var(--color-foreground)',
-              fontWeight: 600,
-              cursor: checking ? 'not-allowed' : 'pointer',
-              fontSize: 15,
-              width: '100%',
-              opacity: checking ? 0.6 : 1,
-            }}
+            className={[
+              'px-8 py-3.5 rounded-[10px] border border-[var(--color-border)] bg-transparent text-[var(--color-foreground)] font-semibold text-[15px] w-full',
+              checking ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100',
+            ].join(' ')}
           >
             {checking ? 'Verificando...' : 'Já completei o cadastro'}
           </button>
         </>
       ) : (
-        <p style={{ color: 'var(--color-error)', fontSize: 14 }}>
+        <p className="text-[var(--color-error)] text-sm">
           Não foi possível obter o link de cadastro. Tente novamente mais tarde.
         </p>
       )}
 
+      {/* Logout */}
+      <button
+        type="button"
+        onClick={async () => {
+          const supabase = createClient()
+          await supabase.auth.signOut()
+          router.replace('/login')
+        }}
+        className="mt-8 px-6 py-2.5 rounded-[10px] border-none bg-transparent text-[var(--color-error,#ef4444)] font-medium cursor-pointer text-sm"
+      >
+        Sair da conta
+      </button>
     </div>
   )
 }

@@ -33,12 +33,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium"
-            style={{ color: 'var(--color-foreground)' }}
+            className="text-sm font-medium text-[var(--color-foreground)]"
           >
             {label}
             {required && (
-              <span className="ml-1" style={{ color: 'var(--color-primary)' }}>
+              <span className="ml-1 text-[var(--color-primary)]">
                 *
               </span>
             )}
@@ -48,8 +47,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         <div className="relative flex items-center">
           {iconLeft && (
             <span
-              className="absolute left-3 flex items-center"
-              style={{ color: 'var(--color-muted)' }}
+              className="absolute left-3 flex items-center text-[var(--color-muted)]"
             >
               {iconLeft}
             </span>
@@ -85,8 +83,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
           {iconRight && (
             <span
-              className="absolute right-3 flex items-center"
-              style={{ color: 'var(--color-muted)' }}
+              className="absolute right-3 flex items-center text-[var(--color-muted)]"
             >
               {iconRight}
             </span>
@@ -96,8 +93,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {error && (
           <p
             id={`${inputId}-error`}
-            className="text-xs"
-            style={{ color: 'var(--color-error)' }}
+            className="text-xs text-[var(--color-error)]"
           >
             {error}
           </p>
@@ -105,8 +101,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {hint && !error && (
           <p
             id={`${inputId}-hint`}
-            className="text-xs"
-            style={{ color: 'var(--color-muted)' }}
+            className="text-xs text-[var(--color-muted)]"
           >
             {hint}
           </p>

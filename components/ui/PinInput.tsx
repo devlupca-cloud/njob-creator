@@ -82,8 +82,8 @@ export default function PinInput({
           style={{
             background: 'var(--color-surface)',
             color: 'var(--color-foreground)',
-            border: `2px solid ${error ? 'var(--color-error)' : digits[i] ? 'var(--color-primary)' : 'var(--color-border)'}`,
-            boxShadow: digits[i] ? '0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent)' : undefined,
+            border: `2px solid ${error ? 'var(--color-error)' : digits[i] ? 'var(--color-primary)' : 'var(--color-border)'}`, /* dynamic value - cannot be Tailwind */
+            boxShadow: digits[i] ? '0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent)' : undefined, /* dynamic value - cannot be Tailwind */
           }}
           aria-label={`Dígito ${i + 1}`}
         />

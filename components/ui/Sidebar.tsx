@@ -104,11 +104,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="hidden md:flex flex-col w-60 shrink-0 h-full py-6"
-      style={{
-        background: 'var(--color-surface)',
-        borderRight: '1px solid var(--color-border)',
-      }}
+      className="hidden md:flex flex-col w-60 shrink-0 h-full py-6 bg-[var(--color-surface)] border-r border-[var(--color-border)]"
     >
       {/* Logo */}
       <div className="px-6 mb-8">
@@ -131,9 +127,8 @@ export default function Sidebar() {
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-gradient-primary text-white'
-                    : 'hover:bg-surface-2',
+                    : 'hover:bg-surface-2 text-[var(--color-muted)]',
                 ].join(' ')}
-                style={!isActive ? { color: 'var(--color-muted)' } : undefined}
               >
                 {item.icon}
                 {item.label}
@@ -147,8 +142,7 @@ export default function Sidebar() {
                 key={item.href}
                 type="button"
                 onClick={() => handleComingSoon(item.label)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-surface-2"
-                style={{ color: 'var(--color-muted)' }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors hover:bg-surface-2 text-[var(--color-muted)]"
               >
                 {item.icon}
                 {item.label}
@@ -164,11 +158,8 @@ export default function Sidebar() {
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-gradient-primary text-white'
-                  : 'hover:bg-surface-2',
+                  : 'hover:bg-surface-2 text-[var(--color-muted)]',
               ].join(' ')}
-              style={
-                !isActive ? { color: 'var(--color-muted)' } : undefined
-              }
             >
               {item.icon}
               {item.label}
@@ -193,8 +184,7 @@ export default function Sidebar() {
       <div className="px-3 mt-4">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium w-full transition-colors hover:bg-surface-2"
-          style={{ color: 'var(--color-muted)' }}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium w-full transition-colors hover:bg-surface-2 text-[var(--color-muted)]"
         >
           <SignOutIcon />
           {t('nav.signOut')}

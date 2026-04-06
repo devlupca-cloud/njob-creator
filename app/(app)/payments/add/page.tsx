@@ -53,30 +53,26 @@ export default function AddPaymentPage() {
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto' }}>
-      <button type="button" onClick={() => router.back()} style={{ marginBottom: 16, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>
+    <div className="max-w-[480px] mx-auto">
+      <button
+        type="button"
+        onClick={() => router.back()}
+        className="mb-4 bg-transparent border-none cursor-pointer text-sm"
+      >
         ← {t('common.back')}
       </button>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{t('payments.addCardTitle')}</h1>
-      <p style={{ color: 'var(--color-muted)', fontSize: 14, marginBottom: 24 }}>
+      <h1 className="text-xl font-semibold mb-4">{t('payments.addCardTitle')}</h1>
+      <p className="text-[var(--color-muted)] text-sm mb-6">
         Configure seus dados de pagamento no Stripe para receber transferências.
       </p>
       <button
         type="button"
         onClick={handleOpenStripe}
         disabled={loading}
-        style={{
-          padding: '12px 24px',
-          borderRadius: 8,
-          border: 'none',
-          background: 'var(--color-primary)',
-          color: '#fff',
-          fontWeight: 600,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          opacity: loading ? 0.6 : 1,
-          fontSize: 14,
-          width: '100%',
-        }}
+        className={[
+          'px-6 py-3 rounded-lg border-none bg-[var(--color-primary)] text-white font-semibold text-sm w-full',
+          loading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100',
+        ].join(' ')}
       >
         {loading ? t('common.loading') : 'Abrir configuração Stripe'}
       </button>

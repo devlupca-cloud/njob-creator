@@ -20,25 +20,8 @@ function formatDiscount(c: CouponItem): string | null {
 
 function Spinner() {
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 48,
-      }}
-    >
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          border: '3px solid var(--color-border)',
-          borderTopColor: 'var(--color-primary)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div className="flex justify-center items-center p-12">
+      <div className="size-10 rounded-full border-[3px] border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
     </div>
   )
 }
@@ -76,13 +59,13 @@ export default function SubscriptionsPage() {
   })
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', paddingBottom: 80 }}>
+    <div className="max-w-[720px] mx-auto pb-20">
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0, color: 'var(--color-foreground)' }}>
+      <div className="mb-6">
+        <h1 className="text-[22px] font-semibold m-0 text-[var(--color-foreground)]">
           {t('subscriptions.couponsTitle')}
         </h1>
-        <p style={{ fontSize: 14, color: 'var(--color-muted)', margin: '6px 0 0' }}>
+        <p className="text-sm text-[var(--color-muted)] mt-1.5 mb-0">
           {t('subscriptions.couponsSubtitle')}
         </p>
       </div>
@@ -96,13 +79,7 @@ export default function SubscriptionsPage() {
           icon="🎫"
         />
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 16,
-          }}
-        >
+        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
           {(coupons as CouponItem[]).map((c) => {
             const discount = formatDiscount(c)
             return (
@@ -110,110 +87,46 @@ export default function SubscriptionsPage() {
                 key={c.id}
                 type="button"
                 onClick={() => router.push(`/subscriptions/${encodeURIComponent(c.id)}`)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'stretch',
-                  gap: 14,
-                  padding: 0,
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  background: 'var(--color-surface)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  overflow: 'hidden',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  transition: 'box-shadow 0.2s, transform 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.2)'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                }}
+                className="flex items-stretch gap-3.5 p-0 border border-[var(--color-border)] rounded-[var(--radius-lg)] bg-[var(--color-surface)] cursor-pointer text-left overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.15)] transition-[box-shadow,transform] duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:-translate-y-0.5"
               >
                 {/* Imagem ou placeholder */}
-                <div
-                  style={{
-                    width: 96,
-                    minWidth: 96,
-                    background: 'var(--color-surface-2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--color-muted)',
-                  }}
-                >
+                <div className="w-24 min-w-[96px] bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-muted)]">
                   {c.image_url ? (
                     <img
                       src={c.image_url}
                       alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <TicketIcon />
                   )}
                 </div>
 
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    padding: '14px 14px 14px 0',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: 'var(--color-primary)',
-                      letterSpacing: '0.02em',
-                    }}
-                  >
+                <div className="flex-1 min-w-0 pr-3.5 py-3.5 flex flex-col justify-center gap-1">
+                  <span className="text-base font-bold text-[var(--color-primary)] tracking-[0.02em]">
                     {c.code}
                   </span>
                   {(c.description || c.store_name) && (
                     <span
+                      className="text-[13px] text-[var(--color-muted)] leading-[1.35]"
                       style={{
-                        fontSize: 13,
-                        color: 'var(--color-muted)',
-                        lineHeight: 1.35,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
-                      }}
+                      }} /* dynamic value - cannot be Tailwind (webkit-specific) */
                     >
                       {c.description ?? c.store_name}
                     </span>
                   )}
                   {discount && (
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'var(--color-foreground)',
-                        marginTop: 2,
-                      }}
-                    >
+                    <span className="text-xs font-semibold text-[var(--color-foreground)] mt-0.5">
                       {discount}
                     </span>
                   )}
                 </div>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingRight: 12,
-                    color: 'var(--color-muted)',
-                  }}
-                >
+                <div className="flex items-center pr-3 text-[var(--color-muted)]">
                   <ChevronIcon />
                 </div>
               </button>

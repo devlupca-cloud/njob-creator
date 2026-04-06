@@ -1,22 +1,22 @@
 'use client'
 
 import { useState, FormEvent, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import PageHeader from '@/components/ui/PageHeader'
-import { sendPasswordResetOtp } from '@/lib/supabase/auth'
+import { sendPasswordResetEmail } from '@/lib/supabase/auth'
 import { useTranslation } from '@/lib/i18n'
 
 function ResetPasswordContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useTranslation()
   const [email, setEmail] = useState(searchParams.get('email') ?? '')
   const [loading, setLoading] = useState(false)
   const [emailError, setEmailError] = useState('')
+  const [sent, setSent] = useState(false)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -29,10 +29,11 @@ function ResetPasswordContent() {
 
     setLoading(true)
 
-    await sendPasswordResetOtp(email, {
+    await sendPasswordResetEmail(email, {
       onSuccess: () => {
-        toast.success(t('resetPassword.emailSent'))
-        router.push(`/reset-password/verify?email=${encodeURIComponent(email)}`)
+        setSent(true)
+        toast.success(t('resetPassword.linkSent'))
+        setLoading(false)
       },
       onInvalidEmail: () => {
         setEmailError(t('auth.invalidEmail'))
@@ -49,7 +50,7 @@ function ResetPasswordContent() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t('resetPassword.title')} />
 
-      <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-sm text-[var(--color-muted)]">
         {t('resetPassword.subtitle')}
       </p>
 
@@ -65,25 +66,30 @@ function ResetPasswordContent() {
           required
         />
 
+        {sent && (
+          <div className="rounded-xl px-4 py-3 text-sm bg-green-500/10 border border-green-500/30 text-green-400">
+            {t('resetPassword.linkSent')}
+          </div>
+        )}
+
         <Button
           type="submit"
           variant="primary"
           size="lg"
           fullWidth
           loading={loading}
-          disabled={!email}
+          disabled={!email || sent}
           className="mt-2"
         >
           {t('resetPassword.recoverAccess')}
         </Button>
       </form>
 
-      <p className="text-center text-sm" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-center text-sm text-[var(--color-muted)]">
         {t('resetPassword.rememberPassword')}{' '}
         <Link
           href="/login"
-          className="font-medium transition-opacity hover:opacity-70"
-          style={{ color: 'var(--color-primary)' }}
+          className="font-medium transition-opacity hover:opacity-70 text-[var(--color-primary)]"
         >
           {t('auth.doLogin')}
         </Link>
@@ -95,7 +101,7 @@ function ResetPasswordContent() {
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
   return (
-    <Suspense fallback={<div style={{ color: 'var(--color-muted)' }} className="text-center py-8">{t('common.loading')}</div>}>
+    <Suspense fallback={<div className="text-center py-8 text-[var(--color-muted)]">{t('common.loading')}</div>}>
       <ResetPasswordContent />
     </Suspense>
   )

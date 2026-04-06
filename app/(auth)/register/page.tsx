@@ -419,7 +419,7 @@ export default function RegisterPage() {
     const { error: profileError } = await supabase.from('profiles').insert({
       id: userId,
       full_name: formData.nome,
-      username: formData.nome,
+      username: formData.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
       role: 'creator' as const,
       is_active: true,
       date_birth: formData.dataNascimento || null,
@@ -702,12 +702,11 @@ export default function RegisterPage() {
           )}
 
           {step === 0 && (
-            <p className="text-center text-sm" style={{ color: 'var(--color-muted)' }}>
+            <p className="text-center text-sm text-[var(--color-muted)]">
               {t('auth.alreadyHaveAccount')}{' '}
               <Link
                 href="/login"
-                className="font-medium transition-opacity hover:opacity-70"
-                style={{ color: 'var(--color-primary)' }}
+                className="font-medium text-[var(--color-primary)] transition-opacity hover:opacity-70"
               >
                 {t('auth.doLogin')}
               </Link>
@@ -835,31 +834,28 @@ function Step1({
 }) {
   return (
     <>
-      <p className="text-sm mb-2" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-sm mb-2 text-[var(--color-muted)]">
         {t('register.completePhrase')}
       </p>
-      <div
-        className="rounded-xl p-4 text-sm space-y-3"
-        style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-foreground)' }}
-      >
+      <div className="rounded-xl p-4 text-sm space-y-3 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-foreground)]">
         <p>
           {t('register.iAm')}{' '}
-          <span className="font-medium" style={{ color: 'var(--color-primary)' }}>
+          <span className="font-medium text-[var(--color-primary)]">
             {formData.nome || t('register.yourName')}
           </span>
           , {t('register.liveIn')}{' '}
-          <span className="font-medium" style={{ color: 'var(--color-primary)' }}>
+          <span className="font-medium text-[var(--color-primary)]">
             {formData.cidade || t('register.yourCity')}
           </span>{' '}
           {t('register.andIAm')}{' '}
-          <span style={{ color: 'var(--color-primary)' }}>{formData.euSou || '___'}</span>{' '}
+          <span className="text-[var(--color-primary)]">{formData.euSou || '___'}</span>{' '}
           {t('register.for')}{' '}
-          <span style={{ color: 'var(--color-primary)' }}>{formData.por || '___'}</span>.{' '}
+          <span className="text-[var(--color-primary)]">{formData.por || '___'}</span>.{' '}
           {t('register.iConsiderMyself')}{' '}
-          <span style={{ color: 'var(--color-primary)' }}>{formData.meConsidero || '___'}</span>,{' '}
-          <span style={{ color: 'var(--color-primary)' }}>{formData.pessoasQue || '___'}</span>{' '}
+          <span className="text-[var(--color-primary)]">{formData.meConsidero || '___'}</span>,{' '}
+          <span className="text-[var(--color-primary)]">{formData.pessoasQue || '___'}</span>{' '}
           {t('register.whoLoves')}{' '}
-          <span style={{ color: 'var(--color-primary)' }}>{formData.adoro || '___'}</span>.
+          <span className="text-[var(--color-primary)]">{formData.adoro || '___'}</span>.
         </p>
       </div>
 
@@ -902,8 +898,7 @@ function Step1({
       <button
         type="button"
         onClick={onSkip}
-        className="text-sm font-medium text-center transition-opacity hover:opacity-70"
-        style={{ color: 'var(--color-muted)' }}
+        className="text-sm font-medium text-center text-[var(--color-muted)] transition-opacity hover:opacity-70"
       >
         {t('register.skipStep')}
       </button>
@@ -923,7 +918,7 @@ function Step2({
 }) {
   return (
     <>
-      <p className="text-sm mb-2" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-sm mb-2 text-[var(--color-muted)]">
         {t('register.defineOffers')}
       </p>
 
@@ -994,11 +989,8 @@ function ToggleRow({
   onChange: (v: boolean) => void
 }) {
   return (
-    <div
-      className="flex items-center justify-between rounded-xl px-4 py-3"
-      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-    >
-      <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+    <div className="flex items-center justify-between rounded-xl px-4 py-3 bg-[var(--color-surface)] border border-[var(--color-border)]">
+      <span className="text-sm font-medium text-[var(--color-foreground)]">
         {label}
       </span>
       <button
@@ -1006,12 +998,16 @@ function ToggleRow({
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-        style={{ background: checked ? 'var(--color-primary)' : 'var(--color-border)' }}
+        className={[
+          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+          checked ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]',
+        ].join(' ')}
       >
         <span
-          className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-          style={{ transform: checked ? 'translateX(22px)' : 'translateX(4px)' }}
+          className={[
+            'inline-block h-4 w-4 rounded-full bg-white transition-transform',
+            checked ? 'translate-x-[22px]' : 'translate-x-1',
+          ].join(' ')}
         />
       </button>
     </div>
@@ -1039,17 +1035,17 @@ function Step3({
 }) {
   return (
     <>
-      <p className="text-sm mb-2" style={{ color: 'var(--color-muted)' }}>
+      <p className="text-sm mb-2 text-[var(--color-muted)]">
         {t('register.addPhotosDesc')}
         {onOpenDicas && (
-          <button type="button" onClick={onOpenDicas} className="ml-1 underline" style={{ color: 'var(--color-primary)' }}>{t('register.viewPhotoTips')}</button>
+          <button type="button" onClick={onOpenDicas} className="ml-1 underline text-[var(--color-primary)]">{t('register.viewPhotoTips')}</button>
         )}
       </p>
 
       {/* Profile photo */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
-          {t('register.profilePhoto')} <span style={{ color: 'var(--color-primary)' }}>*</span>
+        <label className="text-sm font-medium text-[var(--color-foreground)]">
+          {t('register.profilePhoto')} <span className="text-[var(--color-primary)]">*</span>
         </label>
         <ImageUploadBox
           preview={profilePreview}
@@ -1067,7 +1063,7 @@ function Step3({
 
       {/* Additional photos */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+        <label className="text-sm font-medium text-[var(--color-foreground)]">
           {t('register.additionalPhotos')}
         </label>
         <div className="grid grid-cols-3 gap-3">
@@ -1093,7 +1089,7 @@ function Step3({
 
       {/* Banner photo */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+        <label className="text-sm font-medium text-[var(--color-foreground)]">
           {t('register.coverPhoto')}
         </label>
         <ImageUploadBox
@@ -1112,7 +1108,7 @@ function Step3({
       </div>
 
       {onOpenDicas && (
-        <button type="button" onClick={onOpenDicas} className="rounded-xl p-3 text-xs w-full text-left" style={{ background: 'var(--color-background)', border: '1px solid var(--color-border)', color: 'var(--color-primary)' }}>
+        <button type="button" onClick={onOpenDicas} className="rounded-xl p-3 text-xs w-full text-left bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-primary)]">
           {t('register.photoTipsBtn')}
         </button>
       )}
@@ -1135,11 +1131,10 @@ function ImageUploadBox({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full ${height} rounded-xl flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80`}
-      style={{
-        background: preview ? 'transparent' : 'var(--color-surface)',
-        border: `2px dashed ${preview ? 'var(--color-primary)' : 'var(--color-border)'}`,
-      }}
+      className={[
+        `w-full ${height} rounded-xl flex items-center justify-center overflow-hidden transition-opacity hover:opacity-80`,
+        preview ? 'bg-transparent border-2 border-dashed border-[var(--color-primary)]' : 'bg-[var(--color-surface)] border-2 border-dashed border-[var(--color-border)]',
+      ].join(' ')}
     >
       {preview ? (
         <img src={preview} alt={label} className="w-full h-full object-cover rounded-xl" />
@@ -1147,13 +1142,13 @@ function ImageUploadBox({
         <div className="flex flex-col items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-            style={{ color: 'var(--color-muted)' }}>
+            className="text-[var(--color-muted)]">
             <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
             <circle cx="9" cy="9" r="2" />
             <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
           </svg>
           {!compact && (
-            <span className="text-xs" style={{ color: 'var(--color-muted)' }}>
+            <span className="text-xs text-[var(--color-muted)]">
               {label}
             </span>
           )}
@@ -1217,10 +1212,10 @@ function Step4({
 
       {/* Foto de perfil (selfie) */}
       <div className="flex flex-col gap-2 mt-4">
-        <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
-          {t('register.selfiePhoto')} <span style={{ color: 'var(--color-primary)' }}>*</span>
+        <label className="text-sm font-medium text-[var(--color-foreground)]">
+          {t('register.selfiePhoto')} <span className="text-[var(--color-primary)]">*</span>
         </label>
-        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-xs text-[var(--color-muted)]">
           {t('register.selfiePhotoDesc')}
         </p>
         <ImageUploadBox
@@ -1239,15 +1234,15 @@ function Step4({
 
       {/* Fotos do documento (frente e verso) */}
       <div className="flex flex-col gap-2 mt-4">
-        <label className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
-          {t('register.docPhotoFront')} / {t('register.docPhotoBack')} <span style={{ color: 'var(--color-primary)' }}>*</span>
+        <label className="text-sm font-medium text-[var(--color-foreground)]">
+          {t('register.docPhotoFront')} / {t('register.docPhotoBack')} <span className="text-[var(--color-primary)]">*</span>
         </label>
-        <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-xs text-[var(--color-muted)]">
           {t('register.docPhotosDesc')}
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+            <span className="text-xs font-medium text-[var(--color-muted)]">
               {t('register.docPhotoFront')}
             </span>
             <ImageUploadBox
@@ -1265,7 +1260,7 @@ function Step4({
             />
           </div>
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-muted)' }}>
+            <span className="text-xs font-medium text-[var(--color-muted)]">
               {t('register.docPhotoBack')}
             </span>
             <ImageUploadBox

@@ -73,12 +73,10 @@ export default function PullToRefresh({ children, className = '' }: PullToRefres
   return (
     <div
       ref={scrollRef}
-      className={`min-h-0 ${className}`.trim()}
+      className={`min-h-0 overflow-x-hidden relative ${className}`.trim()}
       style={{
         overflowY: 'auto',
-        overflowX: 'hidden',
-        WebkitOverflowScrolling: 'touch',
-        position: 'relative',
+        WebkitOverflowScrolling: 'touch', /* dynamic value - cannot be Tailwind */
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -87,35 +85,21 @@ export default function PullToRefresh({ children, className = '' }: PullToRefres
       {/* Indicator: only visible on mobile when pulling or refreshing */}
       {isMobile && (pullDistance > 0 || isRefreshing) && (
         <div
+          className="flex items-center justify-center bg-[var(--color-background)] shrink-0"
           style={{
-            height: isRefreshing ? PULL_THRESHOLD : Math.min(MAX_PULL, pullDistance),
-            minHeight: isRefreshing ? PULL_THRESHOLD : 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--color-background)',
-            flexShrink: 0,
-            transition: isRefreshing ? 'none' : 'height 0.15s ease',
+            height: isRefreshing ? PULL_THRESHOLD : Math.min(MAX_PULL, pullDistance), /* dynamic value - cannot be Tailwind */
+            minHeight: isRefreshing ? PULL_THRESHOLD : 0, /* dynamic value - cannot be Tailwind */
+            transition: isRefreshing ? 'none' : 'height 0.15s ease', /* dynamic value - cannot be Tailwind */
           }}
         >
           {isRefreshing ? (
             <div
-              style={{
-                width: 28,
-                height: 28,
-                border: '3px solid var(--color-border)',
-                borderTopColor: 'var(--color-primary)',
-                borderRadius: '50%',
-                animation: 'pull-refresh-spin 0.7s linear infinite',
-              }}
+              className="size-7 rounded-full border-[3px] border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin"
             />
           ) : (
             <span
-              style={{
-                fontSize: 13,
-                color: 'var(--color-muted)',
-                opacity: Math.min(1, pullDistance / PULL_THRESHOLD),
-              }}
+              className="text-[13px] text-[var(--color-muted)]"
+              style={{ opacity: Math.min(1, pullDistance / PULL_THRESHOLD) }} /* dynamic value - cannot be Tailwind */
             >
               {pullDistance >= PULL_THRESHOLD ? t('ui.releaseToRefresh') : t('ui.pullToRefresh')}
             </span>

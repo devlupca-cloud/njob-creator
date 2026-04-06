@@ -61,34 +61,29 @@ export default function SubscriptionPlansPage() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{t('subscriptions.plans')}</h1>
+    <div className="max-w-[720px] mx-auto">
+      <h1 className="text-xl font-semibold mb-4">{t('subscriptions.plans')}</h1>
       {isLoading ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>{t('common.loading')}</div>
+        <div className="p-8 text-center text-[var(--color-muted)]">{t('common.loading')}</div>
       ) : plans.length === 0 ? (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--color-muted)' }}>{t('subscriptions.noPlans')}</div>
+        <div className="p-8 text-center text-[var(--color-muted)]">{t('subscriptions.noPlans')}</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="flex flex-col gap-4">
           {(plans as PlanRow[]).map((p) => (
-            <div key={p.id} style={{ padding: 24, background: 'var(--color-surface-2)', borderRadius: 12 }}>
-              <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 4 }}>{p.name}</div>
-              {p.description && <p style={{ margin: '0 0 8px', fontSize: 14, color: 'var(--color-muted)' }}>{p.description}</p>}
-              <div style={{ fontSize: 14, marginBottom: 16 }}>{p.currency} {Number(p.price_monthly).toFixed(2)}/mês</div>
+            <div key={p.id} className="p-6 bg-[var(--color-surface-2)] rounded-xl">
+              <div className="font-semibold text-lg mb-1">{p.name}</div>
+              {p.description && (
+                <p className="m-0 mb-2 text-sm text-[var(--color-muted)]">{p.description}</p>
+              )}
+              <div className="text-sm mb-4">{p.currency} {Number(p.price_monthly).toFixed(2)}/mês</div>
               <button
                 type="button"
                 disabled={loadingId === p.id}
                 onClick={() => handleAssinar(p)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: 8,
-                  border: 'none',
-                  background: 'var(--color-primary)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  cursor: loadingId !== p.id ? 'pointer' : 'not-allowed',
-                  opacity: loadingId !== p.id ? 1 : 0.6,
-                  fontSize: 14,
-                }}
+                className={[
+                  'px-5 py-2.5 rounded-lg border-none bg-[var(--color-primary)] text-white font-semibold text-sm',
+                  loadingId !== p.id ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-60',
+                ].join(' ')}
               >
                 {loadingId === p.id ? t('subscriptions.openingCheckout') : t('subscriptions.subscribe')}
               </button>

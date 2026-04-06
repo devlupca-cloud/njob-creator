@@ -21,22 +21,23 @@ interface ToggleOptionProps {
 function ToggleOption({ title, value, onChange }: ToggleOptionProps) {
   return (
     <div className="flex items-center justify-between py-2">
-      <span className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+      <span className="text-sm font-medium text-[var(--color-foreground)]">
         {title}
       </span>
       <button
         role="switch"
         aria-checked={value}
         onClick={() => onChange(!value)}
-        className="relative w-12 h-6 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-        style={{ background: value ? 'var(--color-primary)' : 'var(--color-border)' }}
+        className={[
+          'relative w-12 h-6 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+          value ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]',
+        ].join(' ')}
       >
         <span
-          className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full transition-transform duration-200"
-          style={{
-            background: '#fff',
-            transform: value ? 'translateX(24px)' : 'translateX(0)',
-          }}
+          className={[
+            'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200',
+            value ? 'translate-x-6' : 'translate-x-0',
+          ].join(' ')}
         />
       </button>
     </div>
@@ -100,10 +101,7 @@ interface SectionCardProps {
 
 function SectionCard({ children }: SectionCardProps) {
   return (
-    <div
-      className="rounded-xl p-4 space-y-3"
-      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
-    >
+    <div className="rounded-xl p-4 space-y-3 bg-[var(--color-surface)] border border-[var(--color-border)]">
       {children}
     </div>
   )
@@ -136,8 +134,8 @@ export default function AlterarInteracoesPage() {
       }
       try {
         const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
           setInitialLoading(false)
           return
         }
@@ -145,7 +143,7 @@ export default function AlterarInteracoesPage() {
         const { data } = await supabase
           .from('profile_settings')
           .select('*')
-          .eq('profile_id', session.user.id)
+          .eq('profile_id', user.id)
           .single()
 
         if (data) {
@@ -188,14 +186,14 @@ export default function AlterarInteracoesPage() {
     setLoading(true)
     try {
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Sem sessao')
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Sem sessao')
 
       // Upsert profile_settings (cria se não existir, atualiza se já existir)
       const { error: settingsError } = await supabase
         .from('profile_settings')
         .upsert({
-          profile_id: session.user.id,
+          profile_id: user.id,
           sell_packs: vendePacks,
           sell_calls: fazVideochamada,
           face_to_face_meeting: fazEncontro,
@@ -210,7 +208,7 @@ export default function AlterarInteracoesPage() {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({ whatsapp })
-          .eq('id', session.user.id)
+          .eq('id', user.id)
 
         if (profileError) throw profileError
 
@@ -232,10 +230,10 @@ export default function AlterarInteracoesPage() {
 
   if (initialLoading) {
     return (
-      <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
+      <div className="flex flex-col min-h-full bg-[var(--color-background)]">
         <PageHeader title={t('profile.editInteractions')} />
         <div className="flex-1 flex items-center justify-center">
-          <svg className="animate-spin w-6 h-6" fill="none" viewBox="0 0 24 24" style={{ color: 'var(--color-primary)' }}>
+          <svg className="animate-spin w-6 h-6 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
@@ -245,7 +243,7 @@ export default function AlterarInteracoesPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: 'var(--color-background)' }}>
+    <div className="flex flex-col min-h-full bg-[var(--color-background)]">
       <PageHeader title={t('profile.editInteractions')} />
 
       <div className="flex-1 overflow-y-auto">
@@ -269,7 +267,7 @@ export default function AlterarInteracoesPage() {
             />
             {fazVideochamada && (
               <>
-                <div style={{ height: '1px', background: 'var(--color-border)' }} />
+                <div className="h-px bg-[var(--color-border)]" />
                 <CurrencyInput
                   label={t('profile.videocallPer30min')}
                   value={valor30min}
@@ -295,7 +293,7 @@ export default function AlterarInteracoesPage() {
               value={fazEncontro}
               onChange={setFazEncontro}
             />
-            <div style={{ height: '1px', background: 'var(--color-border)' }} />
+            <div className="h-px bg-[var(--color-border)]" />
             <Input
               label="WhatsApp"
               value={whatsapp}

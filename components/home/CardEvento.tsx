@@ -163,98 +163,47 @@ export default function CardEvento({
   return (
     <div
       onClick={isClickable ? onTapBTN : undefined}
+      className="rounded-[4px] shadow-[0_2px_4px_rgba(0,0,0,0.25)] bg-[var(--color-surface)] transition-opacity duration-200"
       style={{
-        cursor: isClickable ? 'pointer' : 'default',
-        borderRadius: 4,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
-        background: 'var(--color-surface)',
-        borderLeft: `4px solid ${borderColor}`,
-        opacity: status === 'finished' ? 0.5 : 1,
-        transition: 'opacity 200ms',
+        cursor: isClickable ? 'pointer' : 'default', /* dynamic value - cannot be Tailwind */
+        borderLeft: `4px solid ${borderColor}`, /* dynamic value - cannot be Tailwind */
+        opacity: status === 'finished' ? 0.5 : 1, /* dynamic value - cannot be Tailwind */
       }}
     >
-      <div style={{ padding: '8px 12px' }}>
+      <div className="px-3 py-2">
         {/* Título */}
-        <p
-          style={{
-            color: 'var(--color-foreground)',
-            fontSize: 12,
-            margin: 0,
-            lineHeight: 1.4,
-          }}
-        >
+        <p className="text-[var(--color-foreground)] text-xs m-0 leading-[1.4]">
           {title}
         </p>
 
         {/* Linha de info: data/hora à esquerda, duração+users à direita */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'flex-end',
-            marginTop: 14,
-          }}
-        >
+        <div className="flex flex-row justify-between items-end mt-3.5">
           {/* Data e hora */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <span
-              style={{
-                color: 'var(--color-muted)',
-                fontSize: 12,
-              }}
-            >
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[var(--color-muted)] text-xs">
               {formatDate(date)}
             </span>
-            <span
-              style={{
-                color: 'var(--color-foreground)',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
+            <span className="text-[var(--color-foreground)] text-xs font-semibold">
               {formatTimeLocal(time, getLocaleBcp47(locale))}
             </span>
           </div>
 
           {/* Duração, participantes e preço */}
-          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <span
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                color: 'var(--color-foreground)',
-                fontSize: 12,
-              }}
-            >
+          <div className="flex flex-row items-center gap-2">
+            <span className="flex items-center gap-1 text-[var(--color-foreground)] text-xs">
               <ClockIcon />
               {duration}
             </span>
 
             {typeEvento === 'live' && (
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  color: 'var(--color-foreground)',
-                  fontSize: 12,
-                }}
-              >
+              <span className="flex items-center gap-1 text-[var(--color-foreground)] text-xs">
                 <UserIcon />
                 {users}
               </span>
             )}
 
             {ticketPrice != null && ticketPrice > 0 && (
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--color-primary)',
-                }}
-              >
+              <span className="text-xs font-semibold text-[var(--color-primary)]">
                 {ticketPrice.toLocaleString(getLocaleBcp47(locale), { style: 'currency', currency: 'BRL' })}
               </span>
             )}
@@ -263,31 +212,13 @@ export default function CardEvento({
 
         {/* Status do evento */}
         {status === 'available' && (
-          <div style={{ marginTop: 24, marginBottom: 10 }}>
+          <div className="mt-6 mb-2.5">
             <button
               onClick={(e) => {
                 e.stopPropagation()
                 onTapBTN?.()
               }}
-              style={{
-                width: '100%',
-                height: 40,
-                borderRadius: 8,
-                background: 'var(--color-primary)',
-                color: '#ffffff',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                fontSize: 14,
-                fontWeight: 600,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
-                transition: 'opacity 150ms',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.88')}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              className="w-full h-10 rounded-lg bg-[var(--color-primary)] text-white border-none cursor-pointer flex items-center justify-center gap-2 text-sm font-semibold shadow-[0_2px_4px_rgba(0,0,0,0.25)] transition-opacity hover:opacity-[0.88]"
             >
               <VideoIcon />
               {textBTN}
@@ -296,40 +227,17 @@ export default function CardEvento({
         )}
 
         {status === 'upcoming' && (
-          <div
-            style={{
-              marginTop: 16,
-              marginBottom: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: '10px 16px',
-              borderRadius: 8,
-              background: 'var(--color-surface-2, rgba(255,255,255,0.05))',
-              border: '1px solid var(--color-border)',
-            }}
-          >
+          <div className="mt-4 mb-1.5 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--color-surface-2,rgba(255,255,255,0.05))] border border-[var(--color-border)]">
             <LockIcon />
-            <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>
+            <span className="text-[13px] text-[var(--color-muted)]">
               {t('events.availableIn', { time: countdown || t('events.availableSoon') })}
             </span>
           </div>
         )}
 
         {status === 'finished' && (
-          <div
-            style={{
-              marginTop: 16,
-              marginBottom: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              padding: '8px 16px',
-            }}
-          >
-            <span style={{ fontSize: 12, color: 'var(--color-muted)', fontStyle: 'italic' }}>
+          <div className="mt-4 mb-1.5 flex items-center justify-center gap-1.5 px-4 py-2">
+            <span className="text-xs text-[var(--color-muted)] italic">
               {t('events.eventFinished')}
             </span>
           </div>

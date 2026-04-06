@@ -233,19 +233,7 @@ export default function DetalhesAgendamentoModal({
       <div
         role="presentation"
         onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(3px)',
-          WebkitBackdropFilter: 'blur(3px)',
-          zIndex: 9998,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          animation: 'detalhesOverlayIn 180ms ease forwards',
-        }}
+        className="fixed inset-0 bg-black/[0.65] backdrop-blur-[3px] z-[9998] flex items-center justify-center p-6 [animation:detalhesOverlayIn_180ms_ease_forwards]"
       >
         {/* Modal */}
         <div
@@ -253,86 +241,32 @@ export default function DetalhesAgendamentoModal({
           aria-modal="true"
           aria-labelledby="detalhes-agendamento-title"
           onClick={(e) => e.stopPropagation()}
-          style={{
-            background: 'var(--color-surface)',
-            borderRadius: 20,
-            padding: 0,
-            width: '100%',
-            maxWidth: 440,
-            maxHeight: '85vh',
-            overflowY: 'auto',
-            animation: 'detalhesModalIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards',
-          }}
+          className="bg-[var(--color-surface)] rounded-[20px] p-0 w-full max-w-[440px] max-h-[85vh] overflow-y-auto [animation:detalhesModalIn_220ms_cubic-bezier(0.22,1,0.36,1)_forwards]"
         >
           {/* Header com gradiente */}
-          <div
-            style={{
-              background: 'linear-gradient(135deg, rgba(174, 50, 195, 0.12) 0%, rgba(101, 22, 147, 0.08) 100%)',
-              borderRadius: '20px 20px 0 0',
-              padding: '20px 24px 16px',
-              position: 'relative',
-            }}
-          >
+          <div className="bg-[linear-gradient(135deg,rgba(174,50,195,0.12)_0%,rgba(101,22,147,0.08)_100%)] rounded-t-[20px] px-6 pt-5 pb-4 relative">
             {/* Botão fechar */}
             <button
               type="button"
               onClick={onClose}
               aria-label={t('common.close')}
-              style={{
-                position: 'absolute',
-                top: 16,
-                right: 16,
-                background: 'rgba(255,255,255,0.06)',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--color-muted)',
-                padding: 6,
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'color 150ms, background 150ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--color-foreground)'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--color-muted)'
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-              }}
+              className="absolute top-4 right-4 bg-white/[0.06] border-none cursor-pointer text-[var(--color-muted)] p-1.5 rounded-lg flex items-center justify-center transition-colors hover:text-[var(--color-foreground)] hover:bg-white/10"
             >
               <CloseIcon />
             </button>
 
             {/* Badge tipo + status da call */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <div className="flex items-center gap-2 mb-3">
               <span
-                style={{
-                  display: 'inline-block',
-                  background: cfg.bg,
-                  color: cfg.color,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: 0.5,
-                  padding: '3px 10px',
-                  borderRadius: 4,
-                }}
+                className="inline-block text-[11px] font-bold tracking-[0.5px] px-2.5 py-[3px] rounded-[4px]"
+                style={{ background: cfg.bg, color: cfg.color }} /* dynamic value - cannot be Tailwind */
               >
                 {cfg.label}
               </span>
               {callStatusBadge && (
                 <span
-                  style={{
-                    display: 'inline-block',
-                    background: callStatusBadge.bg,
-                    color: callStatusBadge.color,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: 0.5,
-                    padding: '3px 10px',
-                    borderRadius: 4,
-                  }}
+                  className="inline-block text-[11px] font-bold tracking-[0.5px] px-2.5 py-[3px] rounded-[4px]"
+                  style={{ background: callStatusBadge.bg, color: callStatusBadge.color }} /* dynamic value - cannot be Tailwind */
                 >
                   {callStatusBadge.label}
                 </span>
@@ -342,30 +276,16 @@ export default function DetalhesAgendamentoModal({
             {/* Título do evento */}
             <h2
               id="detalhes-agendamento-title"
-              style={{
-                fontSize: 22,
-                fontWeight: 700,
-                color: 'var(--color-foreground)',
-                margin: 0,
-                lineHeight: 1.3,
-                paddingRight: 32,
-              }}
+              className="text-[22px] font-bold text-[var(--color-foreground)] m-0 leading-[1.3] pr-8"
             >
               {title}
             </h2>
 
             {/* Cliente */}
             {clientName && clientName !== '-' && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  marginTop: 8,
-                }}
-              >
+              <div className="flex items-center gap-1.5 mt-2">
                 <UserIcon />
-                <span style={{ fontSize: 13, color: 'var(--color-muted)' }}>
+                <span className="text-[13px] text-[var(--color-muted)]">
                   {clientName}
                 </span>
               </div>
@@ -373,14 +293,8 @@ export default function DetalhesAgendamentoModal({
           </div>
 
           {/* Corpo: campos em grid */}
-          <div style={{ padding: '20px 24px 24px' }}>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 12,
-              }}
-            >
+          <div className="px-6 pt-5 pb-6">
+            <div className="grid grid-cols-2 gap-3">
               <FieldCard icon={<CalendarIcon />} label={t('schedule.date')} value={date} />
               <FieldCard icon={<ClockIcon />} label={t('schedule.time')} value={time} />
               <FieldCard icon={<TimerIcon />} label={t('schedule.duration')} value={duration} />
@@ -388,26 +302,13 @@ export default function DetalhesAgendamentoModal({
             </div>
 
             {/* Botões */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
+            <div className="flex flex-col gap-2 mt-5">
               {/* Botão entrar na videochamada */}
               {typeEvent === 'call' && callStatus === 'confirmed' && canJoinCall && (
                 <button
                   type="button"
                   onClick={() => router.push(`/video-call/${eventId}`)}
-                  style={{
-                    width: '100%',
-                    height: 44,
-                    borderRadius: 10,
-                    border: 'none',
-                    background: 'var(--color-primary)',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'opacity 150ms',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
+                  className="w-full h-11 rounded-[10px] border-none bg-[var(--color-primary)] text-white text-sm font-semibold cursor-pointer transition-opacity hover:opacity-90"
                 >
                   {t('schedule.joinVideoCall')}
                 </button>
@@ -415,12 +316,7 @@ export default function DetalhesAgendamentoModal({
 
               {/* Texto informativo quando fora da janela de tempo */}
               {typeEvent === 'call' && callStatus === 'confirmed' && !canJoinCall && callStartTimeFormatted && (
-                <p style={{
-                  fontSize: 13,
-                  color: 'var(--color-muted)',
-                  textAlign: 'center',
-                  margin: 0,
-                }}>
+                <p className="text-[13px] text-[var(--color-muted)] text-center m-0">
                   {t('schedule.callAvailableAt').replace('{time}', callStartTimeFormatted)}
                 </p>
               )}
@@ -430,26 +326,7 @@ export default function DetalhesAgendamentoModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  style={{
-                    width: '100%',
-                    height: 44,
-                    borderRadius: 10,
-                    border: '1px solid var(--color-border)',
-                    background: 'transparent',
-                    color: 'var(--color-foreground)',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'background 150ms, border-color 150ms',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--color-surface-2)'
-                    e.currentTarget.style.borderColor = 'var(--color-muted)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.borderColor = 'var(--color-border)'
-                  }}
+                  className="w-full h-11 rounded-[10px] border border-[var(--color-border)] bg-transparent text-[var(--color-foreground)] text-sm font-semibold cursor-pointer transition-colors hover:bg-[var(--color-surface-2)] hover:border-[var(--color-muted)]"
                 >
                   {t('common.close')}
                 </button>
@@ -466,31 +343,14 @@ export default function DetalhesAgendamentoModal({
 
 function FieldCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div
-      style={{
-        background: 'var(--color-surface-2)',
-        borderRadius: 10,
-        padding: '12px 14px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ color: 'var(--color-muted)', display: 'flex', flexShrink: 0 }}>{icon}</span>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            color: 'var(--color-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: 0.4,
-          }}
-        >
+    <div className="bg-[var(--color-surface-2)] rounded-[10px] px-3.5 py-3 flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <span className="text-[var(--color-muted)] flex shrink-0">{icon}</span>
+        <span className="text-[11px] font-semibold text-[var(--color-muted)] uppercase tracking-[0.4px]">
           {label}
         </span>
       </div>
-      <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-foreground)' }}>
+      <span className="text-[15px] font-medium text-[var(--color-foreground)]">
         {value}
       </span>
     </div>

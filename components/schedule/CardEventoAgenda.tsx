@@ -94,60 +94,30 @@ export default function CardEventoAgenda({
   const timeRange = computeTimeRange(time, duration)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 30 }}>
+    <div className="flex flex-row items-start gap-[30px]">
       {/* Hora à esquerda */}
-      <span
-        style={{
-          color: 'var(--color-muted)',
-          fontSize: 12,
-          flexShrink: 0,
-          marginTop: 10,
-        }}
-      >
+      <span className="text-[var(--color-muted)] text-xs shrink-0 mt-2.5">
         {time}
       </span>
 
       {/* Card clicável */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            height: 1,
-            background: 'var(--color-muted)',
-            marginBottom: 10,
-          }}
-        />
+      <div className="flex-1 min-w-0">
+        <div className="h-px bg-[var(--color-muted)] mb-2.5" />
         <button
           type="button"
           onClick={onTap}
-          style={{
-            width: '100%',
-            textAlign: 'left',
-            padding: '4px 12px',
-            borderRadius: 4,
-            background: 'var(--color-surface)',
-            border: 'none',
-            borderLeft: `4px solid ${borderColor}`,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
-            cursor: 'pointer',
-          }}
+          className="w-full text-left py-1 px-3 rounded-[4px] bg-[var(--color-surface)] border-none cursor-pointer shadow-[0_2px_4px_rgba(0,0,0,0.25)]"
+          style={{ borderLeft: `4px solid ${borderColor}` }} /* dynamic value - cannot be Tailwind */
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-              <span style={{ color: 'var(--color-foreground)', fontSize: 12, fontWeight: 500 }}>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[var(--color-foreground)] text-xs font-medium">
                 {title || '-'}
               </span>
               {badge && (
                 <span
-                  style={{
-                    display: 'inline-block',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: badge.color,
-                    background: badge.bg,
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    whiteSpace: 'nowrap',
-                  }}
+                  className="inline-block text-[10px] font-bold px-1.5 py-[2px] rounded-[4px] whitespace-nowrap"
+                  style={{ color: badge.color, background: badge.bg }} /* dynamic value - cannot be Tailwind */
                 >
                   {badge.label}
                 </span>
@@ -156,29 +126,24 @@ export default function CardEventoAgenda({
             <ActionIcon />
           </div>
           {clientName && (
-            <div style={{ marginTop: 4 }}>
-              <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>
+            <div className="mt-1">
+              <span className="text-[11px] text-[var(--color-muted)]">
                 {clientName}
               </span>
             </div>
           )}
           <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: clientName ? 8 : 14,
-              gap: 8,
-            }}
+            className="flex justify-between items-center gap-2"
+            style={{ marginTop: clientName ? 8 : 14 }} /* dynamic value - cannot be Tailwind */
           >
-            <span style={{ color: 'var(--color-foreground)', fontSize: 12 }}>{timeRange}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-foreground)' }}>
+            <span className="text-[var(--color-foreground)] text-xs">{timeRange}</span>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 text-xs text-[var(--color-foreground)]">
                 <ClockIcon />
                 {duration}
               </span>
               {typeEvent === 'live' && count != null && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--color-foreground)' }}>
+                <span className="flex items-center gap-1 text-xs text-[var(--color-foreground)]">
                   <UserIcon />
                   {count}
                 </span>

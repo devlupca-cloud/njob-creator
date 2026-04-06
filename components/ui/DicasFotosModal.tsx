@@ -23,38 +23,22 @@ export default function DicasFotosModal({ onClose }: DicasFotosModalProps) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="dicas-fotos-title"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6"
       onClick={onClose}
     >
       <div
-        style={{
-          background: 'var(--color-surface)',
-          borderRadius: 12,
-          padding: 24,
-          maxWidth: 360,
-          width: '100%',
-          border: '1px solid var(--color-border)',
-        }}
+        className="bg-[var(--color-surface)] rounded-xl p-6 max-w-[360px] w-full border border-[var(--color-border)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 id="dicas-fotos-title" className="text-base font-semibold" style={{ color: 'var(--color-foreground)' }}>
+          <h2 id="dicas-fotos-title" className="text-base font-semibold text-[var(--color-foreground)]">
             {t('photoTips.title')}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label={t('common.close')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--color-muted)' }}
+            className="bg-transparent border-none cursor-pointer p-1 text-[var(--color-muted)]"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -63,8 +47,8 @@ export default function DicasFotosModal({ onClose }: DicasFotosModalProps) {
         </div>
         <ul className="space-y-2">
           {TIP_KEYS.map((key, i) => (
-            <li key={i} className="text-sm flex gap-2" style={{ color: 'var(--color-foreground)' }}>
-              <span style={{ color: 'var(--color-primary)' }}>•</span>
+            <li key={i} className="text-sm flex gap-2 text-[var(--color-foreground)]">
+              <span className="text-[var(--color-primary)]">•</span>
               {t(key)}
             </li>
           ))}
@@ -73,8 +57,7 @@ export default function DicasFotosModal({ onClose }: DicasFotosModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium"
-            style={{ background: 'var(--color-primary)', color: '#fff' }}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-primary)] text-white"
           >
             {t('common.understood')}
           </button>

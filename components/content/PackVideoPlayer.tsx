@@ -27,25 +27,11 @@ export default function PackVideoPlayer({ src, onClose }: PackVideoPlayerProps) 
       aria-modal="true"
       aria-label="Reproduzir vídeo"
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: 'rgba(0,0,0,0.85)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
+      className="fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center p-6"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'relative',
-          maxWidth: '100%',
-          maxHeight: '100%',
-          width: 'min(90vw, 720px)',
-        }}
+        className="relative max-w-full max-h-full w-[min(90vw,720px)]"
       >
         <video
           ref={videoRef}
@@ -53,27 +39,13 @@ export default function PackVideoPlayer({ src, onClose }: PackVideoPlayerProps) 
           controls
           autoPlay
           playsInline
-          style={{ width: '100%', maxHeight: '80vh', borderRadius: 8, background: '#000' }}
+          className="w-full max-h-[80vh] rounded-lg bg-black"
         />
         <button
           type="button"
           onClick={onClose}
           aria-label="Fechar"
-          style={{
-            position: 'absolute',
-            top: -12,
-            right: -12,
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            border: 'none',
-            background: 'var(--color-surface-2)',
-            color: 'var(--color-text)',
-            cursor: 'pointer',
-            fontSize: 20,
-            lineHeight: 1,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-          }}
+          className="absolute -top-3 -right-3 size-9 rounded-full border-none bg-[var(--color-surface-2)] text-[var(--color-text)] cursor-pointer text-xl leading-none shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
         >
           ×
         </button>

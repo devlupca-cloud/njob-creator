@@ -44,14 +44,12 @@ export default function PageHeader({
 
   return (
     <div
-      className="flex items-center gap-3 py-4 px-1"
-      style={{ borderBottom: '1px solid var(--color-border)' }}
+      className="flex items-center gap-3 py-4 px-1 border-b border-[var(--color-border)]"
     >
       {showBack && (
         <button
           onClick={handleBack}
-          className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors hover:bg-surface-2"
-          style={{ color: 'var(--color-foreground)' }}
+          className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors hover:bg-surface-2 text-[var(--color-foreground)]"
           aria-label="Go back"
         >
           <BackArrow />
@@ -59,8 +57,7 @@ export default function PageHeader({
       )}
 
       <h1
-        className="flex-1 text-center text-base font-semibold"
-        style={{ color: 'var(--color-foreground)' }}
+        className="flex-1 text-center text-base font-semibold text-[var(--color-foreground)]"
       >
         {title}
       </h1>

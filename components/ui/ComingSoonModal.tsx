@@ -37,51 +37,15 @@ export default function ComingSoonModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="coming-soon-title"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 50,
-          background: 'rgba(0, 0, 0, 0.72)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-        }}
+        className="fixed inset-0 z-50 bg-black/[0.72] backdrop-blur-[4px] flex items-center justify-center p-6"
         onClick={onClose}
       >
         <div
-          style={{
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: 16,
-            padding: 32,
-            maxWidth: 380,
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 0,
-            animation: 'comingSoonModalIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both',
-          }}
+          className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-8 max-w-[380px] w-full flex flex-col items-center gap-0 [animation:comingSoonModalIn_220ms_cubic-bezier(0.22,1,0.36,1)_both]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Icon */}
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: '50%',
-              background: 'rgba(174, 50, 195, 0.12)',
-              border: '1.5px solid rgba(174, 50, 195, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 20,
-              flexShrink: 0,
-            }}
-          >
+          <div className="size-[72px] rounded-full bg-[rgba(174,50,195,0.12)] border-[1.5px] border-[rgba(174,50,195,0.25)] flex items-center justify-center mb-5 shrink-0">
             <svg
               width="34"
               height="34"
@@ -109,29 +73,12 @@ export default function ComingSoonModal({
 
           <h2
             id="coming-soon-title"
-            style={{
-              margin: 0,
-              marginBottom: 10,
-              fontSize: 18,
-              fontWeight: 700,
-              color: 'var(--color-foreground)',
-              textAlign: 'center',
-              lineHeight: 1.3,
-            }}
+            className="m-0 mb-2.5 text-lg font-bold text-[var(--color-foreground)] text-center leading-[1.3]"
           >
             {t('modals.comingSoonTitle')}
           </h2>
 
-          <p
-            style={{
-              margin: 0,
-              marginBottom: 28,
-              fontSize: 14,
-              color: 'var(--color-muted)',
-              textAlign: 'center',
-              lineHeight: 1.6,
-            }}
-          >
+          <p className="m-0 mb-7 text-sm text-[var(--color-muted)] text-center leading-[1.6]">
             {t('modals.comingSoonDescription', { feature: featureName })}
           </p>
 

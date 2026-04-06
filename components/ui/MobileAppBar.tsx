@@ -24,17 +24,12 @@ export default function MobileAppBar() {
   return (
     <>
       <header
-        className="md:hidden flex items-center justify-between h-14 px-4 shrink-0 z-30"
-        style={{
-          background: 'var(--color-surface)',
-          borderBottom: '1px solid var(--color-border)',
-        }}
+        className="md:hidden flex items-center justify-between h-14 px-4 shrink-0 z-30 bg-[var(--color-surface)] border-b border-[var(--color-border)]"
       >
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors hover:bg-surface-2"
-          style={{ color: 'var(--color-foreground)' }}
+          className="flex items-center justify-center w-10 h-10 rounded-lg transition-colors hover:bg-surface-2 text-[var(--color-foreground)]"
           aria-label={t('ui.openMenu')}
         >
           <MenuIcon />

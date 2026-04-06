@@ -111,11 +111,9 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
       />
       {/* Drawer panel */}
       <aside
-        className="md:hidden fixed top-0 left-0 z-50 h-full w-[280px] max-w-[85vw] flex flex-col py-6 shadow-xl"
+        className="md:hidden fixed top-0 left-0 z-50 h-full w-[280px] max-w-[85vw] flex flex-col py-6 shadow-xl bg-[var(--color-surface)] border-r border-[var(--color-border)]"
         style={{
-          background: 'var(--color-surface)',
-          borderRight: '1px solid var(--color-border)',
-          transform: open ? 'translateX(0)' : 'translateX(-100%)',
+          transform: open ? 'translateX(0)' : 'translateX(-100%)', /* dynamic value - cannot be Tailwind */
           transition: 'transform 0.25s ease-out',
         }}
         aria-modal="true"
@@ -137,9 +135,8 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
                   onClick={() => { onClose(); setGuestModalOpen(true) }}
                   className={[
                     'flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors min-h-[48px]',
-                    isActive ? 'bg-gradient-primary text-white' : 'hover:bg-surface-2',
+                    isActive ? 'bg-gradient-primary text-white' : 'hover:bg-surface-2 text-[var(--color-foreground)]',
                   ].join(' ')}
-                  style={!isActive ? { color: 'var(--color-foreground)' } : undefined}
                 >
                   {item.icon}
                   {item.label}
@@ -154,9 +151,8 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
                 onClick={onClose}
                 className={[
                   'flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors min-h-[48px]',
-                  isActive ? 'bg-gradient-primary text-white' : 'hover:bg-surface-2',
+                  isActive ? 'bg-gradient-primary text-white' : 'hover:bg-surface-2 text-[var(--color-foreground)]',
                 ].join(' ')}
-                style={!isActive ? { color: 'var(--color-foreground)' } : undefined}
               >
                 {item.icon}
                 {item.label}
@@ -164,12 +160,11 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
             )
           })}
         </nav>
-        <div className="px-3 mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+        <div className="px-3 mt-4 pt-4 border-t border-[var(--color-border)]">
           <button
             type="button"
             onClick={handleSignOut}
-            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium w-full transition-colors hover:bg-surface-2 min-h-[48px]"
-            style={{ color: 'var(--color-error)' }}
+            className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium w-full transition-colors hover:bg-surface-2 min-h-[48px] text-[var(--color-error)]"
           >
             <SignOutIcon />
             {t('nav.signOut')}

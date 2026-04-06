@@ -62,28 +62,21 @@ export default function ContentViewPage() {
   }, [id, supabase, router])
 
   if (!id) return null
-  if (fetching) return <div style={{ padding: 32, textAlign: 'center' }}>{t('common.loading')}</div>
+  if (fetching) return <div className="p-8 text-center">{t('common.loading')}</div>
 
-  const slotStyle = {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    objectFit: 'cover' as const,
-    background: 'var(--color-surface-2)',
-    border: '1px solid var(--color-border)',
-  }
+  const slotCls = 'size-20 rounded-lg object-cover bg-[var(--color-surface-2)] border border-[var(--color-border)]'
 
   return (
-    <div style={{ maxWidth: 480, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 600, marginBottom: 16 }}>{title}</h1>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="max-w-[480px] mx-auto">
+      <h1 className="text-xl font-semibold mb-4">{title}</h1>
+      <div className="flex flex-col gap-4">
 
         {/* Capa */}
         {coverImageUrl && (
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{t('content.coverImage')}</p>
-            <div style={{ width: 120, height: 120, borderRadius: 8, overflow: 'hidden' }}>
-              <img src={coverImageUrl} alt={t('content.coverImage')} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <p className="text-sm font-semibold m-0 mb-1">{t('content.coverImage')}</p>
+            <div className="w-[120px] h-[120px] rounded-lg overflow-hidden">
+              <img src={coverImageUrl} alt={t('content.coverImage')} className="w-full h-full object-cover" />
             </div>
           </div>
         )}
@@ -91,17 +84,17 @@ export default function ContentViewPage() {
         {/* Midias */}
         {existingItems.length > 0 && (
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{t('content.uploadMedia')}</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <p className="text-sm font-semibold m-0 mb-1">{t('content.uploadMedia')}</p>
+            <div className="flex flex-wrap gap-2">
               {existingItems.map((it, i) => (
                 <div key={`item-${i}`}>
                   {it.type === 'photo' ? (
-                    <img src={it.url} alt="" style={slotStyle} />
+                    <img src={it.url} alt="" className={slotCls} />
                   ) : (
                     <button
                       type="button"
                       onClick={() => setVideoModalUrl(it.url)}
-                      style={{ ...slotStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--color-muted)', cursor: 'pointer' }}
+                      className="size-20 rounded-lg bg-[var(--color-surface-2)] border border-[var(--color-border)] flex items-center justify-center text-[10px] text-[var(--color-muted)] cursor-pointer"
                     >
                       ▶ Video
                     </button>
@@ -114,30 +107,30 @@ export default function ContentViewPage() {
 
         {/* Titulo */}
         <div>
-          <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{t('content.contentTitle')}</p>
-          <p style={{ fontSize: 14, margin: 0 }}>{title}</p>
+          <p className="text-sm font-semibold m-0 mb-1">{t('content.contentTitle')}</p>
+          <p className="text-sm m-0">{title}</p>
         </div>
 
         {/* Descricao */}
         {description && (
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{t('content.contentDescription')}</p>
-            <p style={{ fontSize: 14, margin: 0, color: 'var(--color-muted)' }}>{description}</p>
+            <p className="text-sm font-semibold m-0 mb-1">{t('content.contentDescription')}</p>
+            <p className="text-sm m-0 text-[var(--color-muted)]">{description}</p>
           </div>
         )}
 
         {/* Preco */}
         <div>
-          <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{t('content.price')}</p>
-          <p style={{ fontSize: 14, margin: 0, color: 'var(--color-muted)' }}>R$ {priceDisplay}</p>
+          <p className="text-sm font-semibold m-0 mb-1">{t('content.price')}</p>
+          <p className="text-sm m-0 text-[var(--color-muted)]">R$ {priceDisplay}</p>
         </div>
 
         {/* Botao voltar */}
-        <div style={{ marginTop: 8 }}>
+        <div className="mt-2">
           <button
             type="button"
             onClick={() => router.back()}
-            style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer', fontSize: 14 }}
+            className="px-5 py-2.5 rounded-lg border border-[var(--color-border)] bg-transparent cursor-pointer text-sm"
           >
             {t('common.back')}
           </button>

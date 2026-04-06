@@ -24,12 +24,11 @@ const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="text-sm font-medium"
-            style={{ color: 'var(--color-foreground)' }}
+            className="text-sm font-medium text-[var(--color-foreground)]"
           >
             {label}
             {required && (
-              <span className="ml-1" style={{ color: 'var(--color-primary)' }}>
+              <span className="ml-1 text-[var(--color-primary)]">
                 *
               </span>
             )}
@@ -66,14 +65,14 @@ const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(
           )}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}
-              style={{ background: 'var(--color-surface)', color: 'var(--color-foreground)' }}>
+              className="bg-[var(--color-surface)] text-[var(--color-foreground)]">
               {opt.label}
             </option>
           ))}
         </select>
 
         {error && (
-          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+          <p className="text-xs text-[var(--color-error)]">
             {error}
           </p>
         )}
