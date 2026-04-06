@@ -23,18 +23,8 @@ function formatDDMMY(d: Date): string {
 
 function Spinner() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 48 }}>
-      <div
-        style={{
-          width: 50,
-          height: 50,
-          border: '3px solid var(--color-border)',
-          borderTopColor: 'var(--color-primary)',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }}
-      />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div className="flex justify-center items-center p-12">
+      <div className="w-[50px] h-[50px] rounded-full border-[3px] border-[var(--color-border)] border-t-[var(--color-primary)] animate-spin" />
     </div>
   )
 }
@@ -109,35 +99,18 @@ function ExpandableSection({
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div
-      style={{
-        border: '1px solid var(--color-border)',
-        borderRadius: 4,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="border border-[var(--color-border)] rounded overflow-hidden">
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        style={{
-          width: '100%',
-          padding: 10,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--color-foreground)',
-          fontSize: 14,
-        }}
+        className="w-full p-2.5 flex justify-between items-center bg-transparent border-none cursor-pointer text-[var(--color-foreground)] text-sm"
       >
         {title}
-        <span style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+        <span className={['transition-transform duration-200', expanded ? 'rotate-180' : ''].join(' ')}>▼</span>
       </button>
       {expanded && (
-        <div style={{ padding: '0 10px 10px', borderTop: '1px solid var(--color-border)' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+        <div className="px-2.5 pb-2.5 border-t border-[var(--color-border)]">
+          <div className="flex flex-wrap gap-1 mt-2">
             {slots.map((s) => {
               const isPurchased = purchasedSlots.has(s)
               const isLiveBlocked = liveBlockedSlots.has(s)
@@ -198,7 +171,7 @@ function ExpandableSection({
               )
             })}
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer', fontSize: 14 }}>
+          <label className="flex items-center gap-2 mt-2 cursor-pointer text-sm">
             <input
               type="checkbox"
               checked={isAllSelected}
