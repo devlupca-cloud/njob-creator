@@ -91,7 +91,7 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
       {/* Card 3 — Faturamento (clicável → abre Stripe dashboard) */}
       <div
         onClick={handleOpenStripe}
-        className={`w-full md:w-auto md:flex-1 md:min-w-0 cursor-pointer ${stripeLoading ? 'opacity-60 pointer-events-none' : ''}`}
+        className={`basis-1/2 shrink-0 md:basis-auto md:flex-1 md:min-w-0 cursor-pointer ${stripeLoading ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <CardMetricas
           fillColor="#DEB8FF"
