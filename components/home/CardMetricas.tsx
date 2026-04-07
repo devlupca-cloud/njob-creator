@@ -60,7 +60,7 @@ export default function CardMetricas({
         {!valueMoeda && showIcon && (
           <span className="text-[#222222] flex">{icon}</span>
         )}
-        <span className={`text-[#222222] font-bold leading-none ${valueMoeda ? 'text-base' : 'text-2xl'} whitespace-nowrap overflow-hidden text-ellipsis`}>
+        <span className="text-[#222222] text-2xl font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
           {displayValue}
         </span>
       </div>

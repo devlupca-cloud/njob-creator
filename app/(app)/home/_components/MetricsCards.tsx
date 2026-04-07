@@ -1,10 +1,12 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Eye, Heart, DollarSign } from 'lucide-react'
+import { toast } from 'sonner'
 
 import CardMetricas from '@/components/home/CardMetricas'
 import Spinner from '@/components/ui/Spinner'
+import { createClient } from '@/lib/supabase/client'
 import { useTranslation } from '@/lib/i18n'
 
 interface CreatorMetrics {
@@ -20,7 +22,35 @@ interface MetricsCardsProps {
 
 export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
   const { t } = useTranslation()
-  const router = useRouter()
+  const [stripeLoading, setStripeLoading] = useState(false)
+
+  const handleOpenStripe = async () => {
+    if (stripeLoading) return
+    setStripeLoading(true)
+    try {
+      const supabase = createClient()
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) { toast.error(t('profile.sessionExpired')); return }
+
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL!
+      const res = await fetch(`${base}/functions/v1/creator-payout-update-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json().catch(() => ({}))
+
+      if (data?.status === 'VERIFYING') { toast.info(data?.message ?? t('profile.stripeVerifying')); return }
+      if (!res.ok && data?.error !== 'account_onboarding') { toast.error(data?.message ?? data?.error ?? `Erro HTTP ${res.status}`); return }
+
+      const url = data?.url ?? data?.login_url ?? data?.onboarding_url
+      if (url) { window.open(url, '_blank') } else { toast.error(t('profile.stripeNoLink')) }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('common.error'))
+    } finally {
+      setStripeLoading(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -31,31 +61,32 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
   }
 
   return (
-    <div className="flex flex-row gap-2">
-      {/* Card 1 — Visitas */}
-      <CardMetricas
-        fillColor="#F1E2FF"
-        icon={<Eye width={20} height={20} stroke="#222222" strokeWidth={2} />}
-        value={metricas?.visitas_30d ?? 0}
-        title={t('home.visits')}
-        subTitle={t('home.last30days')}
-        showIcon={true}
-        valueMoeda={false}
-      />
+    <div className="flex flex-col gap-2">
+      {/* Linha 1 — Visitas + Curtidas */}
+      <div className="flex flex-row gap-2">
+        <CardMetricas
+          fillColor="#F1E2FF"
+          icon={<Eye width={20} height={20} stroke="#222222" strokeWidth={2} />}
+          value={metricas?.visitas_30d ?? 0}
+          title={t('home.visits')}
+          subTitle={t('home.last30days')}
+          showIcon={true}
+          valueMoeda={false}
+        />
 
-      {/* Card 2 — Curtidas */}
-      <CardMetricas
-        fillColor="#E8CDFF"
-        icon={<Heart width={20} height={20} stroke="#222222" strokeWidth={2} />}
-        value={metricas?.curtidas_30d ?? 0}
-        title={t('home.likes')}
-        subTitle={t('home.last30days')}
-        showIcon={true}
-        valueMoeda={false}
-      />
+        <CardMetricas
+          fillColor="#E8CDFF"
+          icon={<Heart width={20} height={20} stroke="#222222" strokeWidth={2} />}
+          value={metricas?.curtidas_30d ?? 0}
+          title={t('home.likes')}
+          subTitle={t('home.last30days')}
+          showIcon={true}
+          valueMoeda={false}
+        />
+      </div>
 
-      {/* Card 3 — Faturamento (clicável → /financial) */}
-      <div onClick={() => router.push('/financial')} className="flex flex-1 min-w-0 cursor-pointer">
+      {/* Linha 2 — Faturamento (clicável → abre Stripe dashboard) */}
+      <div onClick={handleOpenStripe} className={`cursor-pointer ${stripeLoading ? 'opacity-60 pointer-events-none' : ''}`}>
         <CardMetricas
           fillColor="#DEB8FF"
           icon={<DollarSign width={20} height={20} stroke="#222222" strokeWidth={2} />}
