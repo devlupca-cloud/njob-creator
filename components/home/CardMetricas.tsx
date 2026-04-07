@@ -49,7 +49,7 @@ export default function CardMetricas({
 
   return (
     <div
-      className="h-[124px] rounded-xl py-6 px-3 flex flex-col justify-between flex-1 min-w-0"
+      className="h-[90px] md:h-[124px] rounded-xl py-3 px-3 md:py-6 flex flex-col justify-between flex-1 min-w-0"
       style={{ background: fillColor }} /* dynamic value - cannot be Tailwind */
     >
       {/* Linha superior: ícone + valor */}
@@ -60,17 +60,17 @@ export default function CardMetricas({
         {!valueMoeda && showIcon && (
           <span className="text-[#222222] flex">{icon}</span>
         )}
-        <span className="text-[#222222] text-2xl font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+        <span className="text-[#222222] text-xl md:text-2xl font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
           {displayValue}
         </span>
       </div>
 
       {/* Linha inferior: título + subtítulo */}
       <div className="text-center">
-        <p className="text-[#222222] text-sm font-semibold m-0 leading-[1.2]">
+        <p className="text-[#222222] text-xs md:text-sm font-semibold m-0 leading-[1.2]">
           {title}
         </p>
-        <p className="text-[#616161] text-xs m-0 mt-0.5 leading-[1.2]">
+        <p className="text-[#616161] text-[10px] md:text-xs m-0 mt-0.5 leading-[1.2]">
           {subTitle}
         </p>
       </div>
