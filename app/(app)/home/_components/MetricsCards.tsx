@@ -61,9 +61,9 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Linha 1 — Visitas + Curtidas */}
-      <div className="flex flex-row gap-2">
+    <div className="flex flex-wrap gap-2">
+      {/* Card 1 — Visitas */}
+      <div className="flex-1 min-w-0">
         <CardMetricas
           fillColor="#F1E2FF"
           icon={<Eye width={20} height={20} stroke="#222222" strokeWidth={2} />}
@@ -73,7 +73,10 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
           showIcon={true}
           valueMoeda={false}
         />
+      </div>
 
+      {/* Card 2 — Curtidas */}
+      <div className="flex-1 min-w-0">
         <CardMetricas
           fillColor="#E8CDFF"
           icon={<Heart width={20} height={20} stroke="#222222" strokeWidth={2} />}
@@ -85,8 +88,11 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
         />
       </div>
 
-      {/* Linha 2 — Faturamento (clicável → abre Stripe dashboard) */}
-      <div onClick={handleOpenStripe} className={`cursor-pointer ${stripeLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+      {/* Card 3 — Faturamento (clicável → abre Stripe dashboard) */}
+      <div
+        onClick={handleOpenStripe}
+        className={`w-full md:w-auto md:flex-1 md:min-w-0 cursor-pointer ${stripeLoading ? 'opacity-60 pointer-events-none' : ''}`}
+      >
         <CardMetricas
           fillColor="#DEB8FF"
           icon={<DollarSign width={20} height={20} stroke="#222222" strokeWidth={2} />}
