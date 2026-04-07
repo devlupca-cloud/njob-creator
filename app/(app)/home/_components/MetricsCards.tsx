@@ -61,41 +61,34 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {/* Card 1 — Visitas */}
-      <div className="flex-1 min-w-0">
-        <CardMetricas
-          fillColor="#F1E2FF"
-          icon={<Eye width={20} height={20} stroke="#222222" strokeWidth={2} />}
-          value={metricas?.visitas_30d ?? 0}
-          title={t('home.visits')}
-          subTitle={t('home.last30days')}
-          showIcon={true}
-          valueMoeda={false}
-        />
-      </div>
+    <div className="grid grid-cols-3 gap-2">
+      <CardMetricas
+        fillColor="#F1E2FF"
+        icon={<Eye size={16} stroke="#222222" strokeWidth={2} />}
+        value={metricas?.visitas_30d ?? 0}
+        title={t('home.visits')}
+        subTitle={t('home.last30days')}
+        showIcon={true}
+        valueMoeda={false}
+      />
 
-      {/* Card 2 — Curtidas */}
-      <div className="flex-1 min-w-0">
-        <CardMetricas
-          fillColor="#E8CDFF"
-          icon={<Heart width={20} height={20} stroke="#222222" strokeWidth={2} />}
-          value={metricas?.curtidas_30d ?? 0}
-          title={t('home.likes')}
-          subTitle={t('home.last30days')}
-          showIcon={true}
-          valueMoeda={false}
-        />
-      </div>
+      <CardMetricas
+        fillColor="#E8CDFF"
+        icon={<Heart size={16} stroke="#222222" strokeWidth={2} />}
+        value={metricas?.curtidas_30d ?? 0}
+        title={t('home.likes')}
+        subTitle={t('home.last30days')}
+        showIcon={true}
+        valueMoeda={false}
+      />
 
-      {/* Card 3 — Faturamento (clicável → abre Stripe dashboard) */}
       <div
         onClick={handleOpenStripe}
-        className={`basis-1/2 shrink-0 md:basis-auto md:flex-1 md:min-w-0 cursor-pointer ${stripeLoading ? 'opacity-60 pointer-events-none' : ''}`}
+        className={`cursor-pointer transition-opacity ${stripeLoading ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <CardMetricas
           fillColor="#DEB8FF"
-          icon={<DollarSign width={20} height={20} stroke="#222222" strokeWidth={2} />}
+          icon={<DollarSign size={16} stroke="#222222" strokeWidth={2} />}
           value={metricas?.faturamento_30d ?? 0}
           title={t('home.revenue')}
           subTitle={t('home.last30days')}

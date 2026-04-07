@@ -3,30 +3,14 @@
 import React from 'react'
 
 interface CardMetricasProps {
-  /** Cor de fundo do card (ex: '#F1E2FF') */
   fillColor: string
-  /** Ícone SVG renderizado dentro do card */
   icon: React.ReactNode
-  /** Valor numérico a exibir */
   value: number
-  /** Título da métrica (ex: 'Visitas') */
   title: string
-  /** Subtítulo da métrica (ex: 'últimos 30 dias') */
   subTitle?: string
-  /** Se true, mostra o ícone na linha superior */
   showIcon?: boolean
-  /** Se true, formata o valor como moeda BRL (R$ X,XX) */
   valueMoeda?: boolean
 }
-
-/**
- * CardMetricas
- * Replica do CardMetricasWidget Flutter.
- * - Altura fixa 124px
- * - Fundo colorido (passado via fillColor, sempre com opacidade no dark para contraste)
- * - Textos internos em #222222 (escuro, pois o fundo é claro)
- * - Valor formatado como moeda se valueMoeda=true
- */
 
 function formatBRL(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -34,6 +18,13 @@ function formatBRL(value: number): string {
     currency: 'BRL',
     minimumFractionDigits: 2,
   }).format(value)
+}
+
+function formatCompact(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.0', '')}M`
+  if (value >= 10_000) return `${(value / 1_000).toFixed(1).replace('.0', '')}K`
+  if (value >= 1_000) return new Intl.NumberFormat('pt-BR').format(value)
+  return String(value)
 }
 
 export default function CardMetricas({
@@ -45,32 +36,29 @@ export default function CardMetricas({
   showIcon = true,
   valueMoeda = false,
 }: CardMetricasProps) {
-  const displayValue = valueMoeda ? formatBRL(value) : String(value ?? '-')
+  const displayValue = valueMoeda ? formatBRL(value) : formatCompact(value)
 
   return (
     <div
-      className="h-[90px] md:h-[124px] rounded-xl py-3 px-3 md:py-6 flex flex-col justify-between flex-1 min-w-0"
-      style={{ background: fillColor }} /* dynamic value - cannot be Tailwind */
+      className="rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 md:gap-2 flex-1 min-w-0"
+      style={{ background: fillColor }}
     >
-      {/* Linha superior: ícone + valor */}
-      <div
-        className="flex flex-row items-center"
-        style={{ justifyContent: valueMoeda ? 'center' : 'space-between' }} /* dynamic value - cannot be Tailwind */
-      >
-        {!valueMoeda && showIcon && (
-          <span className="text-[#222222] flex">{icon}</span>
-        )}
-        <span className="text-[#222222] text-xl md:text-2xl font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
-          {displayValue}
-        </span>
-      </div>
+      {/* Ícone */}
+      {!valueMoeda && showIcon && (
+        <span className="text-[#222222]/60 flex">{icon}</span>
+      )}
 
-      {/* Linha inferior: título + subtítulo */}
-      <div className="text-center">
-        <p className="text-[#222222] text-xs md:text-sm font-semibold m-0 leading-[1.2]">
+      {/* Valor */}
+      <span className="text-[#222222] text-lg md:text-2xl font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+        {displayValue}
+      </span>
+
+      {/* Título + subtítulo */}
+      <div>
+        <p className="text-[#222222]/80 text-[11px] md:text-xs font-medium m-0 leading-tight">
           {title}
         </p>
-        <p className="text-[#616161] text-[10px] md:text-xs m-0 mt-0.5 leading-[1.2]">
+        <p className="text-[#222222]/40 text-[10px] md:text-[11px] m-0 leading-tight">
           {subTitle}
         </p>
       </div>
