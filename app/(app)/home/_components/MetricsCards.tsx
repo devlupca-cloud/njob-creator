@@ -61,24 +61,22 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-3 gap-2 md:gap-3">
       <CardMetricas
         fillColor="#F1E2FF"
-        icon={<Eye size={16} stroke="#222222" strokeWidth={2} />}
+        icon={<Eye size={15} stroke="#222222" strokeWidth={1.5} />}
         value={metricas?.visitas_30d ?? 0}
         title={t('home.visits')}
         subTitle={t('home.last30days')}
-        showIcon={true}
         valueMoeda={false}
       />
 
       <CardMetricas
         fillColor="#E8CDFF"
-        icon={<Heart size={16} stroke="#222222" strokeWidth={2} />}
+        icon={<Heart size={15} stroke="#222222" strokeWidth={1.5} />}
         value={metricas?.curtidas_30d ?? 0}
         title={t('home.likes')}
         subTitle={t('home.last30days')}
-        showIcon={true}
         valueMoeda={false}
       />
 
@@ -88,11 +86,10 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
       >
         <CardMetricas
           fillColor="#DEB8FF"
-          icon={<DollarSign size={16} stroke="#222222" strokeWidth={2} />}
+          icon={<DollarSign size={15} stroke="#222222" strokeWidth={1.5} />}
           value={metricas?.faturamento_30d ?? 0}
           title={t('home.revenue')}
           subTitle={t('home.last30days')}
-          showIcon={false}
           valueMoeda={true}
         />
       </div>

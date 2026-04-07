@@ -8,7 +8,6 @@ interface CardMetricasProps {
   value: number
   title: string
   subTitle?: string
-  showIcon?: boolean
   valueMoeda?: boolean
 }
 
@@ -33,35 +32,25 @@ export default function CardMetricas({
   value,
   title,
   subTitle = 'últimos 30 dias',
-  showIcon = true,
   valueMoeda = false,
 }: CardMetricasProps) {
   const displayValue = valueMoeda ? formatBRL(value) : formatCompact(value)
 
   return (
     <div
-      className="rounded-2xl p-3 md:p-4 flex flex-col gap-1.5 md:gap-2 flex-1 min-w-0"
+      className="rounded-2xl px-2 py-3 md:px-4 md:py-5 flex flex-col items-center justify-center text-center gap-0.5 min-w-0 h-[100px] md:h-[120px]"
       style={{ background: fillColor }}
     >
-      {/* Ícone */}
-      {!valueMoeda && showIcon && (
-        <span className="text-[#222222]/60 flex">{icon}</span>
-      )}
-
-      {/* Valor */}
-      <span className="text-[#222222] text-lg md:text-2xl font-bold leading-none whitespace-nowrap overflow-hidden text-ellipsis">
+      <span className="text-[#222222]/50 flex mb-0.5">{icon}</span>
+      <span className="text-[#222222] text-base md:text-xl font-bold leading-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
         {displayValue}
       </span>
-
-      {/* Título + subtítulo */}
-      <div>
-        <p className="text-[#222222]/80 text-[11px] md:text-xs font-medium m-0 leading-tight">
-          {title}
-        </p>
-        <p className="text-[#222222]/40 text-[10px] md:text-[11px] m-0 leading-tight">
-          {subTitle}
-        </p>
-      </div>
+      <p className="text-[#222222]/70 text-[10px] md:text-xs font-medium m-0 leading-tight">
+        {title}
+      </p>
+      <p className="text-[#222222]/35 text-[9px] md:text-[10px] m-0 leading-tight">
+        {subTitle}
+      </p>
     </div>
   )
 }
