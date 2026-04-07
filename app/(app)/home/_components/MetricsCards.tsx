@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { Eye, Heart, DollarSign } from 'lucide-react'
 
 import CardMetricas from '@/components/home/CardMetricas'
@@ -19,6 +20,7 @@ interface MetricsCardsProps {
 
 export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
   const { t } = useTranslation()
+  const router = useRouter()
 
   if (isLoading) {
     return (
@@ -52,16 +54,18 @@ export function MetricsCards({ metricas, isLoading }: MetricsCardsProps) {
         valueMoeda={false}
       />
 
-      {/* Card 3 — Faturamento */}
-      <CardMetricas
-        fillColor="#DEB8FF"
-        icon={<DollarSign width={20} height={20} stroke="#222222" strokeWidth={2} />}
-        value={Math.round(metricas?.faturamento_30d ?? 0)}
-        title={t('home.revenue')}
-        subTitle={t('home.last30days')}
-        showIcon={false}
-        valueMoeda={true}
-      />
+      {/* Card 3 — Faturamento (clicável → /financial) */}
+      <div onClick={() => router.push('/financial')} className="flex flex-1 min-w-0 cursor-pointer">
+        <CardMetricas
+          fillColor="#DEB8FF"
+          icon={<DollarSign width={20} height={20} stroke="#222222" strokeWidth={2} />}
+          value={metricas?.faturamento_30d ?? 0}
+          title={t('home.revenue')}
+          subTitle={t('home.last30days')}
+          showIcon={false}
+          valueMoeda={true}
+        />
+      </div>
     </div>
   )
 }
