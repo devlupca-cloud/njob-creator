@@ -11,7 +11,7 @@ import { formatTimeLocal, eventDateKeyLocal } from '@/lib/utils/datetime'
 import { useTranslation, getLocaleBcp47 } from '@/lib/i18n'
 import { useLiveStreamCleanup } from '@/lib/hooks/useLiveStreamCleanup'
 import { DateSelector } from './_components/DateSelector'
-import { AvailabilityBadge } from './_components/AvailabilityBadge'
+// AvailabilityBadge removido junto com a agenda fixa.
 import { EventList } from './_components/EventList'
 import { ScheduleFab } from './_components/ScheduleFab'
 
@@ -55,15 +55,7 @@ function deriveEventStatus(row: VwCreatorEventRow): 'upcoming' | 'available' | '
   return 'upcoming'
 }
 
-function isSlotPast(dateStr: string, slotTime: string): boolean {
-  const now = new Date()
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  if (dateStr !== todayStr) return false
-  const [hh, mm] = slotTime.split(':').map(Number)
-  const slotDate = new Date(now)
-  slotDate.setHours(hh, mm, 0, 0)
-  return now > slotDate
-}
+// isSlotPast removido junto com a lógica de slots.
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -139,43 +131,9 @@ export default function SchedulePage() {
     },
   })
 
-  // ── Query: availability slots ────────────────────────────────────────────────
-  const selectedDateStr = useMemo(() => {
-    const y = dataSelect.getFullYear()
-    const m = String(dataSelect.getMonth() + 1).padStart(2, '0')
-    const d = String(dataSelect.getDate()).padStart(2, '0')
-    return `${y}-${m}-${d}`
-  }, [dataSelect])
-
-  const { data: availabilitySlots } = useQuery({
-    queryKey: ['availability_slots_count', selectedDateStr],
-    enabled: !!creator,
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      const userId = user?.id
-      if (!userId) return { total: 0, available: 0, purchased: 0, past: 0 }
-      const { data: avail } = await supabase
-        .from('creator_availability')
-        .select('id')
-        .eq('creator_id', userId)
-        .eq('availability_date', selectedDateStr)
-        .single()
-      if (!avail) return { total: 0, available: 0, purchased: 0, past: 0 }
-      const { data: slots } = await supabase
-        .from('creator_availability_slots')
-        .select('id, purchased, slot_time')
-        .eq('availability_id', avail.id)
-      if (!slots) return { total: 0, available: 0, purchased: 0, past: 0 }
-      const purchased = slots.filter((s) => s.purchased).length
-      const past = slots.filter((s) => !s.purchased && isSlotPast(selectedDateStr, s.slot_time)).length
-      return {
-        total: slots.length,
-        available: slots.length - purchased - past,
-        purchased,
-        past,
-      }
-    },
-  })
+  // Agenda fixa foi descontinuada — slots não são mais populados no novo fluxo.
+  // Retornamos um objeto zero-valued para não quebrar props downstream.
+  const availabilitySlots = undefined
 
   // ── L3: Lazy status cleanup ──────────────────────────────────────────────────
   useLiveStreamCleanup(creator, refetchEventos)
@@ -225,17 +183,7 @@ export default function SchedulePage() {
           tDetails={t('schedule.details')}
         />
 
-        {availabilitySlots && (
-          <AvailabilityBadge
-            slots={availabilitySlots}
-            selectedDateStr={selectedDateStr}
-            filterType={filterType}
-            tSlotsAvailable={t('schedule.slotsAvailable')}
-            tSlotsPurchased={t('schedule.slotsPurchased')}
-            tSlotsExpired={t('schedule.slotsExpired')}
-            tAwaitingBookings={t('schedule.awaitingBookings')}
-          />
-        )}
+        {/* AvailabilityBadge removido: agenda fixa depreciada no novo fluxo */}
 
         <EventList
           isLoading={eventosLoading}

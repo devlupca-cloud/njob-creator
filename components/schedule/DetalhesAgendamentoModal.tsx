@@ -149,27 +149,40 @@ export default function DetalhesAgendamentoModal({
     }
   }, [isOpen])
 
-  // Calcula se o creator pode entrar na videochamada (5 min antes até o fim)
+  // Calcula se o creator pode entrar na videochamada.
+  // - Legado (`confirmed` + scheduled_start_time): janela de 5 min antes até o fim.
+  // - Novo fluxo (`paid` sem scheduled_start_time): livre até 2h após pagamento.
   const { canJoinCall, callStartTimeFormatted } = useMemo(() => {
-    if (typeEvent !== 'call' || callStatus !== 'confirmed' || !scheduledStartTime) {
+    if (typeEvent !== 'call') {
       return { canJoinCall: false, callStartTimeFormatted: '' }
     }
-    const startMs = new Date(scheduledStartTime).getTime()
-    const durationMs = (scheduledDurationMinutes ?? 60) * 60 * 1000
-    const endMs = startMs + durationMs
-    const windowStartMs = startMs - 5 * 60 * 1000 // 5 min antes
-    const now = Date.now()
-    const canJoin = now >= windowStartMs && now <= endMs
-    const formatted = new Date(scheduledStartTime).toLocaleTimeString(getLocaleBcp47(locale), {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    return { canJoinCall: canJoin, callStartTimeFormatted: formatted }
+
+    // Fluxo novo — paid (sem horário agendado)
+    if (callStatus === 'paid') {
+      return { canJoinCall: true, callStartTimeFormatted: '' }
+    }
+
+    // Legado — confirmed + horário marcado
+    if (callStatus === 'confirmed' && scheduledStartTime) {
+      const startMs = new Date(scheduledStartTime).getTime()
+      const durationMs = (scheduledDurationMinutes ?? 60) * 60 * 1000
+      const endMs = startMs + durationMs
+      const windowStartMs = startMs - 5 * 60 * 1000
+      const now = Date.now()
+      const canJoin = now >= windowStartMs && now <= endMs
+      const formatted = new Date(scheduledStartTime).toLocaleTimeString(getLocaleBcp47(locale), {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      return { canJoinCall: canJoin, callStartTimeFormatted: formatted }
+    }
+
+    return { canJoinCall: false, callStartTimeFormatted: '' }
   }, [typeEvent, callStatus, scheduledStartTime, scheduledDurationMinutes, locale])
 
   if (!isOpen) return null
 
-  const terminalCallStatuses = ['completed', 'cancelled_by_user', 'cancelled_by_creator', 'rejected']
+  const terminalCallStatuses = ['completed', 'cancelled_by_user', 'cancelled_by_creator', 'rejected', 'expired']
   const canCancel = !!eventId
     && status !== 'finished'
     && status !== 'cancelled'
@@ -209,11 +222,14 @@ export default function DetalhesAgendamentoModal({
     if (!callStatus) return null
     const map: Record<string, { color: string; bg: string; label: string }> = {
       requested: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', label: t('schedule.pending') },
+      awaiting_payment: { color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)', label: t('schedule.pending') },
+      paid: { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', label: t('schedule.confirmed') },
       confirmed: { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.15)', label: t('schedule.confirmed') },
       completed: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.completed') },
       cancelled_by_user: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.cancelled') },
       cancelled_by_creator: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.cancelled') },
       rejected: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.callStatusRejected') },
+      expired: { color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.15)', label: t('schedule.cancelled') },
     }
     return map[callStatus] ?? null
   })()
@@ -303,8 +319,8 @@ export default function DetalhesAgendamentoModal({
 
             {/* Botões */}
             <div className="flex flex-col gap-2 mt-5">
-              {/* Botão entrar na videochamada */}
-              {typeEvent === 'call' && callStatus === 'confirmed' && canJoinCall && (
+              {/* Botão entrar na videochamada (paid = novo fluxo, confirmed = legado) */}
+              {typeEvent === 'call' && (callStatus === 'paid' || callStatus === 'confirmed') && canJoinCall && (
                 <button
                   type="button"
                   onClick={() => router.push(`/video-call/${eventId}`)}
@@ -314,7 +330,7 @@ export default function DetalhesAgendamentoModal({
                 </button>
               )}
 
-              {/* Texto informativo quando fora da janela de tempo */}
+              {/* Texto informativo quando fora da janela de tempo (só legado) */}
               {typeEvent === 'call' && callStatus === 'confirmed' && !canJoinCall && callStartTimeFormatted && (
                 <p className="text-[13px] text-[var(--color-muted)] text-center m-0">
                   {t('schedule.callAvailableAt').replace('{time}', callStartTimeFormatted)}
