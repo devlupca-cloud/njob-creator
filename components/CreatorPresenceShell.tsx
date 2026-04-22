@@ -6,6 +6,7 @@ import { useCreator } from '@/lib/store/app-store'
 import { useCreatorPresence } from '@/lib/hooks/useCreatorPresence'
 import { useIdleTimeout } from '@/lib/hooks/useIdleTimeout'
 import { IncomingCallRequestModal } from '@/components/home/IncomingCallRequestModal'
+import { ActiveCallCTA } from '@/components/home/ActiveCallCTA'
 
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000 // 15 min
 
@@ -54,5 +55,10 @@ export default function CreatorPresenceShell() {
 
   useIdleTimeout(IDLE_TIMEOUT_MS, isOnline, handleIdle)
 
-  return <IncomingCallRequestModal />
+  return (
+    <>
+      <IncomingCallRequestModal />
+      <ActiveCallCTA />
+    </>
+  )
 }

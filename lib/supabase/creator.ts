@@ -121,6 +121,15 @@ export async function getCreatorInfo(
 
     const profileId = user.id
 
+    // Hydration suplementar: o RPC get_profile_info (legado) não retorna os
+    // campos novos is_available_for_calls / last_seen_at. Busca-os direto da
+    // tabela profiles em paralelo e mescla depois.
+    const profileLivePromise = supabase
+      .from('profiles')
+      .select('is_available_for_calls, last_seen_at')
+      .eq('id', profileId)
+      .maybeSingle()
+
     // 1) Tentar RPC get_profile_info (igual ao Flutter)
     const { data: rpcData, error: rpcError } = await supabase.rpc('get_profile_info', {
       p_profile_id: profileId,
@@ -129,7 +138,9 @@ export async function getCreatorInfo(
     if (!rpcError && rpcData != null) {
       const raw = Array.isArray(rpcData) ? rpcData[0] : rpcData
       if (raw && typeof raw === 'object') {
-        return normalizeCreatorData(raw as Record<string, unknown>)
+        const base = normalizeCreatorData(raw as Record<string, unknown>)
+        const { data: live } = await profileLivePromise
+        return mergeCreatorLiveState(base, live)
       }
     }
 
@@ -149,6 +160,8 @@ export async function getCreatorInfo(
       avatar_url: (profileRow.avatar_url as string) ?? '',
       role: (profileRow.role as CreatorData['profile']['role']) ?? 'creator',
       is_active: profileRow.is_active !== false,
+      is_available_for_calls: Boolean(profileRow.is_available_for_calls),
+      last_seen_at: (profileRow.last_seen_at as string | null) ?? null,
       created_at: (profileRow.created_at as string) ?? '',
       updated_at: (profileRow.updated_at as string) ?? '',
       whatsapp: (profileRow.whatsapp as string) ?? '',
@@ -201,6 +214,8 @@ function normalizeCreatorData(raw: Record<string, unknown>): CreatorData {
       avatar_url: (profileRaw.avatar_url as string) ?? '',
       role: (profileRaw.role as CreatorData['profile']['role']) ?? 'creator',
       is_active: profileRaw.is_active !== false,
+      is_available_for_calls: Boolean(profileRaw.is_available_for_calls),
+      last_seen_at: (profileRaw.last_seen_at as string | null) ?? null,
       created_at: (profileRaw.created_at as string) ?? '',
       updated_at: (profileRaw.updated_at as string) ?? '',
       whatsapp: (profileRaw.whatsapp as string) ?? '',
@@ -211,6 +226,30 @@ function normalizeCreatorData(raw: Record<string, unknown>): CreatorData {
     has_active_plan: Boolean(raw.has_active_plan),
     plan_stripe_id: (raw.plan_stripe_id as string) ?? null,
     account_details: (raw.account_details as CreatorData['account_details']) ?? null,
+  }
+}
+
+/**
+ * Mescla estado "vivo" de profiles (is_available_for_calls, last_seen_at) no
+ * CreatorData retornado pelo RPC legado que não os conhece. Se live for null,
+ * preserva o que já estava.
+ */
+function mergeCreatorLiveState(
+  base: CreatorData,
+  live: { is_available_for_calls?: boolean | null; last_seen_at?: string | null } | null,
+): CreatorData {
+  if (!live) return base
+  return {
+    ...base,
+    profile: {
+      ...base.profile,
+      is_available_for_calls:
+        typeof live.is_available_for_calls === 'boolean'
+          ? live.is_available_for_calls
+          : base.profile.is_available_for_calls,
+      last_seen_at:
+        live.last_seen_at !== undefined ? live.last_seen_at : base.profile.last_seen_at,
+    },
   }
 }
 
