@@ -17,6 +17,7 @@ import { getCreatorInfo, createStripeAccount } from '@/lib/supabase/creator'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/lib/store/app-store'
 import { useTranslation, type TranslationKey } from '@/lib/i18n'
+import { LEGAL_VERSION } from '@/lib/legal/documents'
 
 // ─── Currency helpers ────────────────────────────────────────────
 
@@ -216,6 +217,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(0)
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [loading, setLoading] = useState(false)
+  const [legalAccepted, setLegalAccepted] = useState(false)
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [cepLoading, setCepLoading] = useState(false)
   // Controla exibição do modal de e-mail já cadastrado
@@ -420,6 +422,7 @@ export default function RegisterPage() {
   const createProfileData = async (supabase: ReturnType<typeof createClient>, userId: string) => {
     // 1) Inserir/atualizar na tabela profiles (upsert para evitar conflito
     //    caso um trigger já tenha criado o registro automaticamente)
+    const nowIso = new Date().toISOString()
     const { error: profileError } = await supabase.from('profiles').upsert({
       id: userId,
       full_name: formData.nome,
@@ -428,6 +431,10 @@ export default function RegisterPage() {
       is_active: true,
       date_birth: formData.dataNascimento || null,
       whatsapp: formData.whatsapp || null,
+      terms_accepted_at: nowIso,
+      terms_version: LEGAL_VERSION,
+      privacy_accepted_at: nowIso,
+      privacy_version: LEGAL_VERSION,
     }, { onConflict: 'id' })
 
     if (profileError) {
@@ -567,6 +574,11 @@ export default function RegisterPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!validateStep()) return
+
+    if (!legalAccepted) {
+      toast.error('Você precisa aceitar os Termos de Uso e a Política de Privacidade.')
+      return
+    }
 
     setLoading(true)
 
@@ -720,12 +732,49 @@ export default function RegisterPage() {
         </div>
 
         <div className="flex flex-col gap-3 mt-6">
+          {step === TOTAL_STEPS - 1 && (
+            <label className="flex items-start gap-2 text-sm text-[var(--color-muted)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={legalAccepted}
+                onChange={(e) => setLegalAccepted(e.target.checked)}
+                className="mt-1 w-4 h-4 accent-[var(--color-primary)]"
+              />
+              <span>
+                Li e concordo com os{' '}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="text-[var(--color-primary)] underline underline-offset-2"
+                >
+                  Termos de Uso
+                </Link>{' '}
+                e a{' '}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="text-[var(--color-primary)] underline underline-offset-2"
+                >
+                  Política de Privacidade
+                </Link>
+                .
+              </span>
+            </label>
+          )}
+
           {step < TOTAL_STEPS - 1 ? (
             <Button type="submit" variant="primary" size="lg" fullWidth loading={step === 0 && loading}>
               {t('register.nextStep')}
             </Button>
           ) : (
-            <Button type="submit" variant="primary" size="lg" fullWidth loading={loading}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              loading={loading}
+              disabled={!legalAccepted}
+            >
               {t('common.confirm')}
             </Button>
           )}
