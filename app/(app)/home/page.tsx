@@ -294,6 +294,37 @@ export default function HomePage() {
           console.warn('[handleOnlineChange] presence upsert falhou', presenceErr)
         }
 
+        // Quando liga online pela primeira vez, garante que sell_calls=true
+        // e preços mínimos existam em profile_settings. Cliente pode então
+        // solicitar a videochamada sem erro 'creator_does_not_sell_calls'.
+        if (isOnline) {
+          const { data: currentSettings } = await supabase
+            .from('profile_settings')
+            .select('sell_calls, call_per_30_min, call_per_1_hr')
+            .eq('profile_id', userId)
+            .maybeSingle()
+
+          const needsUpdate =
+            !currentSettings ||
+            !currentSettings.sell_calls ||
+            !currentSettings.call_per_30_min ||
+            !currentSettings.call_per_1_hr
+
+          if (needsUpdate) {
+            await supabase
+              .from('profile_settings')
+              .upsert(
+                {
+                  profile_id: userId,
+                  sell_calls: true,
+                  call_per_30_min: currentSettings?.call_per_30_min ?? 50,
+                  call_per_1_hr: currentSettings?.call_per_1_hr ?? 90,
+                },
+                { onConflict: 'profile_id' },
+              )
+          }
+        }
+
         setCreator({
           ...creator,
           profile: {
