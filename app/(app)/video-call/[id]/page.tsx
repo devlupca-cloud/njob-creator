@@ -36,7 +36,9 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
       // Busca dados da chamada
       const { data: call } = await supabase
         .from('one_on_one_calls')
-        .select('id, creator_id, scheduled_start_time, scheduled_duration_minutes')
+        .select(
+          'id, creator_id, status, paid_at, scheduled_start_time, scheduled_duration_minutes',
+        )
         .eq('id', id)
         .single()
 
@@ -45,15 +47,30 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         return
       }
 
-      // Permitir entrada a qualquer momento antes do fim da chamada
-      const startTime = new Date(call.scheduled_start_time).getTime()
-      const now = Date.now()
-      const durationMs = (call.scheduled_duration_minutes ?? 60) * 60 * 1000
-      const endTime = startTime + durationMs
-
-      if (now > endTime) {
+      // Só entra se a call estiver paga (fluxo novo) ou confirmed (legado).
+      if (call.status !== 'paid' && call.status !== 'confirmed') {
         setStatus('error')
         return
+      }
+
+      const now = Date.now()
+      const POST_PAID_WINDOW_MS = 2 * 60 * 60 * 1000
+      const LEGACY_GRACE_MS = 5 * 60 * 1000
+
+      if (call.status === 'paid') {
+        const paidAt = call.paid_at ? new Date(call.paid_at).getTime() : NaN
+        if (!isFinite(paidAt) || now > paidAt + POST_PAID_WINDOW_MS) {
+          setStatus('error')
+          return
+        }
+      } else if (call.status === 'confirmed' && call.scheduled_start_time) {
+        const startTime = new Date(call.scheduled_start_time).getTime()
+        const durationMs = (call.scheduled_duration_minutes ?? 60) * 60 * 1000
+        const endTime = startTime + durationMs
+        if (now > endTime + LEGACY_GRACE_MS) {
+          setStatus('error')
+          return
+        }
       }
 
       if (cancelled) return
@@ -86,9 +103,25 @@ export default function VideoCallPage({ params }: { params: Promise<{ id: string
         turnOnCameraWhenJoining: true,
         turnOnMicrophoneWhenJoining: true,
         onLeaveRoom: () => {
+          const nowIso = new Date().toISOString()
+          // Marca como completed ao sair (creator-side trigger permite paid/confirmed → completed)
+          void supabase
+            .from('one_on_one_calls')
+            .update({
+              status: 'completed',
+              actual_end_time: nowIso,
+            })
+            .eq('id', id)
           router.push('/home')
         },
       })
+
+      // Marca início real (idempotente: só grava se actual_start_time for null)
+      void supabase
+        .from('one_on_one_calls')
+        .update({ actual_start_time: new Date().toISOString() })
+        .eq('id', id)
+        .is('actual_start_time', null)
 
       setStatus('joined')
     }

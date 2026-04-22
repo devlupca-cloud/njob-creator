@@ -291,38 +291,22 @@ export default function NovoEventoModal({ isOpen, onClose, onRefresh, initialDat
 
       const userId = user.id
 
-      const [{ data: lives }, { data: calls }] = await Promise.all([
-        supabase
-          .from('live_streams')
-          .select('scheduled_start_time, estimated_duration_minutes, title')
-          .eq('creator_id', userId)
-          .in('status', ['scheduled', 'live'])
-          .gte('scheduled_start_time', dayStart.toISOString())
-          .lte('scheduled_start_time', dayEnd.toISOString()),
-        supabase
-          .from('one_on_one_calls')
-          .select('scheduled_start_time, scheduled_duration_minutes')
-          .eq('creator_id', userId)
-          .in('status', ['requested', 'confirmed'])
-          .gte('scheduled_start_time', dayStart.toISOString())
-          .lte('scheduled_start_time', dayEnd.toISOString()),
-      ])
+      // Bloqueio live × live: não deixa cadastrar duas lives no mesmo horário.
+      // (Videochamadas individuais não entram mais nessa validação — fluxo novo
+      // depende de aceite manual do creator.)
+      const { data: lives } = await supabase
+        .from('live_streams')
+        .select('scheduled_start_time, estimated_duration_minutes, title')
+        .eq('creator_id', userId)
+        .in('status', ['scheduled', 'live'])
+        .gte('scheduled_start_time', dayStart.toISOString())
+        .lte('scheduled_start_time', dayEnd.toISOString())
 
       for (const live of lives ?? []) {
         const existStart = new Date(live.scheduled_start_time).getTime()
         const existEnd = existStart + (live.estimated_duration_minutes ?? 60) * 60 * 1000
         if (newStart < existEnd && newEnd > existStart) {
           toast.error(t('events.timeConflictLive'))
-          setLoading(false)
-          return
-        }
-      }
-
-      for (const call of calls ?? []) {
-        const existStart = new Date(call.scheduled_start_time).getTime()
-        const existEnd = existStart + (call.scheduled_duration_minutes ?? 60) * 60 * 1000
-        if (newStart < existEnd && newEnd > existStart) {
-          toast.error(t('events.timeConflictCall'))
           setLoading(false)
           return
         }

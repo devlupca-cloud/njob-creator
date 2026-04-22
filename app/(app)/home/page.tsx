@@ -253,7 +253,7 @@ export default function HomePage() {
   }, [refetchEventos, refetchMetricas])
 
   const handleOnlineChange = useCallback(
-    async (isActive: boolean) => {
+    async (isOnline: boolean) => {
       if (!requireAuth()) return
       if (!creator) return
       const { data: { user } } = await supabase.auth.getUser()
@@ -261,12 +261,47 @@ export default function HomePage() {
       if (!userId) return
       setOnlineUpdating(true)
       try {
-        const { error } = await supabase.from('profiles').update({ is_active: isActive }).eq('id', userId)
-        if (error) {
+        const nowIso = new Date().toISOString()
+
+        // profiles.is_available_for_calls é a fonte de verdade para "vende agora".
+        const { error: profileErr } = await supabase
+          .from('profiles')
+          .update({ is_available_for_calls: isOnline, last_seen_at: nowIso })
+          .eq('id', userId)
+
+        if (profileErr) {
           toast.error(t('home.errorUpdateOnline'))
           return
         }
-        setCreator({ ...creator, profile: { ...creator.profile, is_active: isActive } })
+
+        // creator_presence guarda o heartbeat / fonte do estado atual (usado
+        // pelo client_web via Realtime para atualizar UI em tempo real).
+        const { error: presenceErr } = await supabase
+          .from('creator_presence')
+          .upsert(
+            {
+              creator_id: userId,
+              online: isOnline,
+              source: 'manual',
+              last_heartbeat_at: nowIso,
+              updated_at: nowIso,
+            },
+            { onConflict: 'creator_id' },
+          )
+
+        if (presenceErr) {
+          // Não bloqueia — o profile já foi atualizado. Só loga pra debug.
+          console.warn('[handleOnlineChange] presence upsert falhou', presenceErr)
+        }
+
+        setCreator({
+          ...creator,
+          profile: {
+            ...creator.profile,
+            is_available_for_calls: isOnline,
+            last_seen_at: nowIso,
+          },
+        })
       } catch {
         toast.error(t('home.errorUpdateStatus'))
       } finally {
@@ -299,7 +334,7 @@ export default function HomePage() {
           greeting={greeting}
           avatarUrl={avatarUrl}
           userName={userName}
-          isOnline={creator?.profile?.is_active ?? true}
+          isOnline={creator?.profile?.is_available_for_calls ?? false}
           onlineUpdating={onlineUpdating}
           unreadCount={unreadCount}
           onOnlineChange={handleOnlineChange}

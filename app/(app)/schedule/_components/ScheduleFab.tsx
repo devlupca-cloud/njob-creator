@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus, Radio, Video } from 'lucide-react'
+import { Plus, Radio } from 'lucide-react'
 
 interface ScheduleFabProps {
   showFabMenu: boolean
@@ -12,20 +11,17 @@ interface ScheduleFabProps {
   onOpenNovoEvento: () => void
   tNewEvent: string
   tCreateLive: string
-  tManageAvailability: string
+  tManageAvailability?: string
 }
 
 export function ScheduleFab({
   showFabMenu,
-  dataSelect,
   onToggleMenu,
   onCloseMenu,
   onOpenNovoEvento,
   tNewEvent,
   tCreateLive,
-  tManageAvailability,
 }: ScheduleFabProps) {
-  const router = useRouter()
   const fabMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -38,12 +34,6 @@ export function ScheduleFab({
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [showFabMenu, onCloseMenu])
-
-  const handleManageAvailability = () => {
-    onCloseMenu()
-    const dateStr = `${dataSelect.getFullYear()}-${String(dataSelect.getMonth() + 1).padStart(2, '0')}-${String(dataSelect.getDate()).padStart(2, '0')}`
-    router.push(`/schedule/availability?date=${dateStr}`)
-  }
 
   return (
     <div ref={fabMenuRef} className="fixed bottom-[88px] right-5 z-40">
@@ -64,16 +54,6 @@ export function ScheduleFab({
               <Radio size={18} />
             </span>
             {tCreateLive}
-          </button>
-          <button
-            type="button"
-            onClick={handleManageAvailability}
-            className="flex items-center gap-3 px-[14px] py-3 rounded-[10px] border-none bg-transparent text-[var(--color-foreground)] text-sm font-medium cursor-pointer w-full text-left transition-colors hover:bg-[var(--color-surface-2)]"
-          >
-            <span className="flex text-[#FFDF6E]">
-              <Video size={18} />
-            </span>
-            {tManageAvailability}
           </button>
         </div>
       )}

@@ -2,6 +2,7 @@ import Sidebar from '@/components/ui/Sidebar'
 import Navbar from '@/components/ui/Navbar'
 import MobileAppBar from '@/components/ui/MobileAppBar'
 import CreatorLoader from '@/components/CreatorLoader'
+import CreatorPresenceShell from '@/components/CreatorPresenceShell'
 import PullToRefresh from '@/components/ui/PullToRefresh'
 
 export default function AppLayout({
@@ -12,6 +13,7 @@ export default function AppLayout({
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--color-background)]">
       <CreatorLoader />
+      <CreatorPresenceShell />
       {/* Desktop sidebar */}
       <Sidebar />
 

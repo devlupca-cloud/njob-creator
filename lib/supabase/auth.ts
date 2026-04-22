@@ -142,8 +142,37 @@ export async function updatePassword(
 
 /**
  * Sign out the current user.
+ * Antes do signOut, desliga o status online para videochamadas.
  */
 export async function signOut(): Promise<void> {
   const supabase = createClient()
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const nowIso = new Date().toISOString()
+      await Promise.all([
+        supabase
+          .from('profiles')
+          .update({ is_available_for_calls: false })
+          .eq('id', user.id),
+        supabase
+          .from('creator_presence')
+          .upsert(
+            {
+              creator_id: user.id,
+              online: false,
+              source: 'logout',
+              last_heartbeat_at: nowIso,
+              updated_at: nowIso,
+            },
+            { onConflict: 'creator_id' },
+          ),
+      ])
+    }
+  } catch {
+    // ignora erro de presence — não bloqueia o logout
+  }
+
   await supabase.auth.signOut()
 }
